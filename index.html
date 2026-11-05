@@ -191,12 +191,17 @@ main.wide > aside { display: none; }
 /* Las bandas de debajo mantienen su ancho y se alinean a la derecha con el vídeo */
 .practice > .panel { width: 100%; max-width: 900px; margin-left: auto; }
 .stage > #player, .stage iframe { position: absolute; inset: 0; width: 100%; height: 100%; }
+/* Portada: la batería en el escenario; el texto, abajo, sobre el suelo oscuro */
 .empty {
-  position: absolute; inset: 0; display: grid; place-items: center; text-align: center; padding: 24px;
-  color: #c9d3dd; background: repeating-linear-gradient(90deg, #121a23 0 calc(25% - 1px), #24313f calc(25% - 1px) 25%);
+  position: absolute; inset: 0; display: flex; align-items: flex-end; justify-content: center; text-align: center;
+  padding: 24px 3% 2.4%; color: #fff;
+  background: linear-gradient(to top, rgba(0, 0, 0, .7) 0%, rgba(0, 0, 0, 0) 32%), #050608 url("portada.webp") center / cover no-repeat;
 }
-.empty p { max-width: 42ch; margin: 8px auto 0; color: #9fb0c0; }
-.empty strong { font-family: var(--display); font-size: 22px; color: #fff; }
+.empty p { max-width: 52ch; margin: 6px auto 0; color: rgba(255, 255, 255, .88); font-size: clamp(12px, 1.6vw, 19px); font-weight: 600;
+  letter-spacing: .01em; text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
+.empty strong { font-family: var(--display); font-size: clamp(17px, 2vw, 24px); color: #fff; text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
+.empty strong:empty { display: none; }
+@media (max-width: 560px) { .empty p { letter-spacing: 0; font-size: 11.5px; } }
 
 /* Cuenta atrás grande sobre el vídeo */
 .countin {
@@ -393,8 +398,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <div id="player"></div>
       <div class="empty" id="emptyState">
         <div>
-          <strong id="emptyTitle">Pega un enlace de YouTube arriba</strong>
-          <p id="emptyText">Después marca dónde empieza y dónde acaba la parte difícil y pulsa «Empezar ensayo».</p>
+          <strong id="emptyTitle"></strong>
+          <p id="emptyText">Pega un enlace de YouTube arriba para empezar a ensayar.</p>
         </div>
       </div>
       <div class="countin" id="countin" hidden></div>
