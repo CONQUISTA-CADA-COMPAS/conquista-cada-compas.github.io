@@ -47,9 +47,10 @@
   --fg: #16202b;
   --muted: #5a6876;
   --line: #cfd7e0;
-  --accent: #ff0b5e;        /* color de la marca */
-  --accent-fg: #ffffff;
-  --accent-soft: #ffe1eb;
+  --accent: #00d49e;        /* color de la marca */
+  --accent-fg: #04261c;     /* texto sobre el verde: oscuro, el blanco no se lee bien */
+  --accent-soft: #d4f6ec;
+  --accent-ink: #00805f;    /* verde más oscuro para textos sobre fondo claro */
   --hit: #2b3440;           /* marcas de inicio/fin: tinta oscura para no competir con el rosa */
   --ok: #1f8a4c;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
@@ -61,13 +62,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0f151c; --surface: #18212b; --surface-2: #222e3a; --fg: #e8edf2; --muted: #9aa8b6;
-    --line: #2d3a48; --accent: #ff2e74; --accent-fg: #ffffff; --accent-soft: #4a1630;
+    --line: #2d3a48; --accent: #00d49e; --accent-fg: #04261c; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
     --hit: #d5dde6; --ok: #4cc47f; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0f151c; --surface: #18212b; --surface-2: #222e3a; --fg: #e8edf2; --muted: #9aa8b6;
-  --line: #2d3a48; --accent: #ff2e74; --accent-fg: #ffffff; --accent-soft: #4a1630;
+  --line: #2d3a48; --accent: #00d49e; --accent-fg: #04261c; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
   --hit: #d5dde6; --ok: #4cc47f; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -248,7 +249,7 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .s-head .chev { color: var(--muted); transition: transform .15s; font-size: 12px; }
 .s-item.open .s-head .chev { transform: rotate(90deg); }
 .s-head .st { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 15px; }
-.s-item.has-active .s-head .st { color: var(--accent); }
+.s-item.has-active .s-head .st { color: var(--accent-ink); }
 .s-head .sc { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
 .s-body { display: flex; flex-direction: column; gap: 2px; padding: 0 0 10px 24px; }
 .f-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: 6px; }
@@ -268,7 +269,20 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .drummer-form { display: flex; flex-direction: column; gap: 8px; }
 .drummer-form p { margin: 0; }
 .drummer-form input { flex: 1 1 140px; }
-.who { color: var(--accent); }
+.who { color: var(--accent-ink); }
+/* Pestañas de «Mis canciones» */
+.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 8px; }
+.tab { border: none; background: none; padding: 6px 4px; border-radius: 6px; font-weight: 700; font-size: 13px; color: var(--muted); white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
+.tab.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(10, 20, 30, .12); }
+.tab .tc { font-family: var(--mono); font-weight: 500; font-size: 11px; background: var(--surface-2); border-radius: 999px; padding: 0 6px; }
+.tab .tc:empty { display: none; }
+.tab.on .tc { background: var(--accent-soft); color: var(--fg); }
+.h-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px; align-items: center; border-bottom: 1px solid var(--line); padding: 3px 0; }
+.h-row:last-child { border-bottom: none; }
+.h-row .h-title { background: none; border: none; text-align: left; padding: 6px 4px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
+.h-row .h-title:hover { background: var(--surface-2); }
+.h-row.active .h-title { color: var(--accent-ink); font-weight: 700; }
+.h-row .btn { padding: 3px 9px; font-size: 13px; }
 .s-actions select.transfer { font-size: 13px; padding: 3px 6px; border-radius: 6px; }
 /* Columna derecha compacta: que quepa todo sin hacer scroll */
 aside.col, #boardSlotAside .sidegroup { gap: 12px; }
@@ -304,8 +318,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   </form>
   </div>
   <div class="h-right">
-    <button class="btn libtoggle" type="button" id="libToggle" aria-controls="libAside">Canciones guardadas <span class="count" id="libCount">0</span></button>
-    <button class="btn primary" type="submit" form="loadForm">Cargar vídeo</button>
+    <button class="btn libtoggle" type="button" id="libToggle" aria-controls="libAside">Mis canciones <span class="count" id="libCount">0</span></button>
+    <button class="btn primary" type="submit" form="loadForm" id="loadBtn">Cargar canción</button>
   </div>
 </header>
 
@@ -407,7 +421,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   <aside class="col" id="libAside">
     <div id="boardSlotAside"></div>
     <div class="panel libpanel">
-      <div class="row between"><h2>Canciones guardadas</h2><button class="btn small ghost" type="button" id="libClose" title="Ocultar esta columna para ver el ensayo más grande">Ocultar ⟩</button></div>
+      <div class="row between"><h2>Mis canciones</h2><button class="btn small ghost" type="button" id="libClose" title="Ocultar esta columna para ver el ensayo más grande">Ocultar ⟩</button></div>
       <div class="drummer" id="drummerRow" hidden>
         <label class="label" for="drummerSel">Baterista</label>
         <select id="drummerSel"></select>
@@ -420,6 +434,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           <button class="btn small ghost" type="button" id="drummerCancel">Cancelar</button>
         </div>
       </form>
+      <div class="tabs" role="tablist" aria-label="Mis canciones">
+        <button class="tab on" type="button" role="tab" data-tab="saved" aria-selected="true">Canciones guardadas <span class="tc" id="tcSaved"></span></button>
+        <button class="tab" type="button" role="tab" data-tab="others" aria-selected="false">Otros ensayos <span class="tc" id="tcOthers"></span></button>
+      </div>
       <input type="search" class="libsearch" id="libSearch" placeholder="Buscar canción…" aria-label="Buscar canción" hidden>
       <div class="lib" id="library"></div>
     </div>
@@ -561,7 +579,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         onReady: () => { playerReady = true; },
         onStateChange: (e) => {
           updateSongBtn();
-          if (e.data === YT.PlayerState.PLAYING) ensureSong();
+          if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.CUED) ensureSong();
         },
         onError: (e) => {
           const m = {
@@ -601,28 +619,58 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     }, 700);
   }
 
+  // Canción del vídeo cargado. Si no existe, se crea en «Otros ensayos» (sin guardar).
+  const isSaved = (s) => s.saved !== false;
+  const HISTORY_MAX = 30;
   function ensureSong() {
     if (!videoId) return null;
     let song = mySongs().find((s) => s.videoId === videoId);
-    const title = (playerReady && player.getVideoData && player.getVideoData().title) || "Vídeo sin título";
+    // el título solo vale si YouTube ya tiene cargado este mismo vídeo
+    const vd = playerReady && player.getVideoData ? player.getVideoData() || {} : {};
+    const title = (vd.video_id === videoId && vd.title) || "Vídeo sin título";
     if (!song) {
-      song = { id: uid(), videoId, title, fragments: [], updated: Date.now() };
+      song = { id: uid(), videoId, title, fragments: [], updated: Date.now(), saved: false, lastUsed: Date.now() };
       if (drummerId) song.drummer = drummerId;
-      lib.songs.unshift(song); persist(); renderLibrary();
-    } else if (song.title === "Vídeo sin título" && title !== song.title) { song.title = title; persist(); renderLibrary(); }
+      lib.songs.unshift(song);
+      // el historial no crece sin fin: se olvidan los más antiguos
+      const hist = mySongs().filter((x) => !isSaved(x)).sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
+      hist.slice(HISTORY_MAX).forEach((x) => { lib.songs = lib.songs.filter((y) => y !== x); });
+      persist(); renderLibrary();
+    } else if (song.title === "Vídeo sin título" && title && title !== song.title) { song.title = title; persist(); renderLibrary(); }
     currentSongId = song.id;
     return song;
+  }
+  const currentSong = () => lib.songs.find((s) => s.id === currentSongId) || null;
+  // El botón de la cabecera: «Cargar canción», o «Guardar canción» si la canción cargada aún no está guardada
+  let loadBtnSaves = false;
+  function updateLoadBtn() {
+    const cur = currentSong();
+    const raw = $("urlInput").value.trim(), v = raw ? parseVideo(raw) : null;
+    loadBtnSaves = !!(cur && !isSaved(cur) && cur.videoId === videoId && (!raw || (v && v.id === cur.videoId)));
+    $("loadBtn").textContent = loadBtnSaves ? "Guardar canción" : "Cargar canción";
+  }
+  $("urlInput").addEventListener("input", updateLoadBtn);
+  function saveSong(song) {
+    song.saved = true; song.updated = Date.now();
+    lib.songs = [song, ...lib.songs.filter((x) => x !== song)];
+    libTab = "saved"; openSongs.add(song.id);
+    persist(); renderLibrary();
+    toast(`«${song.title}» guardada en Canciones guardadas`);
   }
 
   $("loadForm").addEventListener("submit", (e) => {
     e.preventDefault();
+    updateLoadBtn();
+    if (loadBtnSaves) { saveSong(currentSong()); return; }
     const v = parseVideo($("urlInput").value);
     if (!v) { toast("Ese enlace no parece de YouTube. Cópialo desde la barra de direcciones o desde «Compartir»."); return; }
     stopSession(); currentFragId = null; frag = { start: v.t, end: v.t }; $("fragName").value = ""; updateFragUI();
-    const song = mySongs().find((s) => s.videoId === v.id);
-    currentSongId = song ? song.id : null;
-    if (song) openSongs.add(song.id);
-    openVideo(v.id, v.t); renderLibrary();
+    openVideo(v.id, v.t);
+    if (videoId !== v.id) videoId = v.id;   // YouTube aún cargando: se apunta igualmente
+    const song = ensureSong();
+    if (!isSaved(song)) { song.lastUsed = Date.now(); libTab = "others"; persist(); }
+    else { libTab = "saved"; openSongs.add(song.id); }
+    renderLibrary();
   });
 
   // ---------- Línea de tiempo ----------
@@ -685,6 +733,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("saveFrag").onclick = () => {
     if (!validFrag()) return;
     const song = ensureSong(); if (!song) return;
+    if (!isSaved(song)) { song.saved = true; libTab = "saved"; }   // guardar un fragmento también guarda la canción
     const data = { name: $("fragName").value.trim() || `Fragmento ${fmt(frag.start, false)}`, start: frag.start, end: frag.end, updated: Date.now() };
     let f = song.fragments.find((x) => x.id === currentFragId);
     const existed = !!f;
@@ -951,24 +1000,48 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // ---------- Biblioteca ----------
   const openSongs = new Set();
+  let libTab = "saved";
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => { libTab = t.dataset.tab; renderLibrary(); });
   function renderLibrary() {
     // Con un fragmento elegido, guardar sobrescribe ese mismo fragmento
     $("saveFrag").textContent = currentFragId ? "Guardar cambios" : "Guardar fragmento";
     $("newFrag").textContent = currentFragId ? "Guardar como nuevo" : "Nuevo";
+    updateLoadBtn();
     const box = $("library"); box.innerHTML = "";
-    const songs = mySongs();
-    $("libCount").textContent = songs.length;
+    const all = mySongs();
+    const savedSongs = all.filter(isSaved);
+    const history = all.filter((s) => !isSaved(s)).sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
+    $("libCount").textContent = savedSongs.length;
+    $("tcSaved").textContent = savedSongs.length || "";
+    $("tcOthers").textContent = history.length || "";
+    document.querySelectorAll(".tab").forEach((t) => { const on = t.dataset.tab === libTab; t.classList.toggle("on", on); t.setAttribute("aria-selected", String(on)); });
+    const songs = libTab === "saved" ? savedSongs : history;
     $("libSearch").hidden = songs.length < 6;
+    const who = drummerId ? drummerName(drummerId) : "";
     if (!songs.length) {
       box.innerHTML = `<p class="lib-empty"></p>`;
-      box.firstChild.textContent = drummerId
-        ? `${drummerName(drummerId)} todavía no tiene canciones. Pega un enlace de YouTube arriba y guarda un fragmento.`
-        : "Aquí aparecerán las canciones y las partes difíciles que guardes. Pulsa una canción para ver sus fragmentos.";
+      box.firstChild.textContent = libTab === "saved"
+        ? (who ? `${who} todavía no tiene canciones guardadas. ` : "") + "Carga una canción con su enlace de YouTube y pulsa «Guardar canción»."
+        : "Aquí aparecen las canciones que cargas y todavía no has guardado.";
       return;
     }
     const q = $("libSearch").hidden ? "" : $("libSearch").value.trim();
     const list = songs.filter((s) => !q || norm(s.title).includes(norm(q)) || s.fragments.some((f) => norm(f.name).includes(norm(q))));
     if (!list.length) { box.innerHTML = `<p class="noresult"></p>`; box.firstChild.textContent = `Ninguna canción coincide con «${q}».`; return; }
+    if (libTab === "others") {
+      list.forEach((song) => {
+        const row = document.createElement("div");
+        row.className = "h-row" + (song.id === currentSongId ? " active" : "");
+        row.innerHTML = `<button class="h-title" type="button"></button><button class="btn" type="button">Guardar</button><button class="iconbtn" type="button" title="Quitar del historial" aria-label="Quitar del historial">×</button>`;
+        const [tb, sb, xb] = row.querySelectorAll("button");
+        tb.textContent = song.title; tb.title = song.title;
+        tb.onclick = () => { song.lastUsed = Date.now(); persist(); openSong(song); };
+        sb.onclick = () => saveSong(song);
+        xb.onclick = () => { lib.songs = lib.songs.filter((x) => x !== song); if (currentSongId === song.id) currentSongId = null; persist(); renderLibrary(); };
+        box.appendChild(row);
+      });
+      return;
+    }
     const others = lib.drummers.filter((d) => d.id !== drummerId);
     list.forEach((song) => {
       const isOpen = openSongs.has(song.id) || !!q;
@@ -1034,6 +1107,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function openSong(song) {
     stopSession(); currentSongId = song.id; currentFragId = null;
+    $("urlInput").value = "https://youtu.be/" + song.videoId;
     songPlaying = false; updateSongBtn();
     frag = { start: 0, end: 0 }; $("fragName").value = ""; updateFragUI();
     if (videoId !== song.videoId) openVideo(song.videoId, 0);
@@ -1056,7 +1130,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const used = new Set(obj.songs.map((s) => s.drummer).filter(Boolean));
     const out = {
       drummers: lib.drummers.filter((d) => obj === lib || used.has(d.id)).map((d) => ({ id: d.id, name: d.name })),
-      songs: obj.songs.map((s) => ({ id: s.id, videoId: s.videoId, title: s.title, drummer: s.drummer, updated: s.updated || 0,
+      songs: obj.songs.filter(isSaved).map((s) => ({ id: s.id, videoId: s.videoId, title: s.title, drummer: s.drummer, updated: s.updated || 0,
         fragments: s.fragments.map((f) => ({ id: f.id, name: f.name, start: f.start, end: f.end, updated: f.updated || 0 })) })),
     };
     if (withDeleted && lib.deleted) out.deleted = lib.deleted;
@@ -1098,6 +1172,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       let ex = lib.songs.find((x) => x.videoId === s.videoId && (x.drummer || undefined) === dr);
       if (!ex) { ex = { id: uid(), videoId: s.videoId, title: s.title, drummer: dr, updated: s.updated || 0, fragments: [] }; lib.songs.push(ex); }
       else if ((s.updated || 0) > (ex.updated || 0)) { ex.title = s.title; ex.updated = s.updated; }
+      if (!isSaved(ex)) ex.saved = true;   // lo que llega publicado o compartido está guardado
       if (!r.first) r.first = ex;
       (s.fragments || []).forEach((f) => {
         if (gone(f.id, f.updated)) return;
