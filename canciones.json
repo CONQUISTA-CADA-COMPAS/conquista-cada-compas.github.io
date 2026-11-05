@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-05T16:14:44.000Z",
+ "published": "2026-11-05T18:24:26.000Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -13,23 +13,15 @@
  ],
  "songs": [
   {
-   "id": "qnrch89a",
-   "videoId": "FI4tahavfsg",
-   "title": "All These Things That I've Done   The Killers   JYDT   Grade 5",
+   "id": "rfl2rc7c",
+   "videoId": "0sZnzSgTaG4",
+   "title": "When You Were Young - The Killers",
    "drummer": "n4u5pzcx",
-   "updated": 0,
-   "fragments": [
-    {
-     "id": "2x2wphtg",
-     "name": "Primer fill",
-     "start": 43,
-     "end": 57,
-     "updated": 0
-    }
-   ]
+   "updated": 1793897332833,
+   "fragments": []
   },
   {
-   "id": "ela5vowx",
+   "id": "y06bjdmr",
    "videoId": "0_3Pla56rEY",
    "title": "For Reasons Unknown   The Killers   JYDT   Grade 3",
    "drummer": "9ar14mgy",
@@ -50,6 +42,30 @@
      "updated": 1793875087377
     }
    ]
+  },
+  {
+   "id": "eqghlqzl",
+   "videoId": "FI4tahavfsg",
+   "title": "All These Things That I've Done - The Killers (Grade 5)",
+   "drummer": "n4u5pzcx",
+   "updated": 1793897355034,
+   "fragments": [
+    {
+     "id": "2x2wphtg",
+     "name": "Primer fill",
+     "start": 43,
+     "end": 57,
+     "updated": 0
+    }
+   ]
+  },
+  {
+   "id": "9byvnkix",
+   "videoId": "WYQYvnrMvDg",
+   "title": "Jerk It Out - The Ceasars (Grade 3)",
+   "drummer": "9ar14mgy",
+   "updated": 1793897518636,
+   "fragments": []
   }
  ],
  "deleted": {
