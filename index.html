@@ -98,8 +98,11 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .h-left { display: flex; align-items: center; gap: 12px 20px; min-width: 0; padding-left: calc(var(--stage-inset, 0px) + 10px); }
 .h-right { display: flex; gap: 8px; min-width: 0; }
 .h-right .btn { font-size: 15px; padding-inline: 12px; }
-.h-right .libtoggle { flex: 1 1 auto; min-width: 0; }
-header.top.wide .h-right .libtoggle { flex: 0 0 auto; }
+.h-right .drumsel { flex: 1 1 auto; min-width: 0; font-weight: 700; cursor: pointer; text-align: left; }
+.h-right .drumsel.need { border-color: var(--accent); color: var(--accent-ink); }
+.h-right .sidebtn { flex: none; padding: 0 9px; display: inline-flex; align-items: center; color: var(--muted); }
+.h-right .sidebtn:hover { color: var(--accent-ink); }
+header.top.wide .h-right .drumsel { flex: 0 0 auto; min-width: 150px; }
 @media (max-width: 980px) {
   header.top, header.top.wide { grid-template-columns: minmax(0, 1fr); }
   .h-left { flex-wrap: wrap; padding-left: 0; }
@@ -340,8 +343,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   </form>
   </div>
   <div class="h-right">
-    <button class="btn libtoggle" type="button" id="libToggle" aria-controls="libAside">Mis canciones <span class="count" id="libCount">0</span></button>
+    <select class="btn drumsel" id="drummerSel" aria-label="Baterista"></select>
     <button class="btn primary" type="submit" form="loadForm" id="loadBtn">Cargar canción</button>
+    <button class="btn sidebtn" type="button" id="libToggle" aria-controls="libAside" title="Ocultar panel lateral" aria-label="Ocultar panel lateral"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
   </div>
 </header>
 
@@ -443,11 +447,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   <aside class="col" id="libAside">
     <div id="boardSlotAside"></div>
     <div class="panel libpanel">
-      <div class="row between"><h2>Mis canciones</h2><button class="btn small ghost" type="button" id="libClose" title="Ocultar esta columna para ver el ensayo más grande">Ocultar ⟩</button></div>
-      <div class="drummer" id="drummerRow" hidden>
-        <label class="label" for="drummerSel">Baterista</label>
-        <select id="drummerSel"></select>
-      </div>
+      <h2>Mis canciones</h2>
       <form class="drummer-form" id="drummerForm" hidden>
         <p class="note" id="drummerIntro"></p>
         <div class="row" style="gap:6px">
@@ -525,12 +525,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const norm = (t) => String(t || "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
   const songKey = (s) => "song:" + (s.drummer || "") + ":" + s.videoId;
   const drummerName = (id) => (lib.drummers.find((d) => d.id === id) || {}).name || "";
-  const mySongs = () => (lib.drummers.length ? lib.songs.filter((s) => s.drummer === drummerId) : lib.songs);
+  const mySongs = () => (lib.drummers.length ? (drummerId ? lib.songs.filter((s) => s.drummer === drummerId) : []) : lib.songs);
+  const needDrummer = () => lib.drummers.length > 0 && !drummerId;
   // Si hay bateristas, toda canción tiene dueño y siempre hay uno elegido
   function fixDrummers() {
     if (!lib.drummers.length) { drummerId = null; return; }
-    if (!lib.drummers.some((d) => d.id === drummerId)) drummerId = lib.drummers[0].id;
-    lib.songs.forEach((s) => { if (!s.drummer || !lib.drummers.some((d) => d.id === s.drummer)) s.drummer = drummerId; });
+    if (!lib.drummers.some((d) => d.id === drummerId)) drummerId = null;   // nadie elegido hasta que se escoja arriba
+    const owner = drummerId || lib.drummers[0].id;
+    lib.songs.forEach((s) => { if (!s.drummer || !lib.drummers.some((d) => d.id === s.drummer)) s.drummer = owner; });
   }
   function fmt(t, dec = true) {
     t = Math.max(0, t || 0);
@@ -645,7 +647,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const isSaved = (s) => s.saved !== false;
   const HISTORY_MAX = 30;
   function ensureSong() {
-    if (!videoId) return null;
+    if (!videoId || needDrummer()) return null;
     let song = mySongs().find((s) => s.videoId === videoId);
     // el título solo vale si YouTube ya tiene cargado este mismo vídeo
     const vd = playerReady && player.getVideoData ? player.getVideoData() || {} : {};
@@ -706,7 +708,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     openVideo(v.id, v.t);
     if (videoId !== v.id) videoId = v.id;   // YouTube aún cargando: se apunta igualmente
     const song = ensureSong();
-    if (!isSaved(song)) { song.lastUsed = Date.now(); libTab = "others"; persist(); }
+    if (!song) toast("Elige arriba quién ensaya para que la canción quede en su lista.");
+    else if (!isSaved(song)) { song.lastUsed = Date.now(); libTab = "others"; persist(); }
     else { libTab = "saved"; openSongs.add(song.id); }
     renderLibrary();
   });
@@ -770,7 +773,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   };
   $("saveFrag").onclick = () => {
     if (!validFrag()) return;
-    const song = ensureSong(); if (!song) return;
+    const song = ensureSong();
+    if (!song) { toast("Elige arriba quién ensaya antes de guardar."); $("drummerSel").focus(); return; }
     if (!isSaved(song)) { song.saved = true; libTab = "saved"; }   // guardar un fragmento también guarda la canción
     const data = { name: $("fragName").value.trim() || `Fragmento ${fmt(frag.start, false)}`, start: frag.start, end: frag.end, updated: Date.now() };
     let f = song.fragments.find((x) => x.id === currentFragId);
@@ -973,13 +977,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // ---------- Bateristas ----------
   function renderDrummers() {
     const has = lib.drummers.length > 0;
-    $("drummerRow").hidden = !has;
     const sel = $("drummerSel");
     sel.innerHTML = "";
+    if (!drummerId) { const o = document.createElement("option"); o.value = ""; o.textContent = "Baterista"; o.disabled = true; o.hidden = true; sel.appendChild(o); }
     lib.drummers.forEach((d) => { const o = document.createElement("option"); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
     const add = document.createElement("option"); add.value = "__add"; add.textContent = "+ Añadir baterista…"; sel.appendChild(add);
-    if (has) sel.value = drummerId;
-    $("whoTag").textContent = has ? "· " + drummerName(drummerId) : "";
+    sel.value = drummerId || "";
+    sel.classList.toggle("need", !drummerId);
+    sel.title = drummerId ? "Baterista que ensaya" : "Elige quién va a ensayar";
+    $("whoTag").textContent = drummerId ? "· " + drummerName(drummerId) : "";
     if (!has) showDrummerForm(true);
     else if ($("drummerCancel").hidden) $("drummerForm").hidden = true;   // ya hay bateristas: fuera la pregunta inicial
   }
@@ -1001,7 +1007,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     renderDrummers(); renderLibrary();
   }
   $("drummerSel").onchange = (e) => {
-    if (e.target.value === "__add") { e.target.value = drummerId; showDrummerForm(false); return; }
+    if (e.target.value === "__add") {
+      e.target.value = drummerId || "";
+      if (document.querySelector("main").classList.contains("wide")) setWide(false);
+      showDrummerForm(!lib.drummers.length); return;
+    }
     setDrummer(e.target.value);
     toast(`Ahora ensaya ${drummerName(drummerId)}`);
   };
@@ -1055,13 +1065,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const all = mySongs();
     const savedSongs = all.filter(isSaved);
     const history = all.filter((s) => !isSaved(s)).sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
-    $("libCount").textContent = savedSongs.length;
     $("tcSaved").textContent = savedSongs.length || "";
     $("tcOthers").textContent = history.length || "";
     document.querySelectorAll(".tab").forEach((t) => { const on = t.dataset.tab === libTab; t.classList.toggle("on", on); t.setAttribute("aria-selected", String(on)); });
     const songs = libTab === "saved" ? savedSongs : history;
     $("libSearch").hidden = songs.length < 6;
     const who = drummerId ? drummerName(drummerId) : "";
+    if (needDrummer()) {
+      box.innerHTML = `<p class="lib-empty">Elige quién va a ensayar en <b>Baterista</b>, arriba, junto a «Cargar canción».</p>`;
+      return;
+    }
     if (!songs.length) {
       box.innerHTML = `<p class="lib-empty"></p>`;
       box.firstChild.textContent = libTab === "saved"
@@ -1390,7 +1403,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     document.querySelector("main").classList.toggle("wide", wide);
     $("topHeader").classList.toggle("wide", wide);
     $("libToggle").setAttribute("aria-expanded", String(!wide));
-    $("libToggle").title = wide ? "Mostrar las canciones guardadas" : "Ocultar las canciones guardadas";
+    const tip = wide ? "Mostrar panel lateral" : "Ocultar panel lateral";
+    $("libToggle").title = tip; $("libToggle").setAttribute("aria-label", tip);
     try { localStorage.setItem("ensayo-en-bucle-wide", wide ? "1" : "0"); } catch (e) {}
     placeBoard();
   }
@@ -1411,7 +1425,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   narrowMQ.addEventListener ? narrowMQ.addEventListener("change", placeBoard) : narrowMQ.addListener(placeBoard);
   $("libToggle").onclick = () => setWide(!document.querySelector("main").classList.contains("wide"));
-  $("libClose").onclick = () => setWide(true);
   let startWide = false;
   try { startWide = localStorage.getItem("ensayo-en-bucle-wide") === "1"; } catch (e) {}
   setWide(startWide);
