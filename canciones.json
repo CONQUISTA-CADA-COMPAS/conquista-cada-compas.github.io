@@ -1,0 +1,60 @@
+{
+ "app": "ensayo-en-bucle",
+ "published": "2026-11-05T16:14:44.000Z",
+ "drummers": [
+  {
+   "id": "n4u5pzcx",
+   "name": "Dari"
+  },
+  {
+   "id": "9ar14mgy",
+   "name": "Gabi"
+  }
+ ],
+ "songs": [
+  {
+   "id": "qnrch89a",
+   "videoId": "FI4tahavfsg",
+   "title": "All These Things That I've Done   The Killers   JYDT   Grade 5",
+   "drummer": "n4u5pzcx",
+   "updated": 0,
+   "fragments": [
+    {
+     "id": "2x2wphtg",
+     "name": "Primer fill",
+     "start": 43,
+     "end": 57,
+     "updated": 0
+    }
+   ]
+  },
+  {
+   "id": "ela5vowx",
+   "videoId": "0_3Pla56rEY",
+   "title": "For Reasons Unknown   The Killers   JYDT   Grade 3",
+   "drummer": "9ar14mgy",
+   "updated": 1793874256480,
+   "fragments": [
+    {
+     "id": "9ivbyxb6",
+     "name": "Primer ensayo",
+     "start": 59,
+     "end": 66.2,
+     "updated": 1793874998417
+    },
+    {
+     "id": "iyrnaxaf",
+     "name": "Segundo ensayo",
+     "start": 81,
+     "end": 124.1,
+     "updated": 1793875087377
+    }
+   ]
+  }
+ ],
+ "deleted": {
+  "song:n4u5pzcx:0_3Pla56rEY": 1793874256480,
+  "yjgrqzvc": 1793874256480,
+  "m2mz9brr": 1793874256480
+ }
+}
