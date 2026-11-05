@@ -117,8 +117,18 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .drummenu .addform input { flex: 1; min-width: 0; padding: 6px 8px; font-size: 14px; }
 .drummenu .addform .btn { color: var(--accent-fg); padding: 4px 10px; }
 .drummenu button:hover, .drummenu button:focus-visible { background: var(--done-soft); outline: none; }
-.drummenu button.sel { background: var(--done-soft); }
-.drummenu button.sel::after { content: "  ✓"; }
+.drummenu .drow { display: flex; align-items: center; border-radius: 7px; }
+.drummenu .drow:hover, .drummenu .drow.sel { background: var(--done-soft); }
+.drummenu .drow .dname { flex: 1; min-width: 0; padding-left: 4px; }
+.drummenu .drow .dname:hover, .drummenu .drow .dname:focus-visible { background: none; }
+.drummenu .drow.sel .dname::after { content: "  ✓"; }
+.drummenu .dtrash { flex: none; display: inline-flex; padding: 8px 2px 8px 8px; color: var(--muted); opacity: .6; }
+.drummenu .dtrash:hover, .drummenu .dtrash:focus-visible { color: var(--done); opacity: 1; background: none; }
+.drummenu .dconfirm { padding: 6px 4px; display: flex; flex-direction: column; gap: 6px; }
+.drummenu .dconfirm p { margin: 0; font-size: 13px; font-weight: 700; color: var(--fg); white-space: normal; }
+.drummenu .dconfirm div { display: flex; gap: 4px; }
+.drummenu .dconfirm .btn { padding: 4px 8px; font-size: 13px; color: var(--fg); border: 1.5px solid var(--line); background: var(--surface); }
+.drummenu .dconfirm .btn.hit { color: var(--done); border-color: var(--done); }
 .drummenu .add { color: var(--fg); font-weight: 600; border-top: 1px solid var(--line); border-radius: 0 0 7px 7px; margin-top: 4px; padding-top: 10px; }
 .drummenu .add:hover, .drummenu .add:focus-visible { background: var(--surface-2); }
 .h-right .drumsel.need, .h-right .drumsel.need:hover { border-color: var(--done); color: var(--done); }
@@ -1007,10 +1017,26 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     btn.title = drummerId ? "Baterista que ensaya" : "Elige quién va a ensayar";
     menu.innerHTML = "";
     lib.drummers.forEach((d) => {
-      const o = document.createElement("button"); o.type = "button"; o.setAttribute("role", "option");
-      o.textContent = d.name; o.className = d.id === drummerId ? "sel" : ""; o.setAttribute("aria-selected", String(d.id === drummerId));
+      const row = document.createElement("div"); row.className = "drow" + (d.id === drummerId ? " sel" : "");
+      const del = document.createElement("button"); del.type = "button"; del.className = "dtrash";
+      del.title = `Borrar a ${d.name}`; del.setAttribute("aria-label", `Borrar a ${d.name}`); del.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
+      const o = document.createElement("button"); o.type = "button"; o.setAttribute("role", "option"); o.className = "dname";
+      o.textContent = d.name; o.setAttribute("aria-selected", String(d.id === drummerId));
       o.onclick = () => { closeMenus(); if (d.id !== drummerId) { setDrummer(d.id); toast(`Ahora ensaya ${d.name}`); } };
-      menu.appendChild(o);
+      // la papelera pide confirmación dentro del propio menú
+      del.onclick = (ev) => {
+        ev.stopPropagation();
+        const n = lib.songs.filter((x) => x.drummer === d.id && isSaved(x)).length;
+        const c = document.createElement("div"); c.className = "dconfirm";
+        c.innerHTML = `<p></p><div><button class="btn small hit" type="button">Sí, borrar</button><button class="btn small" type="button">No</button></div>`;
+        c.querySelector("p").textContent = `¿Borrar a ${d.name}` + (n === 1 ? " y su canción?" : n ? ` y sus ${n} canciones?` : "?");
+        const [yes, no] = c.querySelectorAll("button");
+        yes.onclick = (e2) => { e2.stopPropagation(); deleteDrummer(d); closeMenus(); };
+        no.onclick = (e2) => { e2.stopPropagation(); renderDrummers(); $("drummerMenu").hidden = false; $("drumWrap").classList.add("open"); };
+        row.replaceWith(c); no.focus();
+      };
+      row.append(del, o);
+      menu.appendChild(row);
     });
     const add = document.createElement("button"); add.type = "button"; add.className = "add"; add.textContent = "+ Añadir";
     add.title = "Añadir un baterista nuevo";
@@ -1061,6 +1087,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     items[(i + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length].focus();
   });
   $("drummerCancel").onclick = () => { $("drummerForm").hidden = true; };
+  // Borra un baterista con todas sus canciones (también del historial)
+  function deleteDrummer(d) {
+    lib.songs.filter((x) => x.drummer === d.id).forEach((x) => deleteSong(x));
+    lib.drummers = lib.drummers.filter((x) => x !== d);
+    tomb("drummer:" + d.id);
+    if (drummerId === d.id) { stopSession(true); drummerId = null; currentSongId = null; currentFragId = null; frag = { start: 0, end: 0 }; updateFragUI(); }
+    persist(); renderDrummers(); renderLibrary();
+    toast(`${d.name} borrado`);
+  }
   function addDrummer(name) {
     name = name.trim();
     if (!name) { toast("Escribe el nombre del baterista."); return false; }
@@ -1349,13 +1384,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     // Bateristas: se reconocen por su id o por su nombre
     const map = {};
     (d.drummers || []).forEach((dr) => {
+      if (lib.deleted["drummer:" + dr.id]) return;   // borrado en este aparato
       let ex = lib.drummers.find((x) => x.id === dr.id) || lib.drummers.find((x) => norm(x.name) === norm(dr.name));
       if (!ex) { ex = { id: dr.id, name: dr.name }; lib.drummers.push(ex); }
       map[dr.id] = ex.id;
     });
     fixDrummers();
+    const isGone = (id) => id && lib.deleted["drummer:" + id] && !map[id];
     const localDrummer = (id) => (id && map[id]) || (id && lib.drummers.some((x) => x.id === id) ? id : drummerId || undefined);
     d.songs.forEach((s) => {
+      if (isGone(s.drummer)) return;
       const dr = localDrummer(s.drummer);
       if (gone("song:" + (dr || "") + ":" + s.videoId, s.updated)) return;
       let ex = lib.songs.find((x) => x.videoId === s.videoId && (x.drummer || undefined) === dr);
