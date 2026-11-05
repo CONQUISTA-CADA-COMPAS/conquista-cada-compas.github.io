@@ -51,6 +51,7 @@
   --accent-fg: #ffffff;     /* texto sobre el verde */
   --accent-soft: #d4f6ec;
   --accent-ink: #00a57a;    /* verde para textos sobre fondo claro */
+  --done: #ff0b5e;          /* bolas de las vueltas hechas */
   --hit: #2b3440;           /* marcas de inicio/fin: tinta oscura para no competir con el rosa */
   --ok: #1f8a4c;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
@@ -62,13 +63,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0f151c; --surface: #18212b; --surface-2: #222e3a; --fg: #e8edf2; --muted: #9aa8b6;
-    --line: #2d3a48; --accent: #00d49e; --accent-fg: #ffffff; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
+    --line: #2d3a48; --accent: #00d49e; --accent-fg: #ffffff; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8; --done: #ff2e74;
     --hit: #d5dde6; --ok: #4cc47f; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0f151c; --surface: #18212b; --surface-2: #222e3a; --fg: #e8edf2; --muted: #9aa8b6;
-  --line: #2d3a48; --accent: #00d49e; --accent-fg: #ffffff; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
+  --line: #2d3a48; --accent: #00d49e; --accent-fg: #ffffff; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8; --done: #ff2e74;
   --hit: #d5dde6; --ok: #4cc47f; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -198,7 +199,7 @@ main.wide > aside { display: none; }
 .speedtag { font-family: var(--mono); font-weight: 700; font-size: 26px; background: var(--accent-soft); color: var(--fg); border-radius: 8px; padding: 6px 12px; text-align: center; }
 .dots { display: flex; flex-wrap: wrap; gap: 5px; }
 .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: transparent; }
-.dot.done { background: var(--ok); border-color: var(--ok); }
+.dot.done { background: var(--done); border-color: var(--done); }
 .dot.now { border-color: var(--accent); background: var(--accent-soft); }
 .go { font-size: 20px; padding: 14px 22px; }
 .board { grid-template-columns: auto minmax(0, 1fr); }
