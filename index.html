@@ -121,10 +121,10 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .drummenu button:hover, .drummenu button:focus-visible { background: var(--done-soft); outline: none; }
 .drummenu .drow { display: flex; align-items: center; border-radius: 7px; }
 .drummenu .drow:hover, .drummenu .drow.sel { background: var(--done-soft); }
-.drummenu .drow .dname { flex: 1; min-width: 0; padding-left: 4px; }
+.drummenu .drow .dname { flex: 1; min-width: 0; }
 .drummenu .drow .dname:hover, .drummenu .drow .dname:focus-visible { background: none; }
 .drummenu .drow.sel .dname::after { content: "  ✓"; }
-.drummenu .dtrash { flex: none; display: inline-flex; padding: 8px 2px 8px 8px; color: var(--muted); opacity: .6; }
+.drummenu .dtrash { flex: none; display: inline-flex; margin-left: auto; padding: 8px 8px; color: var(--muted); opacity: .6; }
 .drummenu .dtrash:hover, .drummenu .dtrash:focus-visible { color: var(--done); opacity: 1; background: none; }
 .drummenu .dconfirm { padding: 6px 4px; display: flex; flex-direction: column; gap: 6px; }
 .drummenu .dconfirm p { margin: 0; font-size: 13px; font-weight: 700; color: var(--fg); white-space: normal; }
@@ -1040,7 +1040,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         no.onclick = (e2) => { e2.stopPropagation(); renderDrummers(); $("drummerMenu").hidden = false; $("drumWrap").classList.add("open"); };
         row.replaceWith(c); no.focus();
       };
-      row.append(del, o);
+      row.append(o, del);   // nombre a la izquierda, papelera alineada a la derecha
       menu.appendChild(row);
     });
     const add = document.createElement("button"); add.type = "button"; add.className = "add"; add.textContent = "+ Añadir";
