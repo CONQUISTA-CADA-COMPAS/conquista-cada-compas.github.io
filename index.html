@@ -371,6 +371,20 @@ aside .stack .btn { padding: 7px 12px; font-size: 14px; }
 aside .drummer select { padding: 6px 10px; font-size: 15px; }
 aside .s-head { padding: 7px 2px; }
 aside .f-row .f-name { padding: 5px 8px; }
+/* Móvil y tablet en vertical: vídeo, ensayar, Mis canciones, Publicar y, al final, La parte difícil */
+@media (max-width: 980px) {
+  main { display: flex; flex-direction: column; gap: 12px; }
+  main > .col, #boardSlotMain, #boardSlotAside { display: contents; }
+  #stage { order: 1; } #boardPanel { order: 2; } .libpanel { order: 3; } #pubPanel { order: 4; } #fragPanel { order: 5; }
+  #boardPanel { gap: 12px; width: 100%; }
+  #boardSlotMain .boardpanel { max-width: none; padding: 12px 14px; gap: 10px; }
+  .boardpanel h2 { font-size: 17px; }
+  .boardpanel .board { display: none; }   /* sin bolas ni contador: el número sale en la cuenta sobre el vídeo */
+  #boardSlotMain .gorow #goBtn, #boardSlotMain .gorow #songBtn { flex: 1 1 auto; }
+  #boardSlotMain .go { font-size: 15px; padding: 9px 12px; }
+  #boardSlotMain .speedbtn { min-width: 84px; }
+  .speedmenu { right: 0; }
+}
 kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 </style>
@@ -403,7 +417,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <div class="stage" id="stage">
       <div id="player"></div>
       <div class="empty" id="emptyState">
-        <div class="cover-hint" id="coverHint">Pega un enlace de YouTube arriba para empezar a ensayar</div>
+        <div class="cover-hint" id="coverHint">Añade un baterista y pega un enlace de YouTube arriba para empezar a ensayar</div>
         <div>
           <strong id="emptyTitle"></strong>
           <p id="emptyText"></p>
@@ -446,7 +460,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     </div>
     </div>
 
-    <div class="panel">
+    <div class="panel" id="fragPanel">
       <div class="timeline" id="timeline" title="Pulsa para saltar a ese punto">
         <div class="region" id="tlRegion" hidden></div>
         <div class="head" id="tlHead" style="left:0"></div>
@@ -513,7 +527,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <input type="search" class="libsearch" id="libSearch" placeholder="Buscar canción…" aria-label="Buscar canción" hidden>
       <div class="lib" id="library"></div>
     </div>
-    <div class="panel">
+    <div class="panel" id="pubPanel">
       <h2>Publicar y compartir</h2>
       <div class="stack">
         <button class="btn primary" type="button" id="publishBtn">Publicar mis canciones</button>
@@ -1070,6 +1084,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     };
     menu.appendChild(add);
     $("whoTag").textContent = drummerId ? "· " + drummerName(drummerId) : "";
+    if (typeof placeCoverHint === "function" && $("coverHint")) try { placeCoverHint(); } catch (e) {}
     if (!has) showDrummerForm(true);
     else if ($("drummerCancel").hidden) $("drummerForm").hidden = true;   // ya hay bateristas: fuera la pregunta inicial
   }
@@ -1521,8 +1536,17 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     placeCoverHint();
   }
   // Coloca el aviso de la portada justo bajo el recuadro del enlace y a la altura de «Empezar canción»
+  // Frases de la portada, de la más completa a la más corta (se usa la primera que quepa)
+  function coverHintTexts() {
+    const end = ["pega un enlace de YouTube arriba para empezar a ensayar", "pega un enlace de YouTube arriba"];
+    if (!lib.drummers.length) return end.map((t) => "Añade un baterista y " + t);
+    if (!drummerId) return end.map((t) => "Elige un baterista y " + t);
+    return ["Pega un enlace de YouTube arriba para empezar a ensayar"];
+  }
   function placeCoverHint() {
     const h = $("coverHint"); if (!h) return;
+    const texts = coverHintTexts();
+    h.textContent = texts[0];
     const st = $("stage").getBoundingClientRect(), inp = $("urlInput").getBoundingClientRect(), btn = $("songBtn").getBoundingClientRect();
     const sameRow = !narrowMQ.matches && inp.width > 0 && inp.left >= st.left && inp.right <= st.right;
     if (!sameRow) { h.style.left = h.style.width = h.style.top = h.style.height = ""; return; }   // móvil: posición por defecto
@@ -1532,6 +1556,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const inAside = $("boardPanel").parentElement === $("boardSlotAside");
     const top = inAside ? btn.top + btn.height / 2 - inp.height / 2 - st.top : st.height * 0.06;
     h.style.top = Math.max(8, top) + "px";
+    // si la frase no cabe en una línea, se reduce un poco la letra (hasta 12 px)
+    // si no cabe en una línea: primero letra algo más pequeña (hasta 13 px) y, si aún no cabe, la frase corta
+    for (const t of texts) {
+      h.textContent = t; h.style.fontSize = "";
+      let fs = parseFloat(getComputedStyle(h).fontSize);
+      while (h.scrollWidth > h.clientWidth && fs > 13) { fs -= 0.5; h.style.fontSize = fs + "px"; }
+      if (h.scrollWidth <= h.clientWidth) break;
+    }
   }
   if (window.ResizeObserver) new ResizeObserver(alignHeader).observe($("stage"));
   window.addEventListener("resize", alignHeader);
