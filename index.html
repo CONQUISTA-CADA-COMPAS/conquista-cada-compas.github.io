@@ -263,8 +263,9 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .f-row.active .f-name { font-weight: 700; }
 .f-row .iconbtn { opacity: .55; font-size: 16px; }
 .f-row:hover .iconbtn, .f-row .iconbtn:focus-visible { opacity: 1; }
-.s-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
-.s-actions .btn { padding: 3px 9px; font-size: 13px; }
+/* Los cuatro botones de la canción en una sola fila, aprovechando todo el ancho del panel */
+.s-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; margin: 6px 0 0 -22px; }
+.s-actions .btn { padding: 3px 7px; font-size: 12px; }
 .s-actions .trash { margin-left: auto; display: inline-flex; padding: 5px; }
 .s-actions .trash:hover { color: var(--accent-ink); }
 .rename { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; padding: 6px 0; }
@@ -293,7 +294,7 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .h-row .h-title:hover { background: var(--surface-2); }
 .h-row.active .h-title { color: var(--accent-ink); font-weight: 700; }
 .h-row .btn { padding: 3px 9px; font-size: 13px; }
-.s-actions select.transfer { font-size: 13px; padding: 3px 6px; border-radius: 6px; }
+.s-actions select.transfer { font-size: 12px; padding: 3px 4px; border-radius: 6px; }
 /* Columna derecha compacta: que quepa todo sin hacer scroll */
 aside.col, #boardSlotAside .sidegroup { gap: 12px; }
 aside .panel { padding: 12px 14px; gap: 10px; }
@@ -1109,9 +1110,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           body.appendChild(row);
         });
         const acts = document.createElement("div"); acts.className = "s-actions";
-        acts.innerHTML = `<button class="btn" type="button" data-a="rename">Cambiar nombre</button><button class="btn" type="button" data-a="share">Compartir</button>`;
-        acts.querySelector('[data-a="rename"]').onclick = () => startRename(el, song);
-        acts.querySelector('[data-a="share"]').onclick = () => shareLink({ songs: [song] }, `Enlace de «${song.title}» copiado. Pégalo en WhatsApp o en un correo.`);
+        // Orden: Cambiar nombre · Pasar a… · Compartir · papelera
+        const ren = document.createElement("button"); ren.className = "btn"; ren.type = "button"; ren.textContent = "Cambiar nombre";
+        ren.onclick = () => startRename(el, song);
+        acts.appendChild(ren);
         if (others.length) {
           const sel = document.createElement("select"); sel.className = "transfer"; sel.setAttribute("aria-label", "Pasar a otro baterista");
           sel.innerHTML = `<option value="">Pasar a…</option>`
@@ -1121,6 +1123,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           sel.onchange = () => { const v = sel.value; if (v) transfer(song, v.slice(2), v[0] === "m"); };
           acts.appendChild(sel);
         }
+        const share = document.createElement("button"); share.className = "btn"; share.type = "button"; share.textContent = "Compartir";
+        share.onclick = () => shareLink({ songs: [song] }, `Enlace de «${song.title}» copiado. Pégalo en WhatsApp o en un correo.`);
+        acts.appendChild(share);
         const del = document.createElement("button"); del.className = "iconbtn trash"; del.type = "button";
         del.title = "Borrar canción"; del.setAttribute("aria-label", "Borrar canción");
         del.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
