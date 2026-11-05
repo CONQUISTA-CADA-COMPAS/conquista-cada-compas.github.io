@@ -144,11 +144,13 @@ header.top.wide .h-right .drumwrap { flex: 0 0 auto; min-width: 160px; }
   .load { flex: 1 1 300px; margin-left: 0; }
 }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand h1 { font-size: 26px; font-weight: 800; letter-spacing: -.02em; }
+.brand h1 { font-size: 26px; font-weight: 800; letter-spacing: .01em; text-transform: uppercase; color: var(--done); }   /* prueba: título en mayúsculas y magenta */
 .brand svg, .brand .logo { flex: none; }
 .brand .logo { width: 40px; height: 40px; }
 .load { display: flex; gap: 8px; flex: 1 1 auto; min-width: 0; margin-inline: 12px; }   /* del final del título al segundo logo, con margen a cada lado */
 .load input { flex: 1; min-width: 0; }
+#urlInput { border-color: var(--done); }   /* prueba: solo el borde en magenta */
+#urlInput:focus { border-color: var(--done); box-shadow: 0 0 0 3px var(--done-soft); }
 
 input[type="text"], input[type="number"], input[type="url"], select {
   background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 11px; min-width: 0;
