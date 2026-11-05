@@ -103,7 +103,8 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .drumwrap { position: relative; flex: 1 1 auto; min-width: 0; display: flex; color: var(--muted); }
 .drumwrap::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -6px;
   border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); pointer-events: none; }
-.drumwrap.need, .drumwrap:hover { color: var(--accent-ink); }
+.drumwrap:hover { color: var(--accent-ink); }
+.drumwrap.need, .drumwrap.need:hover { color: var(--done); }   /* sin baterista elegido: magenta, es el punto de partida */
 .h-right .drumsel { flex: 1; width: 100%; min-width: 0; font-weight: 700; cursor: pointer; justify-content: flex-start;
   padding-right: 34px; color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
 .drumwrap.open::after { transform: rotate(-135deg); margin-top: -2px; }
@@ -116,7 +117,7 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .drummenu button.sel::after { content: "  ✓"; }
 .drummenu .add { color: var(--fg); font-weight: 600; border-top: 1px solid var(--line); border-radius: 0 0 7px 7px; margin-top: 4px; padding-top: 10px; }
 .drummenu .add:hover, .drummenu .add:focus-visible { background: var(--surface-2); }
-.h-right .drumsel.need { border-color: var(--accent); color: var(--accent-ink); }
+.h-right .drumsel.need, .h-right .drumsel.need:hover { border-color: var(--done); color: var(--done); }
 .h-right .sidebtn { flex: none; padding: 0 9px; display: inline-flex; align-items: center; color: var(--muted); }
 .h-right .sidebtn:hover { color: var(--accent-ink); }
 header.top.wide .h-right .drumwrap { flex: 0 0 auto; min-width: 160px; }
