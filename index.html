@@ -247,6 +247,13 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 @media (max-width: 980px) { .libpanel { position: static; max-height: none; } .libpanel .lib { max-height: 60vh; } }
 .libsearch { width: 100%; }
 .s-item { border-bottom: 1px solid var(--line); }
+.s-line { display: flex; align-items: center; gap: 2px; }
+.s-line .s-head { flex: 1; min-width: 0; }
+.grip { flex: none; display: inline-flex; padding: 6px 3px; color: var(--muted); opacity: .45; cursor: grab; touch-action: none; border-radius: 4px; }
+.s-item:hover .grip, .grip:focus-visible { opacity: 1; }
+.grip:hover { color: var(--accent-ink); }
+.s-item.dragging { background: var(--accent-soft); border-radius: 6px; box-shadow: 0 4px 14px rgba(10, 20, 30, .15); position: relative; z-index: 2; }
+body.dragging-song, body.dragging-song * { cursor: grabbing !important; user-select: none; }
 .s-item:last-child { border-bottom: none; }
 .s-head { display: grid; grid-template-columns: 16px minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; background: none; border: none; padding: 9px 2px; text-align: left; border-radius: 6px; }
 .s-head:hover { background: var(--surface-2); }
@@ -255,7 +262,7 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .s-head .st { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-weight: 700; font-size: 15px; }
 .s-item.has-active .s-head .st { color: var(--accent-ink); }
 .s-head .sc { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
-.s-body { display: flex; flex-direction: column; gap: 2px; padding: 0 0 10px 24px; }
+.s-body { display: flex; flex-direction: column; gap: 2px; padding: 0 0 10px 40px; }
 .f-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: 6px; }
 .f-row .f-name { background: none; border: none; text-align: left; padding: 6px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
 .f-row:hover { background: var(--surface-2); }
@@ -1083,7 +1090,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const el = document.createElement("div");
       el.className = "s-item" + (isOpen ? " open" : "") + (song.id === currentSongId ? " has-active" : "");
       el.dataset.song = song.id;
-      el.innerHTML = `<button class="s-head" type="button" aria-expanded="${isOpen}"><span class="chev">▶</span><span class="st"></span><span class="sc"></span></button>`;
+      el.innerHTML = `<div class="s-line">${q ? "" : `<span class="grip" tabindex="0" role="button" title="Arrastra para cambiar de posición (o usa las flechas ↑ ↓)" aria-label="Mover canción"><svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/><circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/></g></svg></span>`}<button class="s-head" type="button" aria-expanded="${isOpen}"><span class="chev">▶</span><span class="st"></span><span class="sc"></span></button></div>`;
       el.querySelector(".st").textContent = song.title;
       el.querySelector(".s-head").title = song.title;
       el.querySelector(".sc").textContent = song.fragments.length;
@@ -1142,8 +1149,58 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       }
       box.appendChild(el);
     });
+    if (!q) enableSongDrag(box);
   }
   $("libSearch").addEventListener("input", () => renderLibrary());
+  // ---------- Ordenar canciones guardadas arrastrando el asa ⋮⋮ ----------
+  function applySongOrder(ids) {
+    const set = new Set(ids), ordered = ids.map((id) => lib.songs.find((s) => s.id === id));
+    let k = 0;
+    lib.songs = lib.songs.map((s) => (set.has(s.id) ? ordered[k++] : s));
+    persist(); renderLibrary();
+  }
+  function enableSongDrag(box) {
+    const order = () => [...box.querySelectorAll(".s-item")].map((x) => x.dataset.song);
+    box.querySelectorAll(".grip").forEach((g) => {
+      const item = g.closest(".s-item");
+      g.addEventListener("pointerdown", (e) => {
+        if (e.button > 0) return;
+        e.preventDefault();
+        const before = order().join();
+        item.classList.add("dragging"); document.body.classList.add("dragging-song");
+        const move = (ev) => {
+          const others = [...box.querySelectorAll(".s-item")].filter((x) => x !== item);
+          const next = others.find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
+          if (next) { if (item.nextElementSibling !== next) box.insertBefore(item, next); }
+          else if (box.lastElementChild !== item) box.appendChild(item);
+          // si la lista tiene scroll, se mueve sola al acercarse a los bordes
+          const br = box.getBoundingClientRect();
+          if (ev.clientY < br.top + 24) box.scrollTop -= 12; else if (ev.clientY > br.bottom - 24) box.scrollTop += 12;
+        };
+        // se escucha en toda la ventana: al mover la canción en la lista, el asa cambia de sitio
+        const end = () => {
+          window.removeEventListener("pointermove", move);
+          window.removeEventListener("pointerup", end);
+          window.removeEventListener("pointercancel", end);
+          item.classList.remove("dragging"); document.body.classList.remove("dragging-song");
+          if (order().join() !== before) { applySongOrder(order()); toast("Orden guardado"); }
+        };
+        window.addEventListener("pointermove", move);
+        window.addEventListener("pointerup", end);
+        window.addEventListener("pointercancel", end);
+      });
+      // con teclado: flechas arriba / abajo
+      g.addEventListener("keydown", (e) => {
+        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+        e.preventDefault();
+        const ids = order(), i = ids.indexOf(item.dataset.song), j = i + (e.key === "ArrowUp" ? -1 : 1);
+        if (j < 0 || j >= ids.length) return;
+        [ids[i], ids[j]] = [ids[j], ids[i]];
+        applySongOrder(ids);
+        const ng = box.querySelector(`[data-song="${item.dataset.song}"] .grip`); if (ng) ng.focus();
+      });
+    });
+  }
   // Cambiar el nombre de una canción: el título se convierte en un recuadro editable
   function startRename(el, song) {
     const head = el.querySelector(".s-head");
