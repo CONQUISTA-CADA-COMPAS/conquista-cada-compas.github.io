@@ -888,6 +888,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (has) sel.value = drummerId;
     $("whoTag").textContent = has ? "· " + drummerName(drummerId) : "";
     if (!has) showDrummerForm(true);
+    else if ($("drummerCancel").hidden) $("drummerForm").hidden = true;   // ya hay bateristas: fuera la pregunta inicial
   }
   function showDrummerForm(first) {
     $("drummerForm").hidden = false;
