@@ -1557,7 +1557,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       let sha;
       const cur = await fetch(api + "?ref=main&t=" + Date.now(), { headers, cache: "no-store" });
       if (cur.status === 401) throw { msg: "La llave no es válida o ha caducado. Crea una nueva en GitHub y vuelve a pegarla.", forget: true };
-      if (cur.ok) sha = (await cur.json()).sha;
+      if (cur.ok) {
+        const info = await cur.json(); sha = info.sha;
+        // antes de publicar, se junta lo último publicado (p. ej. desde otro ordenador) con lo de este aparato
+        try {
+          const bin = atob((info.content || "").replace(/\n/g, ""));
+          const remote = JSON.parse(new TextDecoder().decode(Uint8Array.from(bin, (c) => c.charCodeAt(0))));
+          if (remote && remote.app === "ensayo-en-bucle") mergeLib(remote);
+        } catch (e) {}
+      }
       else if (cur.status !== 404) throw { msg: `GitHub no ha respondido bien (error ${cur.status}).` };
       const data = { app: "ensayo-en-bucle", published: new Date().toISOString(), ...cleanLib(lib, true) };
       const body = { message: "Publicar canciones desde la app", content: b64utf8(JSON.stringify(data, null, 1)), branch: "main" };
