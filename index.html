@@ -51,7 +51,7 @@
   --accent-fg: #ffffff;     /* texto sobre el verde */
   --accent-soft: #d4f6ec;
   --accent-ink: #00a57a;    /* verde para textos sobre fondo claro */
-  --done: #ff0b5e;          /* bolas de las vueltas hechas */
+  --done: #ff0b5e;          /* bolas de las repeticiones hechas */
   --hit: #2b3440;           /* marcas de inicio/fin: tinta oscura para no competir con el rosa */
   --ok: #1f8a4c;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
@@ -197,6 +197,7 @@ main.wide > aside { display: none; }
 .big { font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: -.02em; }
 .big .of { color: var(--muted); font-size: 24px; }
 .speedtag { font-family: var(--mono); font-weight: 700; font-size: 26px; background: var(--accent-soft); color: var(--fg); border-radius: 8px; padding: 6px 12px; text-align: center; }
+#stageLabel { min-height: 1.45em; }   /* hueco fijo: no salta cuando aparece «Al 85 %» */
 .dots { display: flex; flex-wrap: wrap; gap: 5px; }
 .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: transparent; }
 .dot.done { background: var(--done); border-color: var(--done); }
@@ -372,11 +373,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <h2>Ensayar un compás <span class="who" id="whoTag"></span></h2>
       <div class="board">
         <div>
-          <div class="label">Vuelta</div>
+          <div class="label">Repetición</div>
           <div class="big" id="repBig">– <span class="of">de –</span></div>
         </div>
         <div style="min-width:0">
-          <div class="label" id="stageLabel">Listo para empezar</div>
+          <div class="label" id="stageLabel"></div>
           <div class="dots" id="dots"></div>
         </div>
       </div>
@@ -867,7 +868,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const done = running() ? session.done : (session && session.finished ? REPS : 0);
     const cur = running() ? Math.min(REPS, done + 1) : null;
     $("repBig").innerHTML = `${cur ?? "–"} <span class="of">de ${REPS}</span>`;
-    $("stageLabel").textContent = running() ? `Al ${pct(fragRate)}` : (session && session.finished ? "¡Ensayo completado!" : "Listo para empezar");
+    $("stageLabel").textContent = running() ? `Al ${pct(fragRate)}` : (session && session.finished ? "¡Ensayo completado!" : "");
     const dots = $("dots"); dots.innerHTML = "";
     for (let k = 0; k < REPS; k++) {
       const d = document.createElement("span");
@@ -922,7 +923,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         session.ticks.push(setTimeout(() => {
           if (!session || session.phase !== "prep") return;
           const c = $("countin"); c.hidden = false;
-          c.innerHTML = `<div>${i + 1}<small>${pct(fragRate)} · vuelta ${session.done + 1} de ${REPS}</small></div>`;
+          c.innerHTML = `<div>${i + 1}<small>${pct(fragRate)} · repetición ${session.done + 1} de ${REPS}</small></div>`;
         }, 50 + i * iv * 1000));
       }
       // la música entra justo en el siguiente pulso
