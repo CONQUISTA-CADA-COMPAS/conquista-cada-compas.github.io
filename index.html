@@ -48,9 +48,9 @@
   --muted: #5a6876;
   --line: #cfd7e0;
   --accent: #00d49e;        /* color de la marca */
-  --accent-fg: #04261c;     /* texto sobre el verde: oscuro, el blanco no se lee bien */
+  --accent-fg: #ffffff;     /* texto sobre el verde */
   --accent-soft: #d4f6ec;
-  --accent-ink: #00805f;    /* verde más oscuro para textos sobre fondo claro */
+  --accent-ink: #00a57a;    /* verde para textos sobre fondo claro */
   --hit: #2b3440;           /* marcas de inicio/fin: tinta oscura para no competir con el rosa */
   --ok: #1f8a4c;
   --display: "Bricolage Grotesque", "Avenir Next", "Segoe UI", system-ui, sans-serif;
@@ -62,13 +62,13 @@
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #0f151c; --surface: #18212b; --surface-2: #222e3a; --fg: #e8edf2; --muted: #9aa8b6;
-    --line: #2d3a48; --accent: #00d49e; --accent-fg: #04261c; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
+    --line: #2d3a48; --accent: #00d49e; --accent-fg: #ffffff; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
     --hit: #d5dde6; --ok: #4cc47f; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
   --bg: #0f151c; --surface: #18212b; --surface-2: #222e3a; --fg: #e8edf2; --muted: #9aa8b6;
-  --line: #2d3a48; --accent: #00d49e; --accent-fg: #04261c; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
+  --line: #2d3a48; --accent: #00d49e; --accent-fg: #ffffff; --accent-soft: #0d3a2f; --accent-ink: #3ee6b8;
   --hit: #d5dde6; --ok: #4cc47f; color-scheme: dark;
 }
 * { box-sizing: border-box; }
@@ -118,7 +118,10 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
   border: 1.5px solid var(--line); background: var(--surface); border-radius: 8px; padding: 9px 14px;
   font-weight: 700; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; justify-content: center;
 }
-.btn:hover { border-color: var(--accent); }
+.btn:hover { border-color: var(--accent); color: var(--accent-ink); }
+.btn.primary:hover { color: var(--accent-fg); }
+.btn.hit:hover { color: var(--accent-ink); border-color: var(--accent); }
+.tab:not(.on):hover, .s-head:hover .st, .f-row .f-name:hover, .h-row .h-title:hover, .s-actions .dangerlink:hover { color: var(--accent-ink); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .btn.primary:hover { filter: brightness(1.08); }
 .btn.ghost { background: transparent; }
@@ -211,7 +214,8 @@ main.wide > aside { display: none; }
 .speedmenu { position: absolute; right: 0; top: calc(100% + 6px); z-index: 15; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r);
   box-shadow: 0 10px 30px rgba(10, 20, 30, .18); padding: 8px; display: grid; grid-template-columns: repeat(2, 92px); gap: 6px; }
 .speedmenu button { font: 700 20px var(--mono); padding: 12px 0; border-radius: 8px; border: 1.5px solid var(--line); background: var(--surface); }
-.speedmenu button:hover { border-color: var(--accent); }
+.speedmenu button:hover { border-color: var(--accent); color: var(--accent-ink); }
+.speedmenu button.sel:hover { color: var(--accent-fg); }
 .speedmenu button.sel { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
 .speedmenu button.full { grid-column: 1 / -1; }
 #boardSlotMain .gorow #goBtn { flex: 0 1 auto; }
@@ -271,7 +275,9 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .drummer-form input { flex: 1 1 140px; }
 .who { color: var(--accent-ink); }
 /* Pestañas de «Mis canciones» */
-.tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 8px; }
+@keyframes justSaved { from { background: var(--accent-soft); } to { background: transparent; } }
+.s-item.just-saved { animation: justSaved 2.4s ease-out; border-radius: 6px; }
+.tabs { display: grid; grid-template-columns: 1.4fr 1fr; gap: 3px; padding: 3px; background: var(--surface-2); border-radius: 8px; }
 .tab { border: none; background: none; padding: 6px 4px; border-radius: 6px; font-weight: 700; font-size: 13px; color: var(--muted); white-space: nowrap; display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
 .tab.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgba(10, 20, 30, .12); }
 .tab .tc { font-family: var(--mono); font-weight: 500; font-size: 11px; background: var(--surface-2); border-radius: 999px; padding: 0 6px; }
@@ -627,7 +633,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     let song = mySongs().find((s) => s.videoId === videoId);
     // el título solo vale si YouTube ya tiene cargado este mismo vídeo
     const vd = playerReady && player.getVideoData ? player.getVideoData() || {} : {};
-    const title = (vd.video_id === videoId && vd.title) || "Vídeo sin título";
+    const title = (vd.video_id === videoId && vd.title) || NO_TITLE;
     if (!song) {
       song = { id: uid(), videoId, title, fragments: [], updated: Date.now(), saved: false, lastUsed: Date.now() };
       if (drummerId) song.drummer = drummerId;
@@ -636,11 +642,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const hist = mySongs().filter((x) => !isSaved(x)).sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
       hist.slice(HISTORY_MAX).forEach((x) => { lib.songs = lib.songs.filter((y) => y !== x); });
       persist(); renderLibrary();
-    } else if (song.title === "Vídeo sin título" && title && title !== song.title) { song.title = title; persist(); renderLibrary(); }
+      if (song.title === NO_TITLE) fetchTitle(song);
+    } else if (title !== NO_TITLE) setTitle(song, title);
     currentSongId = song.id;
     return song;
   }
   const currentSong = () => lib.songs.find((s) => s.id === currentSongId) || null;
+  const NO_TITLE = "Vídeo sin título";
+  function setTitle(song, title) {
+    if (!song || !title || song.title !== NO_TITLE) return;
+    song.title = title; persist(); renderLibrary();
+  }
+  // Pide el título a YouTube aunque el vídeo aún no haya sonado
+  async function fetchTitle(song) {
+    try {
+      const r = await fetch("https://www.youtube.com/oembed?format=json&url=" + encodeURIComponent("https://www.youtube.com/watch?v=" + song.videoId));
+      if (r.ok) { const d = await r.json(); setTitle(song, d.title); }
+    } catch (e) {}
+  }
   // El botón de la cabecera: «Cargar canción», o «Guardar canción» si la canción cargada aún no está guardada
   let loadBtnSaves = false;
   function updateLoadBtn() {
@@ -654,8 +673,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     song.saved = true; song.updated = Date.now();
     lib.songs = [song, ...lib.songs.filter((x) => x !== song)];
     libTab = "saved"; openSongs.add(song.id);
+    $("libSearch").value = "";
     persist(); renderLibrary();
-    toast(`«${song.title}» guardada en Canciones guardadas`);
+    const el = $("library").querySelector(`[data-song="${song.id}"]`);
+    if (el) { el.classList.add("just-saved"); el.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
+    toast(song.title === NO_TITLE ? "Canción guardada en Canciones guardadas" : `«${song.title}» guardada en Canciones guardadas`);
   }
 
   $("loadForm").addEventListener("submit", (e) => {
@@ -918,9 +940,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     persist(); renderLibrary();
   }
   // Bucle de control: vigila el final del fragmento
+  let titleTick = 0;
   setInterval(() => {
     if (!playerReady) return;
     drawTimeline();
+    // cada segundo, si la canción cargada aún no tiene nombre, mira si YouTube ya lo sabe
+    if (++titleTick % 33 === 0) {
+      const cur = currentSong();
+      if (cur && cur.title === NO_TITLE) { const vd = player.getVideoData ? player.getVideoData() || {} : {}; if (vd.video_id === cur.videoId) setTitle(cur, vd.title); }
+    }
     if (session && session.phase === "play" && player.getPlayerState() === YT.PlayerState.PLAYING) {
       if (now() >= frag.end - 0.03) { session.phase = "prep"; endRep(); }
     }
@@ -1047,6 +1075,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const isOpen = openSongs.has(song.id) || !!q;
       const el = document.createElement("div");
       el.className = "s-item" + (isOpen ? " open" : "") + (song.id === currentSongId ? " has-active" : "");
+      el.dataset.song = song.id;
       el.innerHTML = `<button class="s-head" type="button" aria-expanded="${isOpen}"><span class="chev">▶</span><span class="st"></span><span class="sc"></span></button>`;
       el.querySelector(".st").textContent = song.title;
       el.querySelector(".s-head").title = song.title;
