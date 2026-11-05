@@ -265,6 +265,8 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .f-row:hover .iconbtn, .f-row .iconbtn:focus-visible { opacity: 1; }
 .s-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .s-actions .btn { padding: 3px 9px; font-size: 13px; }
+.s-actions .trash { margin-left: auto; display: inline-flex; padding: 5px; }
+.s-actions .trash:hover { color: var(--accent-ink); }
 .rename { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; padding: 6px 0; }
 .rename input { flex: 1 1 100%; min-width: 0; padding: 7px 9px; font-weight: 700; }
 .s-actions .dangerlink { border: none; background: none; color: var(--muted); font-size: 13px; padding: 3px 6px; }
@@ -1119,7 +1121,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           sel.onchange = () => { const v = sel.value; if (v) transfer(song, v.slice(2), v[0] === "m"); };
           acts.appendChild(sel);
         }
-        const del = document.createElement("button"); del.className = "dangerlink"; del.type = "button"; del.textContent = "Borrar canción";
+        const del = document.createElement("button"); del.className = "iconbtn trash"; del.type = "button";
+        del.title = "Borrar canción"; del.setAttribute("aria-label", "Borrar canción");
+        del.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
         del.onclick = () => askDelete(del, () => { deleteSong(song); persist(); renderLibrary(); });
         acts.appendChild(del);
         body.appendChild(acts);
