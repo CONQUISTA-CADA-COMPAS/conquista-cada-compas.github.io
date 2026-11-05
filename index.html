@@ -201,6 +201,12 @@ main.wide > aside { display: none; }
   letter-spacing: .01em; text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
 .empty strong { font-family: var(--display); font-size: clamp(17px, 2vw, 24px); color: #fff; text-shadow: 0 1px 8px rgba(0, 0, 0, .8); }
 .empty strong:empty { display: none; }
+/* Aviso de la portada: mismo ancho y alto que el recuadro del enlace, a la altura de «Empezar canción» */
+.cover-hint { position: absolute; left: 5%; width: 90%; top: 6%; height: 42px; display: flex; align-items: center; justify-content: center;
+  padding: 0 12px; border: 1.5px solid var(--accent); border-radius: 8px; color: var(--accent); background: rgba(5, 8, 10, .35);
+  font-weight: 700; font-size: 15px; letter-spacing: .01em; text-shadow: 0 1px 6px rgba(0, 0, 0, .8); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+@media (max-width: 980px) { .cover-hint { white-space: normal; text-align: center; height: auto; padding: 7px 12px; line-height: 1.3; } }
+@media (max-width: 560px) { .cover-hint { font-size: 12.5px; } }
 @media (max-width: 560px) { .empty p { letter-spacing: 0; font-size: 11.5px; } }
 
 /* Cuenta atrás grande sobre el vídeo */
@@ -397,9 +403,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <div class="stage" id="stage">
       <div id="player"></div>
       <div class="empty" id="emptyState">
+        <div class="cover-hint" id="coverHint">Pega un enlace de YouTube arriba para empezar a ensayar</div>
         <div>
           <strong id="emptyTitle"></strong>
-          <p id="emptyText">Pega un enlace de YouTube arriba para empezar a ensayar.</p>
+          <p id="emptyText"></p>
         </div>
       </div>
       <div class="countin" id="countin" hidden></div>
@@ -614,6 +621,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // ---------- YouTube ----------
   function showMsg(title, text) {
     $("emptyState").hidden = false; $("emptyTitle").textContent = title; $("emptyText").textContent = text;
+    $("coverHint").hidden = true;
   }
   if (location.protocol === "file:") {
     showMsg("Esta página está abierta como archivo",
@@ -1510,6 +1518,20 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const col = document.querySelector(".practice").getBoundingClientRect().left;
     const st = $("stage").getBoundingClientRect().left;
     document.documentElement.style.setProperty("--stage-inset", Math.max(0, Math.round(st - col)) + "px");
+    placeCoverHint();
+  }
+  // Coloca el aviso de la portada justo bajo el recuadro del enlace y a la altura de «Empezar canción»
+  function placeCoverHint() {
+    const h = $("coverHint"); if (!h) return;
+    const st = $("stage").getBoundingClientRect(), inp = $("urlInput").getBoundingClientRect(), btn = $("songBtn").getBoundingClientRect();
+    const sameRow = !narrowMQ.matches && inp.width > 0 && inp.left >= st.left && inp.right <= st.right;
+    if (!sameRow) { h.style.left = h.style.width = h.style.top = h.style.height = ""; return; }   // móvil: posición por defecto
+    h.style.left = (inp.left - st.left) + "px";
+    h.style.width = inp.width + "px";
+    h.style.height = inp.height + "px";
+    const inAside = $("boardPanel").parentElement === $("boardSlotAside");
+    const top = inAside ? btn.top + btn.height / 2 - inp.height / 2 - st.top : st.height * 0.06;
+    h.style.top = Math.max(8, top) + "px";
   }
   if (window.ResizeObserver) new ResizeObserver(alignHeader).observe($("stage"));
   window.addEventListener("resize", alignHeader);
@@ -1519,12 +1541,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const toAside = !document.querySelector("main").classList.contains("wide") && !narrowMQ.matches;
     const slot = $(toAside ? "boardSlotAside" : "boardSlotMain");
     if ($("boardPanel").parentElement !== slot) slot.appendChild($("boardPanel"));
+    placeCoverHint();
   }
   narrowMQ.addEventListener ? narrowMQ.addEventListener("change", placeBoard) : narrowMQ.addListener(placeBoard);
   $("libToggle").onclick = () => setWide(!document.querySelector("main").classList.contains("wide"));
   let startWide = false;
   try { startWide = localStorage.getItem("ensayo-en-bucle-wide") === "1"; } catch (e) {}
   setWide(startWide);
+  if (window.ResizeObserver) new ResizeObserver(placeCoverHint).observe($("urlInput"));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeCoverHint);
 
   // ---------- Inicio ----------
   renderDrummers(); renderBoard(); renderLibrary(); updateFragUI();
