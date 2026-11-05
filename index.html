@@ -265,6 +265,8 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .f-row:hover .iconbtn, .f-row .iconbtn:focus-visible { opacity: 1; }
 .s-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
 .s-actions .btn { padding: 3px 9px; font-size: 13px; }
+.rename { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; padding: 6px 0; }
+.rename input { flex: 1 1 100%; min-width: 0; padding: 7px 9px; font-weight: 700; }
 .s-actions .dangerlink { border: none; background: none; color: var(--muted); font-size: 13px; padding: 3px 6px; }
 .s-actions .dangerlink:hover { color: var(--hit); }
 .noresult { color: var(--muted); font-size: 14px; padding: 8px 2px; margin: 0; }
@@ -1105,7 +1107,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           body.appendChild(row);
         });
         const acts = document.createElement("div"); acts.className = "s-actions";
-        acts.innerHTML = `<button class="btn" type="button" data-a="share">Compartir</button>`;
+        acts.innerHTML = `<button class="btn" type="button" data-a="rename">Cambiar nombre</button><button class="btn" type="button" data-a="share">Compartir</button>`;
+        acts.querySelector('[data-a="rename"]').onclick = () => startRename(el, song);
         acts.querySelector('[data-a="share"]').onclick = () => shareLink({ songs: [song] }, `Enlace de «${song.title}» copiado. Pégalo en WhatsApp o en un correo.`);
         if (others.length) {
           const sel = document.createElement("select"); sel.className = "transfer"; sel.setAttribute("aria-label", "Pasar a otro baterista");
@@ -1126,6 +1129,28 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     });
   }
   $("libSearch").addEventListener("input", () => renderLibrary());
+  // Cambiar el nombre de una canción: el título se convierte en un recuadro editable
+  function startRename(el, song) {
+    const head = el.querySelector(".s-head");
+    const form = document.createElement("form");
+    form.className = "rename";
+    form.innerHTML = `<input type="text" maxlength="120" aria-label="Nuevo nombre de la canción"><button class="btn small primary" type="submit">Guardar</button><button class="btn small ghost" type="button">Cancelar</button>`;
+    const input = form.querySelector("input");
+    input.value = song.title === NO_TITLE ? "" : song.title;
+    input.placeholder = "Nombre de la canción";
+    head.replaceWith(form);
+    input.focus(); input.select();
+    const done = () => renderLibrary();
+    form.querySelector(".ghost").onclick = done;
+    input.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); done(); } });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) return toast("Escribe un nombre para la canción.");
+      if (name !== song.title) { song.title = name; song.renamed = true; song.updated = Date.now(); persist(); toast("Nombre cambiado"); }
+      done();
+    });
+  }
   function askDelete(btn, fn) {
     const wrap = document.createElement("span"); wrap.className = "confirm";
     wrap.innerHTML = `<span>¿Borrar?</span><button class="btn small hit" type="button">Sí</button><button class="btn small" type="button">No</button>`;
