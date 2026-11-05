@@ -98,11 +98,17 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .h-left { display: flex; align-items: center; gap: 12px 20px; min-width: 0; padding-left: calc(var(--stage-inset, 0px) + 10px); }
 .h-right { display: flex; gap: 8px; min-width: 0; }
 .h-right .btn { font-size: 15px; padding-inline: 12px; }
-.h-right .drumsel { flex: 1 1 auto; min-width: 0; font-weight: 700; cursor: pointer; text-align: left; }
+/* Selector de baterista con flecha propia, separada del borde */
+.drumwrap { position: relative; flex: 1 1 auto; min-width: 0; display: flex; color: var(--muted); }
+.drumwrap::after { content: ""; position: absolute; right: 14px; top: 50%; width: 7px; height: 7px; margin-top: -6px;
+  border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); pointer-events: none; }
+.drumwrap.need, .drumwrap:hover { color: var(--accent-ink); }
+.h-right .drumsel { flex: 1; width: 100%; min-width: 0; font-weight: 700; cursor: pointer; text-align: left;
+  -webkit-appearance: none; appearance: none; padding-right: 34px; color: var(--fg); }
 .h-right .drumsel.need { border-color: var(--accent); color: var(--accent-ink); }
 .h-right .sidebtn { flex: none; padding: 0 9px; display: inline-flex; align-items: center; color: var(--muted); }
 .h-right .sidebtn:hover { color: var(--accent-ink); }
-header.top.wide .h-right .drumsel { flex: 0 0 auto; min-width: 150px; }
+header.top.wide .h-right .drumwrap { flex: 0 0 auto; min-width: 160px; }
 @media (max-width: 980px) {
   header.top, header.top.wide { grid-template-columns: minmax(0, 1fr); }
   .h-left { flex-wrap: wrap; padding-left: 0; }
@@ -343,7 +349,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   </form>
   </div>
   <div class="h-right">
-    <select class="btn drumsel" id="drummerSel" aria-label="Baterista"></select>
+    <span class="drumwrap" id="drumWrap"><select class="btn drumsel" id="drummerSel" aria-label="Baterista"></select></span>
     <button class="btn primary" type="submit" form="loadForm" id="loadBtn">Cargar canción</button>
     <button class="btn sidebtn" type="button" id="libToggle" aria-controls="libAside" title="Ocultar panel lateral" aria-label="Ocultar panel lateral"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M15 4v16"/></svg></button>
   </div>
@@ -984,7 +990,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     lib.drummers.forEach((d) => { const o = document.createElement("option"); o.value = d.id; o.textContent = d.name; sel.appendChild(o); });
     const add = document.createElement("option"); add.value = "__add"; add.textContent = "+ Añadir baterista…"; sel.appendChild(add);
     sel.value = drummerId || "";
-    sel.classList.toggle("need", !drummerId);
+    sel.classList.toggle("need", !drummerId); $("drumWrap").classList.toggle("need", !drummerId);
     sel.title = drummerId ? "Baterista que ensaya" : "Elige quién va a ensayar";
     $("whoTag").textContent = drummerId ? "· " + drummerName(drummerId) : "";
     if (!has) showDrummerForm(true);
