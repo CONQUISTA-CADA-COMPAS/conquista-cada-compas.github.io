@@ -491,7 +491,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   "use strict";
   const $ = (id) => document.getElementById(id);
   const STORE_KEY = "ensayo-en-bucle-v1";          // nombre técnico: no cambiar, ahí están las canciones guardadas
-  const DRUMMER_KEY = "ensayo-en-bucle-drummer";   // baterista elegido en este aparato
+  const DRUMMER_KEY = "ensayo-en-bucle-drummer";   // ya no se usa: se borra lo que quedara guardado
   const RATES = [1, 0.95, 0.9, 0.85, 0.8, 0.75, 0.7];
   const REPS = 10;            // vueltas de cada ensayo de compás
   const COUNT_BEATS = 3;      // clics de cuenta antes de cada vuelta
@@ -508,7 +508,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   let songRate = 1, fragRate = 1, songPlaying = false;
   let lib = load();
   let drummerId = null;
-  try { drummerId = localStorage.getItem(DRUMMER_KEY); } catch (e) {}
+  // Al abrir o recargar la página no hay ningún baterista elegido: se escoge arriba cada vez
+  try { localStorage.removeItem(DRUMMER_KEY); } catch (e) {}
   fixDrummers();
 
   // ---------- Utilidades ----------
@@ -1002,7 +1003,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (id === drummerId) return;
     stopSession(true);
     drummerId = id;
-    try { localStorage.setItem(DRUMMER_KEY, id); } catch (e) {}
     currentSongId = null; currentFragId = null; frag = { start: 0, end: 0 }; $("fragName").value = ""; updateFragUI();
     renderDrummers(); renderLibrary();
   }
@@ -1029,7 +1029,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     }
     $("drummerForm").hidden = true;
     drummerId === d.id ? (renderDrummers(), renderLibrary()) : setDrummer(d.id);
-    try { localStorage.setItem(DRUMMER_KEY, d.id); } catch (e) {}
     toast(`Ahora ensaya ${d.name}`);
   });
   // Copia (o mueve) una canción con sus fragmentos a otro baterista
