@@ -854,7 +854,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const needWhy = "Primero elige un baterista arriba";
       set("songBtn", hasSong || songPlaying, hasDrummer ? "Primero carga una canción" : needWhy);
       set("goBtn", hasFrag || running(), !hasDrummer ? needWhy : !hasSong ? "Primero carga una canción" : "Primero elige o marca un fragmento");
-      set("publishBtn", hasSong, hasDrummer ? "Primero carga una canción" : needWhy);
+      // Publicar: en cuanto el baterista elegido tenga canciones guardadas (o haya una canción cargada)
+      const canPublish = hasSong || (hasDrummer && mySongs().some(isSaved));
+      set("publishBtn", canPublish, hasDrummer ? "Primero guarda alguna canción" : needWhy);
       set("exportBtn", hasSong, hasDrummer ? "Primero carga una canción" : needWhy);
       // en un aparato sin ningún baterista, pegar un enlace es la forma de traerlos
       set("importToggle", hasSong || !lib.drummers.length, hasDrummer ? "Primero carga una canción" : needWhy);
