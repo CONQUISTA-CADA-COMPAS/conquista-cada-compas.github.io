@@ -162,6 +162,9 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
 }
 .btn:hover { border-color: var(--accent); color: var(--accent-ink); }
 .btn.primary:hover { color: var(--accent-fg); }
+/* Mientras suena: botón blanco con borde y letras en magenta para parar */
+.btn.primary.stopping, .btn.primary.stopping:hover { background: var(--surface); border-color: var(--done); color: var(--done); }
+.btn.primary.stopping:hover { background: var(--done-soft); }
 .btn.hit:hover { color: var(--accent-ink); border-color: var(--accent); }
 .tab:not(.on):hover, .s-head:hover .st, .f-row .f-name:hover, .h-row .h-title:hover, .s-actions .dangerlink:hover { color: var(--accent-ink); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
@@ -926,9 +929,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // ---------- Ensayar la canción entera ----------
   function updateSongBtn() {
-    const playing = playerReady && player.getPlayerState && player.getPlayerState() === YT.PlayerState.PLAYING;
-    songPlaying = songPlaying && playing && !session;
-    $("songBtn").textContent = songPlaying ? "■ Parar" : "▶ Empezar canción";
+    // Solo deja de contar como «sonando» si se pausa o termina (mientras carga o se prepara, sigue en marcha)
+    const st = playerReady && player.getPlayerState ? player.getPlayerState() : -1;
+    if (session || st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED) songPlaying = false;
+    $("songBtn").textContent = songPlaying ? "■ Parar canción" : "▶ Empezar canción";
+    $("songBtn").classList.toggle("stopping", songPlaying);
   }
   $("songBtn").onclick = () => {
     if (!playerReady) return toast("Primero carga un vídeo.");
@@ -977,7 +982,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       d.className = "dot" + (k < done ? " done" : "") + (cur && k === done ? " now" : "");
       dots.appendChild(d);
     }
-    $("goBtn").textContent = running() ? "■ Parar" : "▶ Empezar ensayo";
+    $("goBtn").textContent = running() ? "■ Parar ensayo" : "▶ Empezar ensayo";
+    $("goBtn").classList.toggle("stopping", running());
   }
   async function keepAwake() { try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {} }
   function releaseAwake() { try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; }
@@ -1043,7 +1049,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       renderBoard();
       session = null;
       $("stageLabel").textContent = "¡Ensayo completado!";
-      $("goBtn").textContent = "▶ Empezar ensayo";
+      $("goBtn").textContent = "▶ Empezar ensayo"; $("goBtn").classList.remove("stopping");
       toast("¡Ensayo completado!");
       return;
     }
