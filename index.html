@@ -270,6 +270,11 @@ main.wide > aside { display: none; }
 #boardSlotMain .boardpanel { width: 100%; max-width: 900px; margin-left: auto; }
 .sidegroup { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .stack { display: flex; flex-direction: column; gap: 8px; }
+.keyform { display: flex; flex-direction: column; gap: 8px; }
+.keyform p { margin: 0; }
+.keyform input { width: 100%; font-family: var(--mono); font-size: 13px; }
+.linkbtn { align-self: flex-start; border: none; background: none; padding: 0; font-size: 12px; color: var(--muted); text-decoration: underline; cursor: pointer; }
+.linkbtn:hover { color: var(--accent-ink); }
 .speedwrap { position: relative; flex: none; }
 .speedbtn { font-family: var(--mono); min-width: 104px; }
 .speedbtn .caret { font-size: 13px; color: var(--muted); }
@@ -537,18 +542,17 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <div class="lib" id="library"></div>
     </div>
     <div class="panel" id="pubPanel">
-      <h2>Publicar y compartir</h2>
+      <h2>Publicar</h2>
       <div class="stack">
         <button class="btn primary" type="button" id="publishBtn">Publicar mis canciones</button>
-        <button class="btn" type="button" id="exportBtn">Copiar enlace con todas</button>
-        <button class="btn" type="button" id="importToggle">Pegar enlace o copia</button>
       </div>
+      <form class="keyform" id="keyForm" hidden>
+        <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este aparato). Pégala aquí:</p>
+        <input type="password" id="keyInput" autocomplete="off" spellcheck="false" placeholder="github_pat_…" aria-label="Llave de GitHub">
+        <div class="row" style="gap:6px"><button class="btn small primary" type="submit">Guardar y publicar</button><button class="btn small ghost" type="button" id="keyCancel">Cancelar</button></div>
+      </form>
       <p class="note" id="pubStatus" hidden></p>
-      <ol class="note" id="publishHelp" hidden style="padding-left:18px;margin:0">
-        <li>Se ha descargado el archivo <b>canciones.json</b>.</li>
-        <li>Ponlo en tu carpeta <b>ensayo</b>, al lado de index.html, y borra el anterior. Tiene que llamarse exactamente <b>canciones.json</b>.</li>
-        <li>En Netlify, abre <b>Deploys</b> y arrastra la carpeta.</li>
-      </ol>
+      <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este aparato</button>
       <div id="importBox" hidden>
         <textarea id="importText" placeholder="Pega aquí el enlace o el texto copiado"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn small primary" type="button" id="importBtn">Añadir a mi biblioteca</button></div>
@@ -854,7 +858,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       set("exportBtn", hasSong, hasDrummer ? "Primero carga una canción" : needWhy);
       // en un aparato sin ningún baterista, pegar un enlace es la forma de traerlos
       set("importToggle", hasSong || !lib.drummers.length, hasDrummer ? "Primero carga una canción" : needWhy);
-      if ($("importToggle").disabled) $("importBox").hidden = true;
+      if ($("importToggle") && $("importToggle").disabled) $("importBox").hidden = true;
     } catch (e) {}
   }
   function setEdge(which, t) {
@@ -1530,20 +1534,66 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     return parts.join(", ");
   }
   // Publicar: descarga canciones.json para ponerlo junto a index.html
+  // ---------- Publicar: sube canciones.json a GitHub con la llave guardada en este aparato ----------
+  const KEY_STORE = "ensayo-en-bucle-github-key";
+  const REPO = (() => {
+    const owner = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "gruizdelatorre";
+    const repo = location.hostname.endsWith(".github.io") ? (location.pathname.split("/")[1] || "conquista-cada-compas") : "conquista-cada-compas";
+    return `${owner}/${repo}`;
+  })();
+  const getKey = () => { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } };
+  const setKey = (k) => { try { k ? localStorage.setItem(KEY_STORE, k) : localStorage.removeItem(KEY_STORE); } catch (e) {} };
+  function showPubStatus(t) { $("pubStatus").textContent = t; $("pubStatus").hidden = !t; }
+  function refreshKeyUI() { $("keyForget").hidden = !getKey(); }
+  function b64utf8(str) { const bytes = new TextEncoder().encode(str); let bin = ""; bytes.forEach((b) => (bin += String.fromCharCode(b))); return btoa(bin); }
+  async function publishToGitHub() {
+    const key = getKey();
+    if (!key) { $("keyForm").hidden = false; $("keyInput").value = ""; $("keyInput").focus(); return; }
+    const btn = $("publishBtn");
+    btn.disabled = true; btn.textContent = "Publicando…"; showPubStatus("");
+    const api = `https://api.github.com/repos/${REPO}/contents/canciones.json`;
+    const headers = { Authorization: "Bearer " + key, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
+    try {
+      let sha;
+      const cur = await fetch(api + "?ref=main&t=" + Date.now(), { headers, cache: "no-store" });
+      if (cur.status === 401) throw { msg: "La llave no es válida o ha caducado. Crea una nueva en GitHub y vuelve a pegarla.", forget: true };
+      if (cur.ok) sha = (await cur.json()).sha;
+      else if (cur.status !== 404) throw { msg: `GitHub no ha respondido bien (error ${cur.status}).` };
+      const data = { app: "ensayo-en-bucle", published: new Date().toISOString(), ...cleanLib(lib, true) };
+      const body = { message: "Publicar canciones desde la app", content: b64utf8(JSON.stringify(data, null, 1)), branch: "main" };
+      if (sha) body.sha = sha;
+      const res = await fetch(api, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body) });
+      if (res.status === 401) throw { msg: "La llave no es válida o ha caducado. Crea una nueva en GitHub y vuelve a pegarla.", forget: true };
+      if (res.status === 403 || res.status === 404) throw { msg: "La llave no tiene permiso para escribir en el repositorio. Revisa que tenga «Contents: Read and write» en conquista-cada-compas.", forget: true };
+      if (res.status === 409) throw { msg: "Alguien ha publicado justo a la vez. Vuelve a pulsar «Publicar»." };
+      if (!res.ok) throw { msg: `GitHub no ha aceptado la publicación (error ${res.status}).` };
+      const n = lib.songs.filter(isSaved).length;
+      showPubStatus(`Publicado: ${n} ${n === 1 ? "canción" : "canciones"}. En uno o dos minutos lo verán los demás aparatos.`);
+      toast("Canciones publicadas");
+    } catch (e) {
+      if (e && e.forget) { setKey(""); }
+      showPubStatus(e && e.msg ? e.msg : "No se ha podido conectar con GitHub. Revisa la conexión y vuelve a intentarlo.");
+    } finally {
+      btn.textContent = "Publicar mis canciones"; refreshKeyUI(); updateAvailability();
+    }
+  }
   $("publishBtn").onclick = () => {
-    if (!lib.songs.length) return toast("Todavía no hay canciones guardadas.");
-    const data = { app: "ensayo-en-bucle", published: new Date().toISOString(), ...cleanLib(lib, true) };
-    const blob = new Blob([JSON.stringify(data, null, 1)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob); a.download = "canciones.json";
-    document.body.appendChild(a); a.click(); a.remove();
-    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
-    $("publishHelp").hidden = false;
+    if (!lib.songs.some(isSaved)) return toast("Todavía no hay canciones guardadas.");
+    publishToGitHub();
   };
+  $("keyForm").addEventListener("submit", (e) => {
+    e.preventDefault();
+    const k = $("keyInput").value.trim();
+    if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(k)) { showPubStatus("Eso no parece una llave de GitHub. Empieza por «github_pat_»."); return; }
+    setKey(k); $("keyInput").value = ""; $("keyForm").hidden = true; publishToGitHub();
+  });
+  $("keyCancel").onclick = () => { $("keyForm").hidden = true; $("keyInput").value = ""; };
+  $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este aparato."); };
+  refreshKeyUI();
   async function loadPublished() {
     if (location.protocol === "file:") return;
     try {
-      const res = await fetch("canciones.json", { cache: "no-store" });
+      const res = await fetch("canciones.json?v=" + Date.now(), { cache: "no-store" });
       if (!res.ok) return;
       const d = await res.json();
       if (!d || d.app !== "ensayo-en-bucle") return;
@@ -1551,11 +1601,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (txt) toast(`Lista actualizada: ${txt}`);
     } catch (e) {}
   }
-  $("exportBtn").onclick = () => {
+  if ($("exportBtn")) $("exportBtn").onclick = () => {
     if (!lib.songs.length) return toast("Todavía no hay canciones guardadas.");
     shareLink(lib, "Enlace con todas las canciones copiado.");
   };
-  $("importToggle").onclick = () => { $("importBox").hidden = !$("importBox").hidden; };
+  if ($("importToggle")) $("importToggle").onclick = () => { $("importBox").hidden = !$("importBox").hidden; };
   $("importBtn").onclick = () => {
     try {
       const raw = $("importText").value.trim();
