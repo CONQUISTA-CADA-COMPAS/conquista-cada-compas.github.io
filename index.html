@@ -197,7 +197,7 @@ main.wide > aside { display: none; }
 .big { font-family: var(--display); font-weight: 800; font-size: 44px; line-height: 1; letter-spacing: -.02em; }
 .big .of { color: var(--muted); font-size: 24px; }
 .speedtag { font-family: var(--mono); font-weight: 700; font-size: 26px; background: var(--accent-soft); color: var(--fg); border-radius: 8px; padding: 6px 12px; text-align: center; }
-#stageLabel { min-height: 1.45em; }   /* hueco fijo: no salta cuando aparece «Al 85 %» */
+#stageLabel { min-height: 1.45em; }   /* hueco fijo: no salta cuando aparece «¡Ensayo completado!» */
 .dots { display: flex; flex-wrap: wrap; gap: 5px; }
 .dot { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--line); background: transparent; }
 .dot.done { background: var(--done); border-color: var(--done); }
@@ -868,7 +868,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const done = running() ? session.done : (session && session.finished ? REPS : 0);
     const cur = running() ? Math.min(REPS, done + 1) : null;
     $("repBig").innerHTML = `${cur ?? "–"} <span class="of">de ${REPS}</span>`;
-    $("stageLabel").textContent = running() ? `Al ${pct(fragRate)}` : (session && session.finished ? "¡Ensayo completado!" : "");
+    $("stageLabel").textContent = session && session.finished ? "¡Ensayo completado!" : "";
     const dots = $("dots"); dots.innerHTML = "";
     for (let k = 0; k < REPS; k++) {
       const d = document.createElement("span");
@@ -940,7 +940,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       session = { finished: true };
       renderBoard();
       session = null;
-      $("stageLabel").textContent = "¡Completado! Pulsa «Empezar» para repetir.";
+      $("stageLabel").textContent = "¡Ensayo completado!";
       $("goBtn").textContent = "▶ Empezar ensayo";
       toast("¡Ensayo completado!");
       return;
