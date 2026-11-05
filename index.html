@@ -172,7 +172,9 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
 .btn.ghost { background: transparent; }
 .btn.small { padding: 5px 10px; font-size: 14px; }
 .btn.hit { border-color: var(--hit); color: var(--hit); background: transparent; }
-.btn:disabled { opacity: .45; cursor: not-allowed; }
+/* Botones que todavía no se pueden usar: blancos, con borde y letras grises */
+.btn:disabled, .btn.primary:disabled, .btn.primary:disabled:hover, .btn:disabled:hover {
+  background: var(--surface); border-color: var(--line); color: var(--muted); cursor: not-allowed; opacity: 1; filter: none; }
 
 /* Rejilla principal */
 main {
@@ -836,6 +838,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("startInput").value = fmt(frag.start);
     $("endInput").value = fmt(frag.end);
     drawTimeline();
+    updateAvailability();
+  }
+  // Qué botones se pueden usar según haya baterista, canción cargada y fragmento elegido
+  function updateAvailability() {
+    try {
+      const hasDrummer = !!drummerId;
+      const hasSong = hasDrummer && !!videoId;
+      const hasFrag = hasSong && frag.end - frag.start >= 1;
+      const set = (id, ok, why) => { const b = $(id); if (!b) return; b.disabled = !ok; b.title = ok ? "" : why; };
+      const needWhy = "Primero elige un baterista arriba";
+      set("songBtn", hasSong || songPlaying, hasDrummer ? "Primero carga una canción" : needWhy);
+      set("goBtn", hasFrag || running(), !hasDrummer ? needWhy : !hasSong ? "Primero carga una canción" : "Primero elige o marca un fragmento");
+      set("publishBtn", hasSong, hasDrummer ? "Primero carga una canción" : needWhy);
+      set("exportBtn", hasSong, hasDrummer ? "Primero carga una canción" : needWhy);
+      // en un aparato sin ningún baterista, pegar un enlace es la forma de traerlos
+      set("importToggle", hasSong || !lib.drummers.length, hasDrummer ? "Primero carga una canción" : needWhy);
+      if ($("importToggle").disabled) $("importBox").hidden = true;
+    } catch (e) {}
   }
   function setEdge(which, t) {
     const d = duration() || Infinity;
@@ -931,6 +951,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (session || st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED) songPlaying = false;
     $("songBtn").textContent = songPlaying ? "■ Parar canción" : "▶ Empezar canción";
     $("songBtn").classList.toggle("stopping", songPlaying);
+    updateAvailability();
   }
   $("songBtn").onclick = () => {
     if (!playerReady) return toast("Primero carga un vídeo.");
@@ -981,6 +1002,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     }
     $("goBtn").textContent = running() ? "■ Parar ensayo" : "▶ Empezar ensayo";
     $("goBtn").classList.toggle("stopping", running());
+    updateAvailability();
   }
   async function keepAwake() { try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {} }
   function releaseAwake() { try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; }
@@ -1208,6 +1230,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   let libTab = "saved";
   document.querySelectorAll(".tab").forEach((t) => t.onclick = () => { libTab = t.dataset.tab; renderLibrary(); });
   function renderLibrary() {
+    updateAvailability();
     // Con un fragmento elegido, guardar sobrescribe ese mismo fragmento
     $("saveFrag").textContent = currentFragId ? "Guardar cambios" : "Guardar fragmento";
     $("newFrag").textContent = currentFragId ? "Guardar como nuevo" : "Nuevo";
