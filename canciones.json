@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-05T18:24:26.000Z",
+ "published": "2026-11-05T19:45:55.311Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -13,12 +13,20 @@
  ],
  "songs": [
   {
-   "id": "rfl2rc7c",
-   "videoId": "0sZnzSgTaG4",
-   "title": "When You Were Young - The Killers",
+   "id": "eqghlqzl",
+   "videoId": "FI4tahavfsg",
+   "title": "All These Things That I've Done - The Killers (Grade 5)",
    "drummer": "n4u5pzcx",
-   "updated": 1793897332833,
-   "fragments": []
+   "updated": 1793897355034,
+   "fragments": [
+    {
+     "id": "2x2wphtg",
+     "name": "Primer fill",
+     "start": 43,
+     "end": 57,
+     "updated": 0
+    }
+   ]
   },
   {
    "id": "y06bjdmr",
@@ -44,20 +52,12 @@
    ]
   },
   {
-   "id": "eqghlqzl",
-   "videoId": "FI4tahavfsg",
-   "title": "All These Things That I've Done - The Killers (Grade 5)",
+   "id": "rfl2rc7c",
+   "videoId": "0sZnzSgTaG4",
+   "title": "When You Were Young - The Killers",
    "drummer": "n4u5pzcx",
-   "updated": 1793897355034,
-   "fragments": [
-    {
-     "id": "2x2wphtg",
-     "name": "Primer fill",
-     "start": 43,
-     "end": 57,
-     "updated": 0
-    }
-   ]
+   "updated": 1793897332833,
+   "fragments": []
   },
   {
    "id": "9byvnkix",
