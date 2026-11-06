@@ -276,7 +276,7 @@ main.wide > aside { display: none; }
 .keyform { display: flex; flex-direction: column; gap: 8px; }
 .keyform p { margin: 0; }
 .keyform input { width: 100%; font-family: var(--mono); font-size: 13px; }
-.helplink { align-self: flex-start; font-size: 13px !important; border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
+.helplink { align-self: flex-start; font-size: 13px !important; border: none; background: none; padding: 0; font: inherit; font-weight: 400; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
 .helplink:hover { color: var(--fg); }
 /* Ventana de ayuda: centrada, fondo blanco, borde verde, texto negro con palabras clave en verde */
 .helpdlg { width: min(92vw, 520px); max-height: 88vh; overflow: auto; padding: 22px 24px 20px; border: 2px solid var(--accent); border-radius: 14px;
@@ -286,7 +286,7 @@ main.wide > aside { display: none; }
 .helpdlg .helpsub { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
 .helpdlg ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.4; }
 .helpdlg ol li::marker { color: var(--accent-ink); font-weight: 800; }
-.helpdlg h4 { margin: 14px 0 6px; font-size: 15px; font-weight: 800; color: var(--accent-ink); }
+.helpdlg h4 { margin: 14px 0 6px; font-size: 15px; font-weight: 800; color: var(--fg); }
 .helpdlg ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; font-size: 15px; line-height: 1.4; }
 .helpdlg ul li::marker { color: var(--accent-ink); }
 .helpdlg b { color: var(--accent-ink); }
@@ -581,7 +581,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     </div>
     <div class="panel" id="syncPanel">
       <h2>Sincronizar mis dispositivos</h2>
-      <p class="note sharehint">Sube tus canciones a tu web para tenerlas al día en todos tus dispositivos. También las verá quien abra tu enlace.</p>
+      <p class="note sharehint">Sube tus bateristas, canciones y compases a tu web para tenerlos al día en todos tus dispositivos. También los verá quien abra tu enlace.</p>
       <div class="stack">
         <button class="btn primary" type="button" id="publishBtn">Sincronizar</button>
       </div>
@@ -1672,6 +1672,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       });
     });
     Object.entries(d.deleted || {}).forEach(([id, t]) => {
+      if (id.startsWith("drummer:")) {
+        const did = id.slice("drummer:".length);
+        if ((lib.deleted[id] || 0) < t) lib.deleted[id] = t;
+        const ex = lib.drummers.find((x) => x.id === did);
+        if (ex && (ex.updated || 0) <= t) {
+          lib.songs.filter((x) => x.drummer === did).forEach((x) => { r.removed += x.fragments.length; });
+          lib.songs = lib.songs.filter((x) => x.drummer !== did);
+          lib.drummers = lib.drummers.filter((x) => x !== ex);
+          if (drummerId === did) { drummerId = null; currentSongId = null; currentFragId = null; }
+        }
+        return;
+      }
       if (id.startsWith("song:")) {
         const rest = id.slice(5), i = rest.lastIndexOf(":");
         if (i < 0) return;                       // formato antiguo
