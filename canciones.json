@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-06T06:50:49.409Z",
+ "published": "2026-11-06T08:30:44.857Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -10,11 +10,6 @@
   {
    "id": "9ar14mgy",
    "name": "Gabriel",
-   "updated": 0
-  },
-  {
-   "id": "ramon01",
-   "name": "Ramón",
    "updated": 0
   }
  ],
@@ -73,19 +68,13 @@
    "drummer": "9ar14mgy",
    "updated": 1793897518636,
    "fragments": []
-  },
-  {
-   "id": "da0hm41v",
-   "videoId": "Yq0UTvjCMCI",
-   "title": "Canción de Ramón (prueba)",
-   "drummer": "ramon01",
-   "updated": 1793947503748,
-   "fragments": []
   }
  ],
  "deleted": {
   "song:n4u5pzcx:0_3Pla56rEY": 1793874256480,
   "yjgrqzvc": 1793874256480,
-  "m2mz9brr": 1793874256480
+  "m2mz9brr": 1793874256480,
+  "song:ramon01:Yq0UTvjCMCI": 1793953580434,
+  "drummer:ramon01": 1793953580434
  }
 }
