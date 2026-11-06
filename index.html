@@ -959,7 +959,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function updateSongBtn() {
     // Solo deja de contar como «sonando» si se pausa o termina (mientras carga o se prepara, sigue en marcha)
     const st = playerReady && player.getPlayerState ? player.getPlayerState() : -1;
-    if (session || st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED) songPlaying = false;
+    // si YouTube aún no ha cargado (o no puede cargar), no hay nada sonando
+    if (!window.YT || !YT.PlayerState) songPlaying = false;
+    else if (session || st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED) songPlaying = false;
     $("songBtn").textContent = songPlaying ? "■ Parar canción" : "▶ Empezar canción";
     $("songBtn").classList.toggle("stopping", songPlaying);
     updateAvailability();
@@ -1281,7 +1283,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           const f = document.createElement("form"); f.className = "h-rename";
           f.innerHTML = `<input type="text" maxlength="120" aria-label="Nuevo nombre de la canción"><button class="btn small primary" type="submit" aria-label="Guardar nombre">✓</button>`;
           const inp = f.querySelector("input"); inp.value = song.title === NO_TITLE ? "" : song.title; inp.placeholder = "Nombre de la canción";
-          row.replaceChildren(f); inp.focus(); inp.select();
+          row.replaceChildren(f); selectFromStart(inp);
           inp.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); renderLibrary(); } });
           inp.addEventListener("blur", () => setTimeout(() => { if (document.body.contains(f) && !f.contains(document.activeElement)) renderLibrary(); }, 150));
           f.addEventListener("submit", (e) => {
@@ -1417,6 +1419,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       });
     });
   }
+  // Selecciona todo el nombre pero dejando a la vista el principio (no el final)
+  function selectFromStart(inp) {
+    inp.focus();
+    try { inp.setSelectionRange(0, inp.value.length, "backward"); } catch (e) { inp.select(); }
+    inp.scrollLeft = 0;
+    requestAnimationFrame(() => { inp.scrollLeft = 0; });
+  }
   // Cambiar el nombre de una canción: el título se convierte en un recuadro editable
   function startRename(el, song) {
     const head = el.querySelector(".s-head");
@@ -1427,7 +1436,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     input.value = song.title === NO_TITLE ? "" : song.title;
     input.placeholder = "Nombre de la canción";
     head.replaceWith(form);
-    input.focus(); input.select();
+    selectFromStart(input);
     const done = () => renderLibrary();
     form.querySelector(".ghost").onclick = done;
     input.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); done(); } });
