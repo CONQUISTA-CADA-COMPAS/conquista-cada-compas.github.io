@@ -491,8 +491,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sc-bpm { display: inline-flex; align-items: center; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
 .sc-bpm button { border: none; background: var(--surface); padding: 5px 8px; font-weight: 800; font-size: 15px; color: var(--fg); }
 .sc-bpm button:hover { background: var(--surface-2); color: var(--accent-ink); }
-.sc-bpm span { font-family: var(--mono); font-weight: 700; font-size: 14px; min-width: 3.4ch; text-align: center; font-variant-numeric: tabular-nums; }
-.sc-bpm span.flash { animation: scFlashTxt .5s ease-out; }
+.sc-bpm input[type="text"] { width: 4.2ch; border: none; border-radius: 0; padding: 4px 0; background: var(--surface); color: var(--fg); font-family: var(--mono); font-weight: 700; font-size: 14px; text-align: center; font-variant-numeric: tabular-nums; }
+.sc-bpm input[type="text"]:focus { outline: 2px solid var(--accent); outline-offset: -2px; }
+.sc-bpm input.flash { animation: scFlashTxt .5s ease-out; }
 #scTap.flash { animation: scFlash .35s ease-out; }
 @keyframes scFlash { from { background: var(--done); border-color: var(--done); color: #fff; } }
 @keyframes scFlashTxt { from { color: var(--done); } }
@@ -613,7 +614,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <div class="sv-ctl" id="scoreCtl">
           <button class="btn primary go" type="button" id="scoreGo">▶ Empezar ensayo</button>
           <div class="sv-group"><span class="sv-cap">Velocidad</span>
-            <div class="sc-bpm" title="Velocidad en golpes por minuto"><button type="button" id="scSlower" aria-label="Más despacio">−</button><span id="scBpmVal">70</span><button type="button" id="scFaster" aria-label="Más deprisa">+</button></div>
+            <div class="sc-bpm" title="Velocidad en golpes por minuto"><button type="button" id="scSlower" aria-label="Más despacio">−</button><input type="text" id="scBpmVal" inputmode="numeric" maxlength="3" value="70" aria-label="Velocidad en golpes por minuto" title="Escribe la velocidad y pulsa Intro"><button type="button" id="scFaster" aria-label="Más deprisa">+</button></div>
             <span class="sv-note">golpes por minuto</span>
             <button class="btn small" type="button" id="scTap" title="Pulsa varias veces al ritmo para poner la velocidad">Tap</button><span class="sv-note" id="scTapHint" aria-live="polite"></span></div>
           <div class="sv-group">
@@ -2467,7 +2468,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const list = [...sel].sort((a, b) => a - b).map((i) => i + 1);
     $("scAll").checked = sel.size === s.lines.length;
     $("scInfo").textContent = list.length ? `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas` : "Marca al menos una línea para ensayar";
-    $("scBpmVal").textContent = scBpm(s);
+    $("scBpmVal").value = scBpm(s);
     scLegend(s);
     const G = geo(scDiv(s));
     s.lines.forEach((line, i) => {
@@ -2674,8 +2675,23 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function setScoreBpm(v) {
     const s = curScore(); if (!s) return;
     scStore.bpm[s.id] = Math.max(40, Math.min(200, Math.round(v))); scSave();
-    $("scBpmVal").textContent = scBpm(s);
+    $("scBpmVal").value = scBpm(s);
   }
+  // Escribir la velocidad con el teclado: se aplica con Intro o al salir de la casilla
+  const bpmIn = $("scBpmVal");
+  bpmIn.addEventListener("input", () => { bpmIn.value = bpmIn.value.replace(/\D/g, "").slice(0, 3); });
+  bpmIn.addEventListener("focus", () => bpmIn.select());
+  bpmIn.addEventListener("change", () => {
+    const v = parseInt(bpmIn.value, 10), s = curScore(); if (!s) return;
+    if (!v) { bpmIn.value = scBpm(s); return; }
+    if (v < 40 || v > 200) toast("La velocidad va de 40 a 200 golpes por minuto.");
+    setScoreBpm(v);
+  });
+  bpmIn.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); bpmIn.blur(); }
+    else if (e.key === "Escape") { e.stopPropagation(); bpmIn.value = scBpm(curScore()); bpmIn.blur(); }
+    else if (e.key === "ArrowUp" || e.key === "ArrowDown") { e.preventDefault(); setScoreBpm(scBpm(curScore()) + (e.key === "ArrowUp" ? 1 : -1)); bpmIn.select(); }
+  });
   $("scSlower").onclick = () => setScoreBpm(scBpm(curScore()) - 5);
   $("scFaster").onclick = () => setScoreBpm(scBpm(curScore()) + 5);
   let scTaps = [], scTapReset = 0;
