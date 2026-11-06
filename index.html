@@ -841,7 +841,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       lib.songs.unshift(song);
       // el historial no crece sin fin: se olvidan los más antiguos
       const hist = mySongs().filter((x) => !isSaved(x)).sort((a, b) => (b.lastUsed || 0) - (a.lastUsed || 0));
-      hist.slice(HISTORY_MAX).forEach((x) => { lib.songs = lib.songs.filter((y) => y !== x); });
+      hist.slice(HISTORY_MAX).forEach((x) => { tomb(songKey(x)); lib.songs = lib.songs.filter((y) => y !== x); });
       persist(); renderLibrary();
       if (song.title === NO_TITLE) fetchTitle(song);
     } else if (title !== NO_TITLE) setTitle(song, title);
@@ -1404,7 +1404,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         tb.textContent = song.title; tb.title = song.title;
         tb.onclick = () => { song.lastUsed = Date.now(); persist(); openSong(song); };
         sb.onclick = () => saveSong(song);
-        xb.onclick = () => { lib.songs = lib.songs.filter((x) => x !== song); if (currentSongId === song.id) currentSongId = null; persist(); renderLibrary(); };
+        xb.onclick = () => { tomb(songKey(song)); lib.songs = lib.songs.filter((x) => x !== song); if (currentSongId === song.id) currentSongId = null; persist(); renderLibrary(); };
         box.appendChild(row);
       });
       return;
@@ -1588,7 +1588,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const used = new Set(obj.songs.map((s) => s.drummer).filter(Boolean));
     const out = {
       drummers: lib.drummers.filter((d) => obj === lib || used.has(d.id)).map((d) => ({ id: d.id, name: d.name, updated: d.updated || 0 })),
-      songs: obj.songs.filter(isSaved).map((s) => ({ id: s.id, videoId: s.videoId, title: s.title, drummer: s.drummer, updated: s.updated || 0,
+      // al sincronizar (toda la biblioteca) va también el historial; al compartir, solo lo guardado
+      songs: obj.songs.filter((s) => obj === lib || isSaved(s)).map((s) => ({ id: s.id, videoId: s.videoId, title: s.title, drummer: s.drummer, updated: s.updated || 0,
+        ...(isSaved(s) ? {} : { saved: false, lastUsed: s.lastUsed || 0 }),
         fragments: s.fragments.map((f) => ({ id: f.id, name: f.name, start: f.start, end: f.end, updated: f.updated || 0 })) })),
     };
     if (withDeleted && lib.deleted) out.deleted = lib.deleted;
@@ -1665,9 +1667,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const dr = localDrummer(s.drummer);
       if (gone("song:" + (dr || "") + ":" + s.videoId, s.updated)) return;
       let ex = lib.songs.find((x) => x.videoId === s.videoId && (x.drummer || undefined) === dr);
-      if (!ex) { ex = { id: uid(), videoId: s.videoId, title: s.title, drummer: dr, updated: s.updated || 0, fragments: [] }; lib.songs.push(ex); }
-      else if ((s.updated || 0) > (ex.updated || 0)) { ex.title = s.title; ex.updated = s.updated; }
-      if (!isSaved(ex)) ex.saved = true;   // lo que llega publicado o compartido está guardado
+      if (!ex) {
+        ex = { id: uid(), videoId: s.videoId, title: s.title, drummer: dr, updated: s.updated || 0, fragments: [] };
+        if (s.saved === false) { ex.saved = false; ex.lastUsed = s.lastUsed || 0; }   // canción del historial
+        lib.songs.push(ex);
+      }
+      else if ((s.updated || 0) > (ex.updated || 0)) { ex.title = s.title; ex.updated = s.updated; }   // gana el nombre más reciente
+      if (s.saved !== false && !isSaved(ex)) ex.saved = true;   // si en algún dispositivo se guardó, queda guardada
+      if (s.lastUsed && (s.lastUsed > (ex.lastUsed || 0))) ex.lastUsed = s.lastUsed;
       if (!r.first) r.first = ex;
       (s.fragments || []).forEach((f) => {
         if (gone(f.id, f.updated)) return;
@@ -1692,7 +1699,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (id.startsWith("song:")) {
         const rest = id.slice(5), i = rest.lastIndexOf(":");
         if (i < 0) return;                       // formato antiguo
-        const dr = localDrummer(rest.slice(0, i) || undefined), vid = rest.slice(i + 1);
+        const rawDr = rest.slice(0, i) || undefined, vid = rest.slice(i + 1);
+        // borrado de un baterista que este dispositivo no conoce: se apunta tal cual y no se toca nada más
+        const dr = rawDr ? (map[rawDr] || (lib.drummers.some((x) => x.id === rawDr) ? rawDr : null)) : undefined;
+        if (dr === null) { if ((lib.deleted[id] || 0) < t) lib.deleted[id] = t; return; }
         const key = "song:" + (dr || "") + ":" + vid;
         if ((lib.deleted[key] || 0) < t) lib.deleted[key] = t;
         const ex = lib.songs.find((x) => x.videoId === vid && (x.drummer || undefined) === dr);
@@ -1728,9 +1738,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     return `${owner}/${repo}`;
   })();
   const getKey = () => { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } };
-  // Dispositivos «de la familia»: los que tienen la llave o han abierto una vez el enlace familiar (#familia).
+  // Dispositivos «de la familia»: los que tienen la llave o han abierto una vez el enlace familiar (#Dario-y-Gabriel).
   // Los demás (profesor, otros padres) no ven la lista sincronizada: solo lo suyo y lo que les compartan.
   const FAMILY_KEY = "ensayo-en-bucle-familia";
+  const FAMILY_HASH = "#Dario-y-Gabriel";   // enlace familiar: https://conquista-cada-compas.github.io/#Dario-y-Gabriel
   const isFamily = () => { try { return !!localStorage.getItem(FAMILY_KEY) || !!getKey(); } catch (e) { return false; } };
   const markFamily = () => { try { localStorage.setItem(FAMILY_KEY, "1"); } catch (e) {} };
 
@@ -1794,7 +1805,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este dispositivo."); };
   refreshKeyUI();
   $("familyLinkBtn").onclick = () => {
-    const url = location.origin + location.pathname + "#familia";
+    const url = location.origin + location.pathname + FAMILY_HASH;
     const ok = () => toast("Enlace familiar copiado: ábrelo una vez en cada dispositivo de tu familia");
     const fallback = () => { $("importBox").hidden = false; $("importText").value = url; $("importText").select(); toast("Selecciona el enlace del recuadro y cópialo"); };
     if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, fallback); else fallback();
@@ -1934,7 +1945,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   loadPublished();
 
   // Enlace familiar: este dispositivo pasa a recibir la lista sincronizada
-  if (location.hash === "#familia") {
+  if (decodeURIComponent(location.hash).toLowerCase() === FAMILY_HASH.toLowerCase()) {
     markFamily();
     try { history.replaceState(null, "", location.pathname); } catch (e) {}
     loadPublished().then(() => toast("Dispositivo de la familia: ya verás las canciones sincronizadas"));
