@@ -267,13 +267,13 @@ main.wide > aside { display: none; }
 .gorow { flex-wrap: nowrap; }
 .gorow #goBtn, .gorow #songBtn { flex: 1 1 auto; }
 #boardSlotMain, #boardSlotAside { display: contents; }
-#boardSlotMain .boardpanel { width: 100%; max-width: 900px; margin-left: auto; }
+#boardSlotMain .boardpanel, #boardSlotMain .fragpanel { width: 100%; max-width: 900px; margin-left: auto; }
 .sidegroup { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
 .stack { display: flex; flex-direction: column; gap: 8px; }
 .keyform { display: flex; flex-direction: column; gap: 8px; }
 .keyform p { margin: 0; }
 .keyform input { width: 100%; font-family: var(--mono); font-size: 13px; }
-.helplink { border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
+.helplink { align-self: flex-start; font-size: 13px !important; border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
 .helplink:hover { color: var(--fg); }
 /* Ventana de ayuda: centrada, fondo blanco, borde verde, texto negro con palabras clave en verde */
 .helpdlg { width: min(92vw, 520px); max-height: 88vh; overflow: auto; padding: 22px 24px 20px; border: 2px solid var(--accent); border-radius: 14px;
@@ -393,6 +393,19 @@ body.dragging-song, body.dragging-song * { cursor: grabbing !important; user-sel
 .h-rename input { flex: 1; min-width: 0; padding: 5px 8px; font-size: 14px; font-weight: 700; }
 .h-rename .btn { padding: 4px 10px; font-size: 13px; }
 .s-actions select.transfer { font-size: 13px; padding: 3px 6px; border-radius: 6px; }
+/* Panel «Guardar compases»: dos columnas pequeñas (inicio y final) */
+.fragpanel .frag-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.fragpanel .edge { padding: 8px; gap: 6px; min-width: 0; }
+.fragpanel .edge > * { min-width: 0; }
+.fragpanel .edge-top { display: flex; align-items: baseline; justify-content: space-between; gap: 4px; }
+.fragpanel .edge .time { font-size: 17px; width: 100%; min-width: 0; flex: 1; text-align: right; }
+.fragpanel .edge .btn.hit { padding: 5px 6px; font-size: 13px; }
+.fragpanel .nudges { gap: 3px; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.fragpanel .nudges .btn { padding: 3px 0; font-size: 11px; min-width: 0; white-space: nowrap; }
+.fragpanel #fragName { width: 100%; padding: 7px 10px; }
+.fragpanel .fragbtns { flex-wrap: nowrap; gap: 6px; }
+.fragpanel .fragbtns .btn { flex: 1 1 0; min-width: 0; padding: 7px 6px; font-size: 14px; white-space: nowrap; }
+.fragpanel #previewBtn { padding: 4px 9px; font-size: 13px; }
 /* Columna derecha compacta: que quepa todo sin hacer scroll */
 aside.col, #boardSlotAside .sidegroup { gap: 12px; }
 aside .panel { padding: 12px 14px; gap: 10px; }
@@ -496,52 +509,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     </div>
     </div>
 
-    <div class="panel" id="fragPanel">
-      <div class="timeline" id="timeline" title="Pulsa para saltar a ese punto">
-        <div class="region" id="tlRegion" hidden></div>
-        <div class="head" id="tlHead" style="left:0"></div>
-      </div>
-      <div class="tl-meta mono"><span id="tlNow">0:00.0</span><span id="tlDur">0:00</span></div>
-
-      <div class="row between">
-        <h2>1 · La parte difícil</h2>
-        <div class="row">
-          <button class="btn small" type="button" id="previewBtn" title="Escuchar el fragmento una vez">Escuchar fragmento</button>
-        </div>
-      </div>
-      <p class="note">Consejo: incluye uno o dos compases antes y después del fill, así practican también la entrada y la salida.</p>
-
-      <div class="frag-grid">
-        <div class="edge">
-          <span class="label">Empieza en</span>
-          <input class="time mono" id="startInput" type="text" value="0:00.0" aria-label="Inicio del fragmento">
-          <button class="btn hit" type="button" id="markStart">Marcar inicio aquí</button>
-          <div class="nudges">
-            <button class="btn" type="button" data-nudge="start" data-d="-1">−1 s</button>
-            <button class="btn" type="button" data-nudge="start" data-d="-0.2">−0,2</button>
-            <button class="btn" type="button" data-nudge="start" data-d="0.2">+0,2</button>
-            <button class="btn" type="button" data-nudge="start" data-d="1">+1 s</button>
-          </div>
-        </div>
-        <div class="edge">
-          <span class="label">Termina en</span>
-          <input class="time mono" id="endInput" type="text" value="0:00.0" aria-label="Final del fragmento">
-          <button class="btn hit" type="button" id="markEnd">Marcar final aquí</button>
-          <div class="nudges">
-            <button class="btn" type="button" data-nudge="end" data-d="-1">−1 s</button>
-            <button class="btn" type="button" data-nudge="end" data-d="-0.2">−0,2</button>
-            <button class="btn" type="button" data-nudge="end" data-d="0.2">+0,2</button>
-            <button class="btn" type="button" data-nudge="end" data-d="1">+1 s</button>
-          </div>
-        </div>
-      </div>
-      <div class="row">
-        <input type="text" id="fragName" placeholder="Nombre (p. ej. «Fill del estribillo»)" style="flex:1 1 220px" aria-label="Nombre del fragmento">
-        <button class="btn primary" type="button" id="saveFrag">Guardar fragmento</button>
-        <button class="btn ghost" type="button" id="newFrag">Nuevo</button>
-      </div>
-    </div>
-
   </div>
 
   <aside class="col" id="libAside">
@@ -563,15 +530,37 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <input type="search" class="libsearch" id="libSearch" placeholder="Buscar canción…" aria-label="Buscar canción" hidden>
       <div class="lib" id="library"></div>
     </div>
+    <div class="panel fragpanel" id="fragPanel">
+      <div class="row between"><h2 title="Consejo: incluye uno o dos compases antes y después del fill, así se practica también la entrada y la salida">Guardar compases</h2>
+        <button class="btn small" type="button" id="previewBtn" title="Escuchar una vez los compases marcados">▶ Escuchar</button></div>
+      <div class="frag-grid">
+        <div class="edge">
+          <div class="edge-top"><span class="label">Empieza</span><input class="time mono" id="startInput" type="text" value="0:00.0" aria-label="Inicio de los compases"></div>
+          <button class="btn hit" type="button" id="markStart">Marcar inicio</button>
+          <div class="nudges"><button class="btn" type="button" data-nudge="start" data-d="-1">−1 s</button><button class="btn" type="button" data-nudge="start" data-d="-0.2">−0,2</button><button class="btn" type="button" data-nudge="start" data-d="0.2">+0,2</button><button class="btn" type="button" data-nudge="start" data-d="1">+1 s</button></div>
+        </div>
+        <div class="edge">
+          <div class="edge-top"><span class="label">Termina</span><input class="time mono" id="endInput" type="text" value="0:00.0" aria-label="Final de los compases"></div>
+          <button class="btn hit" type="button" id="markEnd">Marcar final</button>
+          <div class="nudges"><button class="btn" type="button" data-nudge="end" data-d="-1">−1 s</button><button class="btn" type="button" data-nudge="end" data-d="-0.2">−0,2</button><button class="btn" type="button" data-nudge="end" data-d="0.2">+0,2</button><button class="btn" type="button" data-nudge="end" data-d="1">+1 s</button></div>
+        </div>
+      </div>
+      <input type="text" id="fragName" placeholder="Nombre (p. ej. «Fill del estribillo»)" aria-label="Nombre de los compases">
+      <div class="row fragbtns">
+        <button class="btn primary" type="button" id="saveFrag">Guardar</button>
+        <button class="btn" type="button" id="newFrag">Nuevo</button>
+      </div>
+    </div>
     <div class="panel" id="pubPanel">
       <h2>Publicar</h2>
       <div class="stack">
         <button class="btn primary" type="button" id="publishBtn">Publicar mis canciones</button>
       </div>
       <form class="keyform" id="keyForm" hidden>
-        <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este dispositivo). Pégala aquí: <button class="helplink" type="button" id="keyHelpBtn">¿Cómo consigo la llave?</button></p>
+        <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este dispositivo). Pégala aquí:</p>
         <input type="password" id="keyInput" autocomplete="off" spellcheck="false" placeholder="github_pat_…" aria-label="Llave de GitHub">
         <div class="row" style="gap:6px"><button class="btn small primary" type="submit">Guardar y publicar</button><button class="btn small ghost" type="button" id="keyCancel">Cancelar</button></div>
+        <button class="helplink" type="button" id="keyHelpBtn">¿Cómo consigo la llave?</button>
       </form>
       <p class="note" id="pubStatus" hidden></p>
       <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este dispositivo</button>
@@ -858,6 +847,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // ---------- Línea de tiempo ----------
   function drawTimeline() {
+    if (!$("tlNow")) return;   // la barra de tiempo se quitó
     const d = duration();
     $("tlNow").textContent = fmt(now());
     $("tlDur").textContent = fmt(d, false);
@@ -869,7 +859,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       } else r.hidden = true;
     }
   }
-  $("timeline").addEventListener("pointerdown", (e) => {
+  if ($("timeline")) $("timeline").addEventListener("pointerdown", (e) => {
     const d = duration(); if (!d) return;
     const rect = e.currentTarget.getBoundingClientRect();
     const t = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width)) * d;
@@ -892,7 +882,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const set = (id, ok, why) => { const b = $(id); if (!b) return; b.disabled = !ok; b.title = ok ? "" : why; };
       const needWhy = "Primero elige un baterista arriba";
       set("songBtn", hasSong || songPlaying, hasDrummer ? "Primero carga una canción" : needWhy);
-      set("goBtn", hasFrag || running(), !hasDrummer ? needWhy : !hasSong ? "Primero carga una canción" : "Primero elige o marca un fragmento");
+      set("goBtn", hasFrag || running(), !hasDrummer ? needWhy : !hasSong ? "Primero carga una canción" : "Primero elige o marca unos compases");
       // Publicar: en cuanto el baterista elegido tenga canciones guardadas (o haya una canción cargada)
       const canPublish = hasSong || (hasDrummer && mySongs().some(isSaved));
       set("publishBtn", canPublish, hasDrummer ? "Primero guarda alguna canción" : needWhy);
@@ -938,14 +928,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const song = ensureSong();
     if (!song) { toast("Elige arriba quién ensaya antes de guardar."); $("drummerBtn").focus(); return; }
     if (!isSaved(song)) { song.saved = true; libTab = "saved"; }   // guardar un fragmento también guarda la canción
-    const data = { name: $("fragName").value.trim() || `Fragmento ${fmt(frag.start, false)}`, start: frag.start, end: frag.end, updated: Date.now() };
+    const data = { name: $("fragName").value.trim() || `Compases ${fmt(frag.start, false)}`, start: frag.start, end: frag.end, updated: Date.now() };
     let f = song.fragments.find((x) => x.id === currentFragId);
     const existed = !!f;
     if (f) Object.assign(f, data); else { f = { id: uid(), ...data }; song.fragments.push(f); currentFragId = f.id; }
     $("fragName").value = f.name;
     openSongs.add(song.id);
     persist(); renderLibrary();
-    toast(existed ? `Cambios guardados en «${f.name}»` : (drummerId ? `Fragmento guardado para ${drummerName(drummerId)}` : "Fragmento guardado"));
+    toast(existed ? `Cambios guardados en «${f.name}»` : (drummerId ? `Compases guardados para ${drummerName(drummerId)}` : "Compases guardados"));
   };
   // «Nuevo» empieza un fragmento en blanco; «Guardar como nuevo» guarda una copia con los cambios y deja el original como estaba
   $("newFrag").onclick = () => {
@@ -1263,7 +1253,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     });
     if (move) deleteSong(song);
     persist(); renderLibrary();
-    toast(`${move ? "Movida" : "Copiada"} a ${drummerName(targetId)}` + (n ? ` (${n} ${n === 1 ? "fragmento" : "fragmentos"})` : ""));
+    toast(`${move ? "Movida" : "Copiada"} a ${drummerName(targetId)}` + (n ? ` (${n} ${n === 1 ? "guardado" : "guardados"})` : ""));
   }
   function deleteSong(song) {
     lib.songs = lib.songs.filter((s) => s !== song);
@@ -1279,7 +1269,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function renderLibrary() {
     updateAvailability();
     // Con un fragmento elegido, guardar sobrescribe ese mismo fragmento
-    $("saveFrag").textContent = currentFragId ? "Guardar cambios" : "Guardar fragmento";
+    $("saveFrag").textContent = currentFragId ? "Guardar cambios" : "Guardar";
     $("newFrag").textContent = currentFragId ? "Guardar como nuevo" : "Nuevo";
     updateLoadBtn();
     const box = $("library"); box.innerHTML = "";
@@ -1356,12 +1346,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (isOpen) {
         const body = document.createElement("div"); body.className = "s-body";
         if (!song.fragments.length) {
-          const p = document.createElement("p"); p.className = "noresult"; p.textContent = "Sin fragmentos guardados."; body.appendChild(p);
+          const p = document.createElement("p"); p.className = "noresult"; p.textContent = "Sin compases guardados."; body.appendChild(p);
         }
         song.fragments.forEach((f) => {
           const row = document.createElement("div");
           row.className = "f-row" + (f.id === currentFragId ? " active" : "");
-          row.innerHTML = `<button class="f-name" type="button"></button><button class="iconbtn" type="button" title="Borrar fragmento" aria-label="Borrar fragmento">×</button>`;
+          row.innerHTML = `<button class="f-name" type="button"></button><button class="iconbtn" type="button" title="Borrar" aria-label="Borrar">×</button>`;
           const nb = row.querySelector(".f-name");
           nb.textContent = f.name;
           nb.title = `${f.name} · ${fmt(f.start)} → ${fmt(f.end)}` + (f.last ? ` · último ensayo ${new Date(f.last.date).toLocaleDateString("es-ES", { day: "numeric", month: "short" })} al ${pct(f.last.maxRate)}` : "");
@@ -1594,7 +1584,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function describe(r) {
     const parts = [];
-    if (r.added) parts.push(`${r.added} ${r.added === 1 ? "fragmento nuevo" : "fragmentos nuevos"}`);
+    if (r.added) parts.push(`${r.added} ${r.added === 1 ? "nuevo" : "nuevos"}`);
     if (r.updated) parts.push(`${r.updated} ${r.updated === 1 ? "actualizado" : "actualizados"}`);
     if (r.removed) parts.push(`${r.removed} ${r.removed === 1 ? "borrado" : "borrados"}`);
     return parts.join(", ");
@@ -1761,6 +1751,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const toAside = !document.querySelector("main").classList.contains("wide") && !narrowMQ.matches;
     const slot = $(toAside ? "boardSlotAside" : "boardSlotMain");
     if ($("boardPanel").parentElement !== slot) slot.appendChild($("boardPanel"));
+    if (toAside) { if ($("fragPanel").nextElementSibling !== $("pubPanel")) $("pubPanel").before($("fragPanel")); }
+    else if ($("fragPanel").parentElement !== $("boardSlotMain")) $("boardSlotMain").appendChild($("fragPanel"));
     placeCoverHint();
   }
   narrowMQ.addEventListener ? narrowMQ.addEventListener("change", placeBoard) : narrowMQ.addListener(placeBoard);
