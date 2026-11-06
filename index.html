@@ -794,7 +794,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("fsBtn").onclick = () => {
       if (fsElement()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
       const req = stageEl.requestFullscreen || stageEl.webkitRequestFullscreen;
-      try { const r = req.call(stageEl); if (r && r.catch) r.catch(() => toast("Este dispositivo no permite la pantalla completa.")); } catch (e) { toast("Este dispositivo no permite la pantalla completa."); }
+      try {
+        const r = req.call(stageEl);
+        if (r && r.then) r.then(() => { if (touchDevice()) toLandscape(); }, () => toast("Este dispositivo no permite la pantalla completa."));
+      } catch (e) { toast("Este dispositivo no permite la pantalla completa."); }
     };
     const onFs = () => {
       const on = !!fsElement();
@@ -810,9 +813,17 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // En el móvil (pantalla táctil): pantalla completa y esperar a que pulsen play antes de empezar
   const touchDevice = () => window.matchMedia("(pointer: coarse)").matches;
+  // Pantalla completa y, en el móvil, girar a horizontal automáticamente (Android lo permite; iPhone no)
+  function toLandscape() {
+    try { if (screen.orientation && screen.orientation.lock) screen.orientation.lock("landscape").catch(() => {}); } catch (e) {}
+  }
   function enterFs() {
-    if (!canFullscreen || fsElement()) return;
-    try { const r = (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+    if (!canFullscreen) return;
+    if (fsElement()) return toLandscape();
+    try {
+      const r = (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl);
+      if (r && r.then) r.then(toLandscape, () => {}); else setTimeout(toLandscape, 300);
+    } catch (e) {}
   }
   // Pantalla «preparados»: el play empieza normal; la barra espaciadora empieza con cuenta atrás de 5
   let readySpace = null;
