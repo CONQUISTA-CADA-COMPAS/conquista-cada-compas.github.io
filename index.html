@@ -294,6 +294,14 @@ main.wide > aside { display: none; }
 .helpdlg .helpnote { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
 .helpdlg .helpnote b { color: var(--fg); }
 .helpdlg .helpok { margin-top: 16px; width: 100%; }
+.mergecols { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (max-width: 520px) { .mergecols { grid-template-columns: minmax(0, 1fr); } }
+.mergecols h4 { margin-top: 4px; }
+.mergecols li { overflow-wrap: anywhere; }
+.mergecols li.none { color: var(--muted); list-style: none; margin-left: -20px; }
+.mergecols .both { color: var(--muted); font-size: 13px; }
+.mergebtns { display: flex; flex-direction: column; gap: 8px; margin-top: 16px; }
+.mergebtns .btn { width: 100%; white-space: normal; text-align: center; }
 .helpclose { position: absolute; top: 10px; right: 12px; border: none; background: none; font-size: 26px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
 .helpclose:hover { color: var(--accent-ink); }
 .sharehint { margin: -2px 0 0; font-size: 12.5px; }
@@ -623,6 +631,21 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   </ul>
   <p class="helpnote"><b>¿Quieres que se actualice todo solo, borrados incluidos?</b> Usa <b>Sincronizar mis dispositivos</b>, más abajo.</p>
   <button class="btn primary helpok" type="button" data-close>Entendido</button>
+</dialog>
+
+<dialog class="helpdlg" id="mergeDlg" aria-labelledby="mergeTitle">
+  <button class="helpclose" type="button" id="mergeCancel" aria-label="Cerrar sin añadir nada">×</button>
+  <h3 id="mergeTitle">Ya tienes un baterista llamado <span id="mergeName"></span></h3>
+  <p class="helpsub">El enlace trae un baterista con el mismo nombre. ¿Es la misma persona?</p>
+  <div class="mergecols">
+    <div><h4>El tuyo</h4><ul id="mergeLocal"></ul></div>
+    <div><h4>El del enlace</h4><ul id="mergeIncoming"></ul></div>
+  </div>
+  <div class="mergebtns">
+    <button class="btn primary" type="button" id="mergeYes">Sí, es el mismo: unirlos en <span id="mergeNameYes"></span></button>
+    <button class="btn" type="button" id="mergeNo">No, son distintos: añadirlo como «<span id="mergeNew"></span>»</button>
+  </div>
+  <p class="helpnote">Si son distintos, luego puedes cambiarle el nombre con el lápiz.</p>
 </dialog>
 
 <dialog class="helpdlg" id="keyHelp" aria-labelledby="keyHelpTitle">
@@ -1587,11 +1610,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function cleanLib(obj, withDeleted) {
     const used = new Set(obj.songs.map((s) => s.drummer).filter(Boolean));
     const out = {
-      drummers: lib.drummers.filter((d) => obj === lib || used.has(d.id)).map((d) => ({ id: d.id, name: d.name, updated: d.updated || 0 })),
+      drummers: lib.drummers.filter((d) => obj === lib || used.has(d.id)).map((d) => ({ id: d.id, name: d.name, updated: d.updated || 0, ...(d.aka ? { aka: d.aka } : {}) })),
       // al sincronizar (toda la biblioteca) va también el historial; al compartir, solo lo guardado
       songs: obj.songs.filter((s) => obj === lib || isSaved(s)).map((s) => ({ id: s.id, videoId: s.videoId, title: s.title, drummer: s.drummer, updated: s.updated || 0,
         ...(isSaved(s) ? {} : { saved: false, lastUsed: s.lastUsed || 0 }),
-        fragments: s.fragments.map((f) => ({ id: f.id, name: f.name, start: f.start, end: f.end, updated: f.updated || 0 })) })),
+        fragments: s.fragments.map((f) => ({ id: f.id, name: f.name, start: f.start, end: f.end, updated: f.updated || 0, ...(f.aka ? { aka: f.aka } : {}) })) })),
     };
     if (withDeleted && lib.deleted) out.deleted = lib.deleted;
     return out;
@@ -1644,7 +1667,30 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("shareAllBtn").title = many.map((d) => d.name).join(", ");
   }
   // Une una lista recibida con la propia. Gana siempre la versión más reciente de cada fragmento.
-  function mergeLib(d) {
+  // Dos compases son el mismo si empiezan y acaban en el mismo punto (con una décima de margen)
+  const sameSpan = (a, b) => Math.abs(a.start - b.start) < 0.05 && Math.abs(a.end - b.end) < 0.05;
+  const knows = (x, id) => x.id === id || (x.aka || []).includes(id);   // id propio o de un duplicado ya unido
+  // Junta los compases repetidos de cada canción (se queda el primero y recuerda el id del otro)
+  function dedupeFragments() {
+    let n = 0;
+    lib.songs.forEach((s) => {
+      const out = [];
+      s.fragments.forEach((f) => {
+        const twin = out.find((y) => sameSpan(y, f));
+        if (twin) { twin.aka = [...new Set([...(twin.aka || []), f.id, ...(f.aka || [])])]; if (currentFragId === f.id) currentFragId = twin.id; n++; }
+        else out.push(f);
+      });
+      s.fragments = out;
+    });
+    return n;
+  }
+  function uniqueDrummerName(name) {
+    let n = 2;
+    while (lib.drummers.some((x) => norm(x.name) === norm(`${name} (${n})`))) n++;
+    return `${name} (${n})`;
+  }
+  // choices[id del baterista del enlace] = "merge" | "separate" (respuesta a «¿Es el mismo?»)
+  function mergeLib(d, choices = {}) {
     if (!d || !Array.isArray(d.songs)) throw 0;
     lib.deleted = lib.deleted || {};
     const r = { added: 0, updated: 0, removed: 0, first: null };
@@ -1653,8 +1699,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const map = {};
     (d.drummers || []).forEach((dr) => {
       if (lib.deleted["drummer:" + dr.id]) return;   // borrado en este aparato
-      let ex = lib.drummers.find((x) => x.id === dr.id) || lib.drummers.find((x) => norm(x.name) === norm(dr.name));
-      if (!ex) { ex = { id: dr.id, name: dr.name, updated: dr.updated || 0 }; lib.drummers.push(ex); }
+      let ex = lib.drummers.find((x) => knows(x, dr.id) || (dr.aka || []).includes(x.id));
+      if (!ex && choices[dr.id] !== "separate") ex = lib.drummers.find((x) => norm(x.name) === norm(dr.name));
+      if (!ex) {
+        ex = choices[dr.id] === "separate"
+          ? { id: dr.id, name: uniqueDrummerName(dr.name), updated: Date.now() }
+          : { id: dr.id, name: dr.name, updated: dr.updated || 0 };
+        lib.drummers.push(ex);
+      }
+      else if (ex.id !== dr.id && !(ex.aka || []).includes(dr.id)) ex.aka = [...(ex.aka || []), dr.id];   // unido por nombre: se recuerda
       // si el padre le cambió el nombre (p. ej. añadió el apellido), gana el nombre más reciente
       else if (ex.id === dr.id && dr.name && dr.name !== ex.name && (dr.updated || 0) > (ex.updated || 0)) { ex.name = dr.name; ex.updated = dr.updated; }
       map[dr.id] = ex.id;
@@ -1678,8 +1731,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (!r.first) r.first = ex;
       (s.fragments || []).forEach((f) => {
         if (gone(f.id, f.updated)) return;
-        const ef = ex.fragments.find((y) => y.id === f.id);
-        if (!ef) { ex.fragments.push({ id: f.id, name: f.name, start: f.start, end: f.end, updated: f.updated || 0 }); r.added++; }
+        const ef = ex.fragments.find((y) => knows(y, f.id) || (f.aka || []).includes(y.id));
+        if (!ef) {
+          const twin = ex.fragments.find((y) => sameSpan(y, f));   // el mismo compás guardado por otra persona
+          if (twin) { twin.aka = [...new Set([...(twin.aka || []), f.id])]; return; }
+          ex.fragments.push({ id: f.id, name: f.name, start: f.start, end: f.end, updated: f.updated || 0, ...(f.aka ? { aka: f.aka } : {}) }); r.added++;
+        }
         else if ((f.updated || 0) > (ef.updated || 0)) { Object.assign(ef, { name: f.name, start: f.start, end: f.end, updated: f.updated }); r.updated++; }
       });
     });
@@ -1713,13 +1770,62 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       } else {
         if ((lib.deleted[id] || 0) < t) lib.deleted[id] = t;
         lib.songs.forEach((s) => {
-          const ef = s.fragments.find((f) => f.id === id);
+          const ef = s.fragments.find((f) => knows(f, id));
           if (ef && (ef.updated || 0) <= t) { s.fragments = s.fragments.filter((f) => f !== ef); if (currentFragId === id) currentFragId = null; r.removed++; }
         });
       }
     });
+    dedupeFragments();
     persist(); renderDrummers(); renderLibrary();
     return r;
+  }
+  // Bateristas del enlace con el mismo nombre que uno tuyo pero que no son (todavía) el mismo
+  function nameConflicts(d) {
+    return (d.drummers || []).map((dr) => {
+      if (lib.deleted && lib.deleted["drummer:" + dr.id]) return null;
+      if (lib.drummers.some((x) => knows(x, dr.id) || (dr.aka || []).includes(x.id))) return null;
+      const local = lib.drummers.find((x) => norm(x.name) === norm(dr.name));
+      return local ? { local, incoming: dr } : null;
+    }).filter(Boolean);
+  }
+  // Pregunta «¿Es el mismo?» por cada coincidencia. Devuelve las respuestas, o null si se cierra sin elegir.
+  async function resolveConflicts(d) {
+    const choices = {};
+    for (const c of nameConflicts(d)) {
+      const ans = await askSameDrummer(c, d);
+      if (ans === null) return null;
+      choices[c.incoming.id] = ans ? "merge" : "separate";
+    }
+    return choices;
+  }
+  function askSameDrummer({ local, incoming }, d) {
+    const dlg = $("mergeDlg");
+    const fill = (ul, songs, other) => {
+      ul.innerHTML = "";
+      if (!songs.length) { const li = document.createElement("li"); li.className = "none"; li.textContent = "Sin canciones guardadas"; ul.appendChild(li); return; }
+      songs.forEach((s) => {
+        const li = document.createElement("li");
+        const n = s.fragments.length;
+        li.textContent = `${s.title} · ${n} ${n === 1 ? "compás" : "compases"}`;
+        if (other.some((o) => o.videoId === s.videoId)) { const em = document.createElement("span"); em.className = "both"; em.textContent = " (los dos la tenéis)"; li.appendChild(em); }
+        ul.appendChild(li);
+      });
+    };
+    const mine = lib.songs.filter((s) => s.drummer === local.id && isSaved(s));
+    const theirs = d.songs.filter((s) => s.drummer === incoming.id && s.saved !== false);
+    $("mergeName").textContent = local.name;
+    $("mergeNameYes").textContent = local.name;
+    $("mergeNew").textContent = uniqueDrummerName(incoming.name);
+    fill($("mergeLocal"), mine, theirs);
+    fill($("mergeIncoming"), theirs, mine);
+    return new Promise((resolve) => {
+      const done = (v) => { dlg.onclose = null; if (dlg.open) dlg.close(); resolve(v); };
+      $("mergeYes").onclick = () => done(true);
+      $("mergeNo").onclick = () => done(false);
+      $("mergeCancel").onclick = () => done(null);
+      dlg.onclose = () => resolve(null);   // Esc
+      if (dlg.showModal) dlg.showModal(); else dlg.setAttribute("open", "");
+    });
   }
   function describe(r) {
     const parts = [];
@@ -1841,14 +1947,19 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     shareLink(lib, "Enlace con todas las canciones copiado.");
   };
   if ($("importToggle")) $("importToggle").onclick = () => { $("importBox").hidden = !$("importBox").hidden; };
-  $("importBtn").onclick = () => {
+  $("importBtn").onclick = async () => {
+    let d;
     try {
       const raw = $("importText").value.trim();
       const m = raw.match(/#c=([\w-]+)/);
-      const r = mergeLib(m ? decode(m[1]) : JSON.parse(raw));
-      $("importText").value = ""; $("importBox").hidden = true;
-      toast(describe(r) || "No había nada nuevo");
-    } catch (e) { toast("Ese texto no es una copia de Conquista cada compás."); }
+      d = m ? decode(m[1]) : JSON.parse(raw);
+      if (!d || !Array.isArray(d.songs)) throw 0;
+    } catch (e) { return toast("Ese texto no es una copia de Conquista cada compás."); }
+    const choices = await resolveConflicts(d);
+    if (choices === null) return toast("No se ha añadido nada.");
+    const r = mergeLib(d, choices);
+    $("importText").value = ""; $("importBox").hidden = true;
+    toast(describe(r) || "No había nada nuevo");
   };
 
   // ---------- Teclado ----------
@@ -1941,6 +2052,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeCoverHint);
 
   // ---------- Inicio ----------
+  if (dedupeFragments()) persist();
   renderDrummers(); renderBoard(); renderLibrary(); updateFragUI();
   loadPublished();
 
@@ -1952,10 +2064,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   // Abrir un enlace compartido
   const hm = location.hash.match(/^#c=([\w-]+)/);
-  if (hm) {
+  if (hm) (async () => {
     try {
       const d = decode(hm[1]);
-      const r = mergeLib(d);
+      try { history.replaceState(null, "", location.pathname); } catch (e) {}
+      const choices = await resolveConflicts(d);
+      if (choices === null) return toast("No se ha añadido nada del enlace.");
+      const r = mergeLib(d, choices);
       const s0 = r.first;
       if (s0) {
         if (s0.drummer && s0.drummer !== drummerId) setDrummer(s0.drummer);
@@ -1966,7 +2081,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       toast((d.songs.length === 1 ? `«${d.songs[0].title}»${who}: ` : "") + (describe(r) || "ya lo tenías todo"));
     } catch (e) { toast("Este enlace compartido está incompleto. Pide que te lo copien otra vez."); }
     try { history.replaceState(null, "", location.pathname); } catch (e) {}
-  }
+  })();
 })();
 </script>
 </body>
