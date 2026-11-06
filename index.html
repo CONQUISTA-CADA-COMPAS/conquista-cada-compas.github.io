@@ -2609,7 +2609,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (songCounting || songPlaying) stopSong();
     if (!$("readyOverlay").hidden) $("readyCancel").click();
     hideDone();
-    scoreOpen = id; delete scSelNow[id];
+    scoreOpen = id; delete scSelNow[id]; scLinesOpen = true;
     $("scoreView").hidden = false; $("stage").classList.add("scoring");
     placeLines(); renderScores(); renderSheet(); scOverlayBox();
     // en el móvil (o con la columna oculta) la ventana de ensayo está arriba: se sube hasta ella
@@ -2622,22 +2622,22 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     scoreOpen = null; $("scoreView").hidden = true; $("stage").classList.remove("scoring"); placeLines();
     renderScores();
   }
-  let scoreRest = null;
+  let scoreRest = null, scLinesOpen = true;   // las líneas: siempre abiertas al abrir una partitura
   // La banda de líneas: dentro de la ventana de ensayo (ordenador, tablet) o suelta debajo (móvil)
   const scNarrow = window.matchMedia("(max-width: 980px)");
   function placeLines() {
     const band = $("svLines"), out = scNarrow.matches;
     band.hidden = !scoreOpen;
     band.classList.toggle("out", out);
-    band.classList.toggle("folded", scOpt.linesOpen === false);
-    $("svFold").setAttribute("aria-expanded", String(scOpt.linesOpen !== false));
-    $("svFold").title = scOpt.linesOpen === false ? "Desplegar las líneas" : "Plegar las líneas";
+    band.classList.toggle("folded", scLinesOpen === false);
+    $("svFold").setAttribute("aria-expanded", String(scLinesOpen !== false));
+    $("svFold").title = scLinesOpen === false ? "Desplegar las líneas" : "Plegar las líneas";
     if (out) { if (band.previousElementSibling !== $("stage")) $("stage").after(band); }
     else if (band.parentElement !== $("scoreView")) $("scoreView").append(band);
-    $("scoreView").classList.toggle("nolines", out || scOpt.linesOpen === false);
+    $("scoreView").classList.toggle("nolines", out || scLinesOpen === false);
     if (scoreOpen) requestAnimationFrame(() => { scOverlayBox(); if (!scoreRun) placeStrip(SC_REST); });
   }
-  $("svFold").onclick = () => { scOpt.linesOpen = scOpt.linesOpen === false; scSave(); placeLines(); };
+  $("svFold").onclick = () => { scLinesOpen = !scLinesOpen; placeLines(); };
   scNarrow.addEventListener ? scNarrow.addEventListener("change", placeLines) : scNarrow.addListener(placeLines);
   function scOverlayBox() {
     const st = $("svStrip"), stage = $("stage");
