@@ -364,12 +364,17 @@ body.dragging-song, body.dragging-song * { cursor: grabbing !important; user-sel
 .tab .tc { font-family: var(--mono); font-weight: 500; font-size: 11px; background: var(--surface-2); border-radius: 999px; padding: 0 6px; }
 .tab .tc:empty { display: none; }
 .tab.on .tc { background: var(--accent-soft); color: var(--fg); }
-.h-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 4px; align-items: center; border-bottom: 1px solid var(--line); padding: 3px 0; }
+.h-row { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; gap: 2px; align-items: center; border-bottom: 1px solid var(--line); padding: 3px 0; }
 .h-row:last-child { border-bottom: none; }
 .h-row .h-title { background: none; border: none; text-align: left; padding: 6px 4px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
 .h-row .h-title:hover { background: var(--surface-2); }
 .h-row.active .h-title { color: var(--accent-ink); font-weight: 700; }
-.h-row .btn { padding: 3px 9px; font-size: 13px; }
+.h-row .btn { padding: 2px 7px; font-size: 12px; }
+.h-row .h-ren { display: inline-flex; padding: 5px; color: var(--muted); }
+.h-row .h-ren:hover { color: var(--accent-ink); }
+.h-rename { grid-column: 1 / -1; display: flex; gap: 4px; align-items: center; }
+.h-rename input { flex: 1; min-width: 0; padding: 5px 8px; font-size: 14px; font-weight: 700; }
+.h-rename .btn { padding: 4px 10px; font-size: 13px; }
 .s-actions select.transfer { font-size: 13px; padding: 3px 6px; border-radius: 6px; }
 /* Columna derecha compacta: que quepa todo sin hacer scroll */
 aside.col, #boardSlotAside .sidegroup { gap: 12px; }
@@ -1269,8 +1274,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       list.forEach((song) => {
         const row = document.createElement("div");
         row.className = "h-row" + (song.id === currentSongId ? " active" : "");
-        row.innerHTML = `<button class="h-title" type="button"></button><button class="btn" type="button">Guardar</button><button class="iconbtn" type="button" title="Quitar del historial" aria-label="Quitar del historial">×</button>`;
-        const [tb, sb, xb] = row.querySelectorAll("button");
+        row.innerHTML = `<button class="h-title" type="button"></button><button class="btn" type="button">Guardar</button><button class="iconbtn h-ren" type="button" title="Cambiar nombre" aria-label="Cambiar nombre"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg></button><button class="iconbtn" type="button" title="Quitar del historial" aria-label="Quitar del historial">×</button>`;
+        const [tb, sb, rb, xb] = row.querySelectorAll("button");
+        // cambiar el nombre sin salir de la fila
+        rb.onclick = () => {
+          const f = document.createElement("form"); f.className = "h-rename";
+          f.innerHTML = `<input type="text" maxlength="120" aria-label="Nuevo nombre de la canción"><button class="btn small primary" type="submit" aria-label="Guardar nombre">✓</button>`;
+          const inp = f.querySelector("input"); inp.value = song.title === NO_TITLE ? "" : song.title; inp.placeholder = "Nombre de la canción";
+          row.replaceChildren(f); inp.focus(); inp.select();
+          inp.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); renderLibrary(); } });
+          inp.addEventListener("blur", () => setTimeout(() => { if (document.body.contains(f) && !f.contains(document.activeElement)) renderLibrary(); }, 150));
+          f.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const name = inp.value.trim();
+            if (!name) return toast("Escribe un nombre para la canción.");
+            if (name !== song.title) { song.title = name; song.renamed = true; song.updated = Date.now(); persist(); toast("Nombre cambiado"); }
+            renderLibrary();
+          });
+        };
         tb.textContent = song.title; tb.title = song.title;
         tb.onclick = () => { song.lastUsed = Date.now(); persist(); openSong(song); };
         sb.onclick = () => saveSong(song);
