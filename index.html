@@ -2274,8 +2274,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   scStore.sel = scStore.sel || {}; scStore.bpm = scStore.bpm || {};
   const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false }, scStore.opt || {});
   function scSave() { scStore.opt = scOpt; try { localStorage.setItem(SCORE_KEY, JSON.stringify(scStore)); } catch (e) {} }
-  const scSelNow = {};   // líneas marcadas (no se recuerdan: al abrir, solo la línea 1)
-  const scSel = (s) => new Set(scSelNow[s.id] || [0]);
+  const scSelNow = {};   // líneas marcadas (no se recuerdan: al abrir, la partitura entera)
+  const scSel = (s) => new Set(scSelNow[s.id] || s.lines.map((_, i) => i));   // al abrir: la partitura entera
   const scBpm = (s) => scStore.bpm[s.id] || s.bpm;
   let scoreOpen = null, scoreRun = null;
   const curScore = () => SCORES.find((s) => s.id === scoreOpen);
