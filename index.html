@@ -512,7 +512,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-lines { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; background: #fff; color: #15202b;
   --surface: #ffffff; --surface-2: #e3e8ee; --fg: #16202b; --muted: #5a6876; --line: #cfd7e0; --accent-ink: #00a57a; color-scheme: light; }
 .sv-lh-left { display: flex; align-items: center; gap: 6px; justify-self: start; }
-.sv-bandtitle { flex: none; align-self: flex-start; display: flex; align-items: center; gap: 8px; border: none; background: none; text-align: left; padding: 12px 16px 0; font-family: var(--display); font-weight: 800; font-size: 16px; color: #15202b; white-space: nowrap; }
+.sv-bandtitle { flex: none; align-self: flex-start; display: flex; align-items: center; gap: 8px; border: none; background: none; text-align: left; padding: 0 16px 10px; font-family: var(--display); font-weight: 800; font-size: 16px; color: #15202b; white-space: nowrap; }
 .sv-bandtitle:hover { color: #00a57a; }
 .sv-bandtitle .chev { display: inline-block; width: 14px; font-size: 11px; color: #5a6876; transition: transform .15s; }
 .sv-lines:not(.folded) .sv-bandtitle .chev { transform: rotate(90deg); }
@@ -523,7 +523,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 /* En el móvil, la banda de líneas va suelta debajo de la ventana de ensayo, sin scroll propio */
 .sv-lines.out { order: 2; border: 1px solid var(--line); border-radius: var(--r); width: 100%; flex: none; }
 .sv-lines.out .sv-sheet { overflow: visible; flex: none; }
-.sv-lines.out .sv-bandtitle { padding-top: 14px; }
+.sv-lines.out .sv-linehead { padding-top: 14px; }
 .sv-linehead { flex: none; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px 16px; padding: 10px 16px 12px; }
 .sv-linehead .sv-info { justify-self: end; text-align: right; }
 @media (max-width: 900px) { .sv-linehead { display: flex; flex-wrap: wrap; justify-content: space-between; } }
@@ -642,8 +642,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           </div>
         </div>
         <div class="sv-lines" id="svLines" hidden>
-          <button class="sv-bandtitle" type="button" id="svFold" aria-expanded="true" title="Plegar las líneas"><span class="chev">▶</span>Líneas de la partitura</button>
           <div class="sv-linehead"><div class="sv-lh-left"><label class="sc-check sv-all"><input type="checkbox" id="scAll"> Partitura completa</label></div><div class="sv-legend" id="scLegend"></div><span class="sv-note sv-info" id="scInfo"></span></div>
+          <button class="sv-bandtitle" type="button" id="svFold" aria-expanded="true" title="Plegar las líneas"><span class="chev">▶</span>Líneas de la partitura</button>
           <div class="sv-sheet" id="svSheet"></div>
         </div>
       </div>
