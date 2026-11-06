@@ -52,14 +52,18 @@ Una página web (un solo archivo `index.html`, sin servidor ni librerías extern
 - No hay YouTube en el contenedor: se prueba con Playwright sustituyendo `https://www.youtube.com/iframe_api` por un reproductor simulado (con `seekTo` que arranca la reproducción si el vídeo está «preparado», como hace YouTube).
 - Dos personas distintas = dos contextos de navegador distintos. (A Gonzalo: dos ventanas de incógnito del mismo navegador comparten memoria; para simular a Pedro y a un padre, usar dos navegadores diferentes.)
 
-## Siguiente proyecto: «Mis partituras»
+## Siguiente proyecto: «Mis partituras» (en marcha)
 
-Pedro manda partituras en papel que Gonzalo escanea. Idea acordada, **dentro de la misma app**, en un apartado **«Mis partituras»** debajo de los paneles de compartir:
+Decidido con Gonzalo en el chat de partituras:
 
-1. Subir la imagen de la partitura (por baterista, compartible y sincronizable como las canciones).
-2. Detectar automáticamente las **líneas divisorias de compás** (rayas verticales del pentagrama) y dejar que Gonzalo corrija con un clic. **No** intentar leer cada nota con IA (no es fiable para batería).
-3. Velocidad en BPM (muchas partituras la indican arriba, p. ej. «♩ = 80»; si no, preguntar a Pedro; para principiantes, 60–80), botón **Tap**, y compás de 4 tiempos por defecto.
-4. Animación, **empezando por el estilo de Jack Young en canciones difíciles**: una barra vertical recorre cada fila hacia la derecha, baja a la siguiente, y cuando llega abajo suben las filas nuevas. Más adelante, el estilo fácil: barra quieta y partitura desplazándose a la izquierda (recortando las filas y poniéndolas en una tira).
-5. Metrónomo con clics, cuenta previa, repeticiones y velocidad más lenta/rápida, igual que «Ensayar un compás».
-
-Empezar pidiéndole una o dos partituras escaneadas reales para probar.
+- **Dónde**: dentro de la app, en un panel **«Mis partituras» debajo de «Guardar compases»**.
+- **Por líneas, siempre**: cada fila de pentagrama es una **«línea»** (el término técnico es «sistema»; no usarlo). Al desplegar una partitura salen casillas «Línea 1, Línea 2…» y «Partitura completa». Aunque una línea tenga varios ejercicios numerados (p. ej. 4 por línea), se elige la línea entera.
+- **Animación: tira continua** (estilo fácil de Jack Young): las líneas marcadas se ponen una tras otra y se repiten **10 veces** sin pausa; la tira se mueve a la izquierda y la barra que marca el golpe se queda quieta. Misma pantalla de play, cuenta atrás y «Repetición X de 10» que en «Ensayar un compás».
+- **Pasar a limpio** (le encantó la idea): Gonzalo manda la hoja al chat, Claude la lee nota a nota y la guarda en formato digital; la app la dibuja siempre con los mismos símbolos, la toca con sonidos de batería y resalta cada nota «un pelín» (Pedro) al pasar la barra. Errores posibles en hojas borrosas: revisar escuchando.
+- **Metrónomo con macro y micro pulso** (Pedro): clic fuerte en cada tiempo (más fuerte en el primero del compás) y clic suave en la subdivisión (2, 3 o 4 por tiempo según la partitura). Casilla «Subdivisión».
+- **Colores de Jack Young como opción** (apagados por defecto): charles amarillo (× cerrado, ⊗ abierto), caja roja con «S», bombo negro con «K», crash verde, ride azul, toms 1/2/3 (amarillo/azul/verde) con su número.
+- **Tap**: botón que pone la velocidad tocando al ritmo; cada toque debe notarse (destello magenta) y cambiar la velocidad desde el 2.º toque.
+- Botones verdes con texto blanco; casillas verdes con la marca en blanco.
+- Dari y Gabi van por **grado 3, 4 y 5**: hará falta semicorcheas, tresillos, toms, platos, acentos, notas fantasma, flams.
+- **Prueba actual** (fuera de la app): página publicada https://claude.ai/artifact/WtpoDeYSAWoNP1dkXMNpRq con «2 bar drum beats» pasada a limpio (solo corcheas). Siguiente paso: pasar a limpio una partitura real de grado 3–5 y, si sale bien, meterlo en la app.
+- La detección automática de líneas en la imagen funciona bien en escaneos (6 de 7 hojas); la de rayas de compás es poco fiable. Si se usa la imagen original, dejar corregir con un toque.
