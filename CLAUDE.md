@@ -27,7 +27,7 @@ Una página web (un solo archivo `index.html`, sin servidor ni librerías extern
 
 ### Diseño
 
-- Verde de marca `--accent: #00d49e`; magenta `--done: #ff0b5e` para el menú de bateristas y los botones «Parar». Tema claro y oscuro con tokens en `:root`.
+- Verde de marca `--accent: #00d49e`; magenta `--done: #ff0b5e` para el menú de bateristas, los botones «Parar» y los **números de la cuenta atrás** (sobre el vídeo oscurecido al 80 %, para que resalten; los textos pequeños de la cuenta, en blanco). Tema claro y oscuro con tokens en `:root`.
 - Los botones rellenos de verde se ponen **magenta al pasar el ratón** por encima.
 - Tipos: Bricolage Grotesque (títulos), Atkinson Hyperlegible (texto), JetBrains Mono (números).
 - Columna derecha con «Mis canciones» arriba; debe caber todo sin hacer scroll en un portátil (~1900×920). Gonzalo cuida mucho el espacio y la alineación: compruébalo con capturas de Playwright antes de dar algo por terminado.
