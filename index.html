@@ -548,6 +548,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .scorepanel .s-head .chev { font-size: 14px; }
 .scorepanel .s-item.open .s-head .chev { transform: none; color: var(--accent-ink); }
 .scorepanel .s-item.open .s-head { background: var(--accent-soft); }
+/* Con una partitura abierta, «Empezar ensayo» y la cuenta atrás tapan solo la tira, no las líneas */
+.stage.scoring .ready, .stage.scoring .countin { top: var(--sv-top, 0px); height: var(--sv-h, 100%); bottom: auto; }
+.stage.scoring .ready > div { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px 18px; max-width: 760px; }
+.stage.scoring .ready p { flex: 1 1 100%; font-size: clamp(18px, 2.4vw, 30px); }
+.stage.scoring .readyplay { width: 64px; height: 64px; }
+.stage.scoring .readyplay svg { width: 30px; height: 30px; }
+.stage.scoring .ready small { flex: 1 1 100%; order: 3; }
+.stage.scoring .countin { font-size: min(150px, calc(var(--sv-h, 240px) * .55)); }
+.stage.scoring .countin small { font-size: 18px; margin-top: 4px; }
 /* En el móvil la partitura necesita más alto que el vídeo */
 @media (max-width: 980px) { .stage.scoring { aspect-ratio: auto; height: calc(100svh - 24px); max-height: 900px; } }
 </style>
@@ -2265,7 +2274,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   scStore.sel = scStore.sel || {}; scStore.bpm = scStore.bpm || {};
   const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false }, scStore.opt || {});
   function scSave() { scStore.opt = scOpt; try { localStorage.setItem(SCORE_KEY, JSON.stringify(scStore)); } catch (e) {} }
-  const scSel = (s) => new Set(Array.isArray(scStore.sel[s.id]) && scStore.sel[s.id].length ? scStore.sel[s.id] : [0]);
+  const scSelNow = {};   // líneas marcadas (no se recuerdan: al abrir, solo la línea 1)
+  const scSel = (s) => new Set(scSelNow[s.id] && scSelNow[s.id].length ? scSelNow[s.id] : [0]);
   const scBpm = (s) => scStore.bpm[s.id] || s.bpm;
   let scoreOpen = null, scoreRun = null;
   const curScore = () => SCORES.find((s) => s.id === scoreOpen);
@@ -2334,9 +2344,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (scoreRun) return;
     const sel = scSel(s);
     if (i === "all") { if (sel.size === s.lines.length) { sel.clear(); sel.add(0); } else s.lines.forEach((_, k) => sel.add(k)); }
+    else if (sel.size === s.lines.length && s.lines.length > 1) { sel.clear(); sel.add(i); }   // con la partitura entera marcada, pinchar una línea deja solo esa
     else if (sel.has(i)) { if (sel.size > 1) sel.delete(i); else return toast("Deja marcada al menos una línea."); }
     else sel.add(i);
-    scStore.sel[s.id] = [...sel].sort((a, b) => a - b); scSave();
+    scSelNow[s.id] = [...sel].sort((a, b) => a - b);
     renderSheet();
   }
   // La hoja entera, en el sitio del vídeo
@@ -2370,9 +2381,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (songCounting || songPlaying) stopSong();
     if (!$("readyOverlay").hidden) $("readyCancel").click();
     hideDone();
-    scoreOpen = id;
+    scoreOpen = id; delete scSelNow[id];
     $("scoreView").hidden = false; $("stage").classList.add("scoring");
-    renderScores(); renderSheet();
+    renderScores(); renderSheet(); scOverlayBox();
   }
   function closeScore() {
     if (!scoreOpen) return;
@@ -2382,6 +2393,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     renderScores();
   }
   let scoreRest = null;
+  function scOverlayBox() {
+    const st = $("svStrip"), stage = $("stage");
+    stage.style.setProperty("--sv-top", st.offsetTop + "px");
+    stage.style.setProperty("--sv-h", st.offsetHeight + "px");
+  }
   $("scAll").onchange = () => { const s = curScore(); if (s) toggleLine(s, "all"); };
 
   // La tira: las líneas elegidas, una tras otra, 10 veces
@@ -2543,7 +2559,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (k === "colors") document.querySelectorAll("#scoreView svg").forEach((g) => g.classList.toggle("color", scOpt.colors));
     };
   });
-  if (window.ResizeObserver) new ResizeObserver(() => { if (scoreOpen && !scoreRun) placeStrip(-SC_LEAD); }).observe($("stage"));
+  if (window.ResizeObserver) new ResizeObserver(() => { if (!scoreOpen) return; scOverlayBox(); if (!scoreRun) placeStrip(-SC_LEAD); }).observe($("stage"));
   renderScores();
 
   // ---------- Teclado ----------
