@@ -328,9 +328,16 @@ main.wide > aside { display: none; }
 .toast { position: fixed; left: 50%; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 10px 16px; border-radius: 8px; font-weight: 700; z-index: 20; max-width: calc(100% - 32px); }
 textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: var(--surface); color: var(--fg); border: 1.5px solid var(--line); border-radius: 8px; padding: 8px; }
 /* Biblioteca compacta: una línea por canción, se despliega al pulsar */
-.libpanel { position: sticky; top: calc(12px + env(safe-area-inset-top, 0px)); max-height: calc(100vh - 24px); }
-.libpanel .lib { overflow-y: auto; min-height: 0; gap: 2px; margin-inline: -6px; padding-inline: 6px; }
-@media (max-width: 980px) { .libpanel { position: static; max-height: none; } .libpanel .lib { max-height: 60vh; } }
+.libpanel .lib { min-height: 0; gap: 2px; margin-inline: -6px; padding-inline: 6px; }
+/* La columna derecha tiene su propio scroll: se mueve ella sola y el vídeo se queda quieto */
+@media (min-width: 981px) {
+  main:not(.wide) > aside.col { position: sticky; top: var(--aside-top, 80px); max-height: calc(100vh - var(--aside-top, 80px) - 12px);
+    overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent;
+    margin-right: -8px; padding-right: 8px; padding-bottom: 4px; }
+  main:not(.wide) > aside.col::-webkit-scrollbar { width: 8px; }
+  main:not(.wide) > aside.col::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
+}
+@media (max-width: 980px) { .libpanel .lib { max-height: 60vh; overflow-y: auto; } }
 .libsearch { width: 100%; }
 .s-item { border-bottom: 1px solid var(--line); }
 .s-line { display: flex; align-items: center; gap: 2px; }
@@ -1752,7 +1759,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     placeBoard();
   }
   // La cabecera empieza donde empieza el vídeo (el vídeo puede ser más estrecho que su columna)
+  // La columna derecha empieza donde está y ocupa justo hasta el final de la ventana
+  function sizeAside() {
+    const a = $("libAside"); if (!a) return;
+    const top = Math.round(a.getBoundingClientRect().top + window.scrollY);
+    document.documentElement.style.setProperty("--aside-top", top + "px");
+  }
+  window.addEventListener("resize", sizeAside);
   function alignHeader() {
+    sizeAside();
     const col = document.querySelector(".practice").getBoundingClientRect().left;
     const st = $("stage").getBoundingClientRect().left;
     document.documentElement.style.setProperty("--stage-inset", Math.max(0, Math.round(st - col)) + "px");
