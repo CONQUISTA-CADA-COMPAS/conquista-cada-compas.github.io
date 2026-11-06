@@ -2421,7 +2421,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         }
         const del = document.createElement("button"); del.className = "iconbtn act trash"; del.type = "button";
         del.title = "Borrar partitura"; del.setAttribute("aria-label", "Borrar partitura");
-        del.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>`;
+        del.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
         del.onclick = () => askDelete(del, () => { scStore.deleted[s.id] = Date.now(); scSave(); closeScore(); renderScores(); toast(`«${scTitle(s)}» borrada`); });
         acts.append(del);
         const body = document.createElement("div"); body.append(acts);
