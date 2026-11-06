@@ -2304,7 +2304,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
     ] },
   ];
-  const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5;   // cuenta de 5 tiempos
+  const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5, SC_REST = -0.6;   // cuenta de 5 tiempos; en reposo, la 1.ª nota junto a la barra
   let scStore = {};
   try { scStore = JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch (e) {}
   scStore.sel = scStore.sel || {}; scStore.bpm = scStore.bpm || {};
@@ -2566,7 +2566,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       row.onclick = () => toggleLine(s, i);
       sh.append(row);
     });
-    if (!scoreRun) { scoreRest = buildStrip(); placeStrip(-SC_LEAD); }
+    if (!scoreRun) { scoreRest = buildStrip(); placeStrip(SC_REST); }
   }
   // Leyenda: solo los símbolos que lleva esta partitura, dibujados igual que en las líneas
   function scLegend(s) {
@@ -2598,6 +2598,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     scoreOpen = id; delete scSelNow[id];
     $("scoreView").hidden = false; $("stage").classList.add("scoring");
     renderScores(); renderSheet(); scOverlayBox();
+    // en el móvil (o con la columna oculta) la ventana de ensayo está arriba: se sube hasta ella
+    if (window.matchMedia("(max-width: 980px)").matches || document.querySelector("main").classList.contains("wide")) $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
   }
   function closeScore() {
     if (!scoreOpen) return;
@@ -2746,7 +2748,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!$("countin").querySelector(".donemsg")) $("countin").hidden = true;
     $("svRep").hidden = true;
     releaseAwake(); updateScoreBtn();
-    if (curScore()) { scoreRest = buildStrip(); placeStrip(-SC_LEAD); }
+    if (curScore()) { scoreRest = buildStrip(); placeStrip(SC_REST); }
   }
   $("scoreGo").onclick = () => {
     hideDone();
@@ -2799,7 +2801,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (k === "colors") document.querySelectorAll("#scoreView svg").forEach((g) => g.classList.toggle("color", scOpt.colors));
     };
   });
-  if (window.ResizeObserver) new ResizeObserver(() => { if (!scoreOpen) return; scOverlayBox(); if (!scoreRun) placeStrip(-SC_LEAD); }).observe($("stage"));
+  if (window.ResizeObserver) new ResizeObserver(() => { if (!scoreOpen) return; scOverlayBox(); if (!scoreRun) placeStrip(SC_REST); }).observe($("stage"));
   renderScores();
 
   // ---------- Teclado ----------
