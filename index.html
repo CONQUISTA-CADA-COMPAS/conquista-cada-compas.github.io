@@ -1269,6 +1269,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (id === drummerId) return;
     stopSession(true);
     drummerId = id;
+    libTab = "saved";   // al cambiar de baterista se vuelve a «Canciones guardadas»
     currentSongId = null; currentFragId = null; frag = { start: 0, end: 0 }; $("fragName").value = ""; updateFragUI();
     renderDrummers(); renderLibrary();
   }
