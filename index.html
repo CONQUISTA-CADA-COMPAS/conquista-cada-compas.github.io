@@ -286,6 +286,9 @@ main.wide > aside { display: none; }
 .helpdlg .helpsub { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
 .helpdlg ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.4; }
 .helpdlg ol li::marker { color: var(--accent-ink); font-weight: 800; }
+.helpdlg h4 { margin: 14px 0 6px; font-size: 15px; font-weight: 800; color: var(--accent-ink); }
+.helpdlg ul { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 5px; font-size: 15px; line-height: 1.4; }
+.helpdlg ul li::marker { color: var(--accent-ink); }
 .helpdlg b { color: var(--accent-ink); }
 .helpdlg a { color: var(--accent-ink); font-weight: 700; overflow-wrap: anywhere; }
 .helpdlg .helpnote { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
@@ -564,12 +567,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       </div>
     </div>
     <div class="panel" id="pubPanel">
-      <h2>Compartir con tu profesor</h2>
+      <h2>Compartir canciones</h2>
+      <p class="note sharehint">Pásale tus canciones a tu profesor, o llévalas a otro dispositivo tuyo, con un enlace por WhatsApp o correo.</p>
       <div class="stack">
         <button class="btn primary" type="button" id="shareOneBtn">Enviar las canciones del baterista</button>
         <button class="btn" type="button" id="shareAllBtn" hidden>Enviar las de todos los bateristas</button>
       </div>
-      <p class="note sharehint">Se crea un enlace para mandárselo a tu profesor por WhatsApp o correo. Cuando lo abra, le aparecerán las canciones en su app.</p>
+      <button class="helplink" type="button" id="shareHelpBtn">¿Qué se actualiza y qué no?</button>
       <div id="importBox" hidden>
         <textarea id="importText" placeholder="Pega aquí el enlace o el texto copiado"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn small primary" type="button" id="importBtn">Añadir a mi biblioteca</button></div>
@@ -594,6 +598,31 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 </main>
 
 <div class="toast" id="toast" hidden></div>
+
+<dialog class="helpdlg" id="shareHelp" aria-labelledby="shareHelpTitle">
+  <button class="helpclose" type="button" data-close aria-label="Cerrar">×</button>
+  <h3 id="shareHelpTitle">Cómo funciona «Compartir canciones»</h3>
+  <p class="helpsub">Sirve para <b>pasar tus canciones a tu profesor</b> o <b>a otro dispositivo tuyo</b>, sin cuentas ni llaves.</p>
+  <ol>
+    <li>Elige el baterista arriba y pulsa <b>Enviar las canciones de…</b> (o <b>las de todos</b>).</li>
+    <li>Pega el enlace en <b>WhatsApp</b> o en un <b>correo</b> y mándalo.</li>
+    <li>Quien lo reciba lo abre en su <b>navegador normal</b> (no en incógnito), en el dispositivo donde ensaya.</li>
+  </ol>
+  <h4>Lo que llega</h4>
+  <ul>
+    <li>El <b>baterista</b> y sus <b>canciones guardadas</b>, con todos sus <b>compases</b>.</li>
+    <li>Los <b>cambios</b>: nombres nuevos, compases corregidos… Gana siempre la <b>versión más reciente</b>.</li>
+    <li>No se duplica nada: si ya lo tenía, se actualiza.</li>
+  </ul>
+  <h4>Lo que no llega</h4>
+  <ul>
+    <li><b>Lo que borres</b>: en el otro dispositivo sigue estando hasta que lo borre allí.</li>
+    <li>Las canciones de <b>Otros ensayos</b> (tu historial) y las fechas de último ensayo.</li>
+    <li><b>Lo que hagas después</b>: cada enlace es una foto del momento. Si cambias algo, manda otro enlace.</li>
+  </ul>
+  <p class="helpnote"><b>¿Quieres que se actualice todo solo, borrados incluidos?</b> Usa <b>Sincronizar mis dispositivos</b>, más abajo.</p>
+  <button class="btn primary helpok" type="button" data-close>Entendido</button>
+</dialog>
 
 <dialog class="helpdlg" id="keyHelp" aria-labelledby="keyHelpTitle">
   <button class="helpclose" type="button" id="keyHelpClose" aria-label="Cerrar">×</button>
@@ -1592,7 +1621,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       catch (e) { if (e && e.name === "AbortError") return; }
     }
     const fallback = () => { $("importBox").hidden = false; $("importText").value = text + " " + url; $("importText").select(); toast("Selecciona el texto del recuadro y cópialo"); };
-    if (navigator.clipboard) navigator.clipboard.writeText(text + " " + url).then(() => toast("Enlace copiado: pégalo en WhatsApp o en un correo para tu profesor"), fallback);
+    if (navigator.clipboard) navigator.clipboard.writeText(text + " " + url).then(() => toast("Enlace copiado: pégalo en WhatsApp o en un correo"), fallback);
     else fallback();
   }
   $("shareOneBtn").onclick = () => { if (drummerId) sendToTeacher([drummerId]); };
@@ -1738,6 +1767,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("keyCancel").onclick = () => { $("keyForm").hidden = true; $("keyInput").value = ""; };
   $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este dispositivo."); };
   refreshKeyUI();
+  // Ayuda de «Compartir canciones»
+  const shareHelp = $("shareHelp");
+  const openDlg = (d) => { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); };
+  const closeDlg = (d) => { if (d.close) d.close(); else d.removeAttribute("open"); };
+  $("shareHelpBtn").onclick = () => openDlg(shareHelp);
+  shareHelp.querySelectorAll("[data-close]").forEach((b) => (b.onclick = () => closeDlg(shareHelp)));
+  shareHelp.addEventListener("click", (e) => { if (e.target === shareHelp) closeDlg(shareHelp); });
   // Ayuda para conseguir la llave
   const help = $("keyHelp");
   $("keyHelpRepo").textContent = REPO.split("/")[1];
