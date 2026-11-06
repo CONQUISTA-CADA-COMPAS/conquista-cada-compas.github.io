@@ -1241,9 +1241,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function prepareRep() {
     session.phase = "prep";
-    player.pauseVideo();
     player.setPlaybackRate(fragRate);
-    player.seekTo(frag.start, true);
+    seekPaused(frag.start);   // en pausa durante la cuenta (un salto normal haría sonar un vídeo que aún no ha empezado)
     renderBoard();
     const startPlaying = () => {
       if (!session) return;
