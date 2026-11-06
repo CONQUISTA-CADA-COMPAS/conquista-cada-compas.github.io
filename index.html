@@ -108,8 +108,8 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
   border-right: 2px solid currentColor; border-bottom: 2px solid currentColor; transform: rotate(45deg); pointer-events: none; }
 .drumwrap:hover { color: var(--accent-ink); }
 .drumwrap.need, .drumwrap.need:hover { color: var(--done); }   /* sin baterista elegido: magenta, es el punto de partida */
-.h-right .drumsel { flex: 1; width: 100%; min-width: 0; font-weight: 700; cursor: pointer; justify-content: flex-start;
-  padding-right: 34px; color: var(--fg); overflow: hidden; text-overflow: ellipsis; }
+.h-right .drumsel { flex: 1; width: 100%; min-width: 0; font-weight: 700; cursor: pointer; display: block; text-align: left;
+  padding-right: 34px; color: var(--fg); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .drumwrap.open::after { transform: rotate(-135deg); margin-top: -2px; }
 /* Menú de bateristas: esquinas redondeadas, borde y nombres en magenta */
 .drummenu { position: absolute; top: calc(100% + 6px); left: 0; width: 100%; z-index: 20; display: flex; flex-direction: column; gap: 2px;
@@ -1177,13 +1177,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         c.querySelector("p").textContent = `¿Borrar a ${d.name}` + (n === 1 ? " y su canción?" : n ? ` y sus ${n} canciones?` : "?");
         const [yes, no] = c.querySelectorAll("button");
         yes.onclick = (e2) => { e2.stopPropagation(); deleteDrummer(d); closeMenus(); };
-        no.onclick = (e2) => { e2.stopPropagation(); renderDrummers(); $("drummerMenu").hidden = false; $("drumWrap").classList.add("open"); };
+        no.onclick = (e2) => { e2.stopPropagation(); renderDrummers(); sizeDrummerMenu(); $("drummerMenu").hidden = false; $("drumWrap").classList.add("open"); };
         row.replaceWith(c); no.focus();
       };
       row.append(o, del);   // nombre a la izquierda, papelera alineada a la derecha
       menu.appendChild(row);
     });
-    const add = document.createElement("button"); add.type = "button"; add.className = "add"; add.textContent = "+ Añadir";
+    const add = document.createElement("button"); add.type = "button"; add.className = "add"; add.textContent = "+ Añadir baterista…";
     add.title = "Añadir un baterista nuevo";
     add.onclick = (ev) => {
       ev.stopPropagation();   // el botón desaparece al abrir el recuadro: que el clic no cierre el menú
@@ -1221,10 +1221,17 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const open = $("drummerMenu").hidden;
     closeMenus();
     if (open) {
-      $("drummerMenu").hidden = false; $("drumWrap").classList.add("open"); $("drummerBtn").setAttribute("aria-expanded", "true");
+      sizeDrummerMenu(); $("drummerMenu").hidden = false; $("drumWrap").classList.add("open"); $("drummerBtn").setAttribute("aria-expanded", "true");
       ($("drummerMenu").querySelector(".sel") || $("drummerMenu").firstElementChild).focus();
     }
   };
+  // El menú de bateristas llega hasta el borde derecho de «Cargar canción» (sitio para nombre y apellido)
+  function sizeDrummerMenu() {
+    const w = $("drumWrap").getBoundingClientRect(), l = $("loadBtn").getBoundingClientRect();
+    const width = Math.round(l.right - w.left);
+    $("drummerMenu").style.width = width > w.width ? width + "px" : "";
+  }
+  window.addEventListener("resize", () => { if (!$("drummerMenu").hidden) sizeDrummerMenu(); });
   // flechas arriba/abajo para moverse por el menú
   $("drummerMenu").addEventListener("keydown", (e) => {
     if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
