@@ -592,7 +592,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <button class="helplink" type="button" id="keyHelpBtn">¿Cómo consigo la llave?</button>
       </form>
       <p class="note" id="pubStatus" hidden></p>
-      <button class="linkbtn" type="button" id="familyLinkBtn" hidden>Copiar enlace familiar (para tus otros dispositivos)</button>
+      <button class="linkbtn" type="button" id="familyLinkBtn" hidden>Copiar enlace (para tus otros dispositivos)</button>
       <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este dispositivo</button>
     </div>
   </aside>
@@ -1806,7 +1806,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   refreshKeyUI();
   $("familyLinkBtn").onclick = () => {
     const url = location.origin + location.pathname + FAMILY_HASH;
-    const ok = () => toast("Enlace familiar copiado: ábrelo una vez en cada dispositivo de tu familia");
+    const ok = () => toast("Enlace copiado: ábrelo una vez en cada uno de tus dispositivos");
     const fallback = () => { $("importBox").hidden = false; $("importText").value = url; $("importText").select(); toast("Selecciona el enlace del recuadro y cópialo"); };
     if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, fallback); else fallback();
   };
