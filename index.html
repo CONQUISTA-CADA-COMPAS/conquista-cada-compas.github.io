@@ -545,9 +545,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .mus .h { transform-box: fill-box; transform-origin: center; transition: transform .12s ease-out, filter .12s; }
 .mus .n.now .h { transform: scale(1.4); filter: drop-shadow(0 0 3px #00d49e); }
 .scorepanel .lib { gap: 2px; margin-inline: -6px; padding-inline: 6px; }
-.scorepanel .s-head .chev { font-size: 14px; }
-.scorepanel .s-item.open .s-head .chev { transform: none; color: var(--accent-ink); }
-.scorepanel .s-item.open .s-head { background: var(--accent-soft); }
+.scorepanel .s-head { grid-template-columns: minmax(0, 1fr); padding-left: 10px; }
+/* Canción y partitura elegidas: fondo verde clarito */
+.s-item.has-active > .s-line { background: var(--accent-soft); border-radius: 6px; }
+.s-item.has-active > .s-line .s-head:hover { background: transparent; }
+/* Botón pulsado mientras espera al play: en magenta, para saber qué se va a empezar */
+.btn.primary.armed, .btn.primary.armed:hover { background: var(--done); border-color: var(--done); color: #fff; }
 /* Con una partitura abierta, «Empezar ensayo» y la cuenta atrás tapan solo la tira, no las líneas */
 .stage.scoring .ready, .stage.scoring .countin { top: var(--sv-top, 0px); height: var(--sv-h, 100%); bottom: auto; }
 .stage.scoring .ready > div { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 8px 18px; max-width: 760px; }
@@ -936,14 +939,21 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("readyHint").textContent = touchDevice()
       ? "Pulsa al play cuando estés listo para ensayar"
       : "Pulsa al play o a la barra espaciadora cuando estés listo para ensayar";
-    $("readyOverlay").hidden = false;
-    const close = () => { $("readyOverlay").hidden = true; readySpace = null; };
+    $("readyOverlay").hidden = false; armButtons();
+    const close = () => { $("readyOverlay").hidden = true; readySpace = null; armButtons(); };
     $("readyPlay").onclick = () => { close(); start(); };
     readySpace = () => { close(); start(); };
     $("readyCancel").onclick = () => {
       close(); readyKind = null; setTimeout(updateSongBtn, 0);
       if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     };
+  }
+  // El botón que abrió la pantalla «Empezar…» se queda en magenta mientras espera al play
+  function armButtons() {
+    const w = !$("readyOverlay").hidden;
+    $("songBtn").classList.toggle("armed", w && readyKind === "song");
+    $("goBtn").classList.toggle("armed", w && readyKind === "frag");
+    $("scoreGo").classList.toggle("armed", w && readyKind === "score");
   }
   // Cuenta atrás 1…5 (un número por segundo, con clic) antes de que empiece la canción
   let countdownTimers = null;
@@ -2333,7 +2343,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const open = scoreOpen === s.id;
       const item = document.createElement("div");
       item.className = "s-item" + (open ? " open has-active" : "");
-      item.innerHTML = `<div class="s-line"><button class="s-head" type="button" title="${open ? "Cerrar la partitura" : "Abrir la partitura"}"><span class="chev">♪</span><span class="st"></span><span class="sc">${s.lines.length} líneas</span></button></div>`;
+      item.innerHTML = `<div class="s-line"><button class="s-head" type="button" title="${open ? "Cerrar la partitura" : "Abrir la partitura"}"><span class="st"></span></button></div>`;
       item.querySelector(".st").textContent = s.title;
       item.querySelector(".s-head").onclick = () => (open ? closeScore() : openScore(s.id));
       box.append(item);
