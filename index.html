@@ -576,7 +576,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     </div>
     <div class="panel" id="pubPanel">
       <h2>Compartir bateristas y canciones</h2>
-      <p class="note sharehint">Pásale a tu profesor tus bateristas con sus canciones, o llévalos a otro dispositivo tuyo, con un enlace por WhatsApp o correo.</p>
+      <p class="note sharehint" id="shareHint">Pásale a tu profesor tus bateristas con sus canciones, o llévalos a otro dispositivo tuyo, con un enlace por WhatsApp o correo.</p>
       <div class="stack">
         <button class="btn primary" type="button" id="shareOneBtn">Enviar las canciones del baterista</button>
         <button class="btn" type="button" id="shareAllBtn" hidden>Enviar las de todos los bateristas</button>
@@ -1608,7 +1608,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // ---------- Publicar y compartir ----------
   function cleanLib(obj, withDeleted) {
-    const used = new Set(obj.songs.map((s) => s.drummer).filter(Boolean));
+    const used = new Set([...obj.songs.map((s) => s.drummer).filter(Boolean), ...(obj.drummerIds || [])]);
     const out = {
       drummers: lib.drummers.filter((d) => obj === lib || used.has(d.id)).map((d) => ({ id: d.id, name: d.name, updated: d.updated || 0, ...(d.aka ? { aka: d.aka } : {}) })),
       // al sincronizar (toda la biblioteca) va también el historial; al compartir, solo lo guardado
@@ -1639,11 +1639,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const drummersWithSongs = () => lib.drummers.filter((d) => lib.songs.some((s) => isSaved(s) && s.drummer === d.id));
   async function sendToTeacher(ids) {
     const songs = savedOf(ids);
-    if (!songs.length) return toast("Todavía no hay canciones guardadas para enviar.");
     const names = ids.map(drummerName).filter(Boolean);
+    if (!names.length) return toast("Primero elige un baterista arriba.");
     const who = names.length > 1 ? names.slice(0, -1).join(", ") + " y " + names[names.length - 1] : names[0];
-    const url = location.origin + location.pathname + "#c=" + encode({ songs });
-    const text = `Canciones de ${who} para ensayar en Conquista cada compás. Ábrelo y te aparecerán en la app:`;
+    // sin canciones también se puede enviar: el profesor crea al alumno y se lo manda a su familia
+    const url = location.origin + location.pathname + "#c=" + encode({ songs, drummerIds: ids });
+    const text = songs.length
+      ? `Canciones de ${who} para ensayar en Conquista cada compás. Ábrelo y te aparecerán en la app:`
+      : `${who} ya está en Conquista cada compás. Ábrelo y te aparecerá en la app, listo para guardar sus canciones:`;
     // en móvil y tablet: el menú de compartir del teléfono (WhatsApp, correo…)
     if (navigator.share && matchMedia("(pointer: coarse)").matches) {
       try { await navigator.share({ title: "Conquista cada compás", text, url }); return; }
@@ -1657,10 +1660,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("shareOneBtn").onclick = () => { if (drummerId) sendToTeacher([drummerId]); };
   $("shareAllBtn").onclick = () => sendToTeacher(drummersWithSongs().map((d) => d.id));
   function updateShareButtons() {
-    const one = drummerId && savedOf([drummerId]).length > 0;
-    $("shareOneBtn").textContent = drummerId ? `Enviar las canciones de ${drummerName(drummerId)}` : "Enviar las canciones del baterista";
-    $("shareOneBtn").disabled = !one;
-    $("shareOneBtn").title = one ? "" : (drummerId ? "Primero guarda alguna canción" : "Primero elige un baterista arriba");
+    const has = !!drummerId && savedOf([drummerId]).length > 0;
+    const name = drummerId ? drummerName(drummerId) : "";
+    // con canciones: se envían sus canciones; sin canciones: se envía el baterista, listo para empezar
+    $("shareOneBtn").textContent = !drummerId ? "Enviar las canciones del baterista" : has ? `Enviar las canciones de ${name}` : `Enviar a ${name}`;
+    $("shareOneBtn").disabled = !drummerId;
+    $("shareOneBtn").title = drummerId ? "" : "Primero elige un baterista arriba";
+    $("shareHint").textContent = drummerId && !has
+      ? `${name} todavía no tiene canciones. Envíaselo a su familia por WhatsApp o correo: al abrir el enlace le aparecerá en la app, listo para guardar sus canciones.`
+      : "Pásale a tu profesor tus bateristas con sus canciones, o llévalos a otro dispositivo tuyo, con un enlace por WhatsApp o correo.";
     const many = drummersWithSongs();
     $("shareAllBtn").hidden = many.length < 2;
     $("shareAllBtn").textContent = many.length === 2 ? `Enviar las de ${many[0].name} y ${many[1].name}` : `Enviar las de los ${many.length} bateristas`;
@@ -2076,6 +2084,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         if (s0.drummer && s0.drummer !== drummerId) setDrummer(s0.drummer);
         openSongs.add(s0.id);
         s0.fragments.length ? openFragment(s0, s0.fragments[0]) : openSong(s0);
+      }
+      // enlace con un baterista sin canciones: se elige para empezar a guardarle canciones
+      if (!s0 && !d.songs.length && (d.drummers || []).length === 1) {
+        const nd = lib.drummers.find((x) => knows(x, d.drummers[0].id)) || lib.drummers.find((x) => norm(x.name) === norm(d.drummers[0].name));
+        if (nd) { if (nd.id !== drummerId) setDrummer(nd.id); return toast(`Baterista listo: ${nd.name}`); }
       }
       const who = s0 && s0.drummer ? ` (${drummerName(s0.drummer)})` : "";
       toast((d.songs.length === 1 ? `«${d.songs[0].title}»${who}: ` : "") + (describe(r) || "ya lo tenías todo"));
