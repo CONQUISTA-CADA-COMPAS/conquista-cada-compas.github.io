@@ -936,8 +936,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       set("goBtn", hasFrag || running(), !hasDrummer ? needWhy : !hasSong ? "Primero carga una canción" : "Primero elige o marca unos compases");
       // Publicar: en cuanto el baterista elegido tenga canciones guardadas (o haya una canción cargada)
       // Sincronizar: disponible en cuanto haya canciones guardadas de cualquier baterista (no hace falta elegir uno)
-      const canPublish = hasSong || lib.songs.some(isSaved);
-      set("publishBtn", canPublish, "Primero guarda alguna canción");
+      // también con bateristas sin canciones, o si solo hay borrados que llevar a los demás dispositivos
+      const canPublish = hasSong || lib.drummers.length > 0 || lib.songs.some(isSaved) || Object.keys(lib.deleted || {}).length > 0;
+      set("publishBtn", canPublish, "Primero añade un baterista");
       set("exportBtn", hasSong, hasDrummer ? "Primero carga una canción" : needWhy);
       // en un aparato sin ningún baterista, pegar un enlace es la forma de traerlos
       set("importToggle", hasSong || !lib.drummers.length, hasDrummer ? "Primero carga una canción" : needWhy);
@@ -1758,8 +1759,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (res.status === 403 || res.status === 404) throw { msg: "La llave no tiene permiso para escribir en el repositorio. Revisa que tenga «Contents: Read and write» en conquista-cada-compas.", forget: true };
       if (res.status === 409) throw { msg: "Se ha sincronizado desde otro dispositivo justo a la vez. Vuelve a pulsar «Sincronizar»." };
       if (!res.ok) throw { msg: `GitHub no ha aceptado la sincronización (error ${res.status}).` };
-      const n = lib.songs.filter(isSaved).length;
-      showPubStatus(`Sincronizado: ${n} ${n === 1 ? "canción" : "canciones"}. En uno o dos minutos estarán en tus otros dispositivos.`);
+      const n = lib.songs.filter(isSaved).length, nd = lib.drummers.length;
+      showPubStatus(`Sincronizado: ${nd} ${nd === 1 ? "baterista" : "bateristas"} y ${n} ${n === 1 ? "canción" : "canciones"}. En uno o dos minutos estarán en tus otros dispositivos.`);
       toast("Canciones sincronizadas");
     } catch (e) {
       if (e && e.forget) { setKey(""); }
@@ -1769,7 +1770,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     }
   }
   $("publishBtn").onclick = () => {
-    if (!lib.songs.some(isSaved)) return toast("Todavía no hay canciones guardadas.");
+    if (!lib.drummers.length && !lib.songs.some(isSaved) && !Object.keys(lib.deleted || {}).length) return toast("Todavía no hay nada que sincronizar.");
     publishToGitHub();
   };
   $("keyForm").addEventListener("submit", (e) => {
