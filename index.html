@@ -880,6 +880,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       events: {
         onReady: () => { playerReady = true; },
         onStateChange: (e) => {
+          if (primeAt !== null && e.data === YT.PlayerState.PLAYING) finishPrime();
           updateSongBtn();
           if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.CUED) ensureSong();
         },
@@ -906,7 +907,25 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const st = player.getPlayerState();
     if (st === YT.PlayerState.PLAYING || st === YT.PlayerState.BUFFERING) { player.pauseVideo(); player.seekTo(t, true); }
     else if (st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED) player.seekTo(t, true);
-    else player.cueVideoById({ videoId, startSeconds: t });
+    else {
+      // Aún no ha empezado: se arranca en silencio y se para en t en cuanto suena (queda el fotograma real y cargado,
+      // y luego arranca al instante y desde ese punto)
+      primeAt = t;
+      try { player.mute(); } catch (e) {}
+      clearTimeout(primeTimer); primeTimer = setTimeout(cancelPrime, 5000);
+      player.playVideo();   // al sonar (onStateChange) se para y se coloca en t
+    }
+  }
+  let primeAt = null, primeTimer = null;
+  function cancelPrime() {
+    if (primeAt === null) return;
+    primeAt = null; clearTimeout(primeTimer);
+    try { player.unMute(); } catch (e) {}
+  }
+  function finishPrime() {   // el vídeo ya suena: se para en el punto pedido y se le devuelve el sonido
+    const t = primeAt; primeAt = null; clearTimeout(primeTimer);
+    player.pauseVideo(); player.seekTo(t, true);
+    setTimeout(() => { try { player.unMute(); } catch (e) {} }, 250);
   }
   const duration = () => (playerReady && player.getDuration ? player.getDuration() : 0);
   // Pone la velocidad y avisa si YouTube no la admite
@@ -1059,7 +1078,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   });
   function togglePlay() {
     if (!playerReady) return toast("Primero carga un vídeo.");
-    player.getPlayerState() === YT.PlayerState.PLAYING ? player.pauseVideo() : player.playVideo();
+    if (player.getPlayerState() === YT.PlayerState.PLAYING) player.pauseVideo(); else { cancelPrime(); player.playVideo(); }
   }
   function validFrag() {
     if (!playerReady) { toast("Primero carga un vídeo."); return false; }
@@ -1070,7 +1089,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!validFrag()) return;
     stopSession(); songPlaying = false;
     session = { preview: true, done: 0, phase: "play" };
-    player.setPlaybackRate(1); player.seekTo(frag.start, true); player.playVideo();
+    cancelPrime(); player.setPlaybackRate(1); player.seekTo(frag.start, true); player.playVideo();
     renderBoard();
   };
   $("saveFrag").onclick = () => {
@@ -1156,6 +1175,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   };
   function startSong(solo) {
     const go = () => {
+      cancelPrime();
       keepAwake();
       songPlaying = true;
       player.seekTo(0, true);
@@ -1248,6 +1268,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (!session) return;
       $("countin").hidden = true;
       session.phase = "play";
+      cancelPrime();
       player.seekTo(frag.start, true);
       applyRate(fragRate);
       player.playVideo();
