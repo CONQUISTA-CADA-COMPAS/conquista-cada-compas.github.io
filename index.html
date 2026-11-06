@@ -226,6 +226,7 @@ main.wide > aside { display: none; }
   background: rgba(6, 14, 24, .55); color: #fff; font-family: var(--display); font-weight: 800;
   font-size: clamp(80px, 18vw, 200px); line-height: 1;
 }
+.countin .donemsg { font-size: clamp(30px, 4.5vw, 54px); text-align: center; padding: 0 16px; }
 .countin small { display: block; font-size: 22px; font-family: var(--body); font-weight: 700; text-align: center; margin-top: 8px; opacity: .85; }
 
 /* Línea de tiempo */
@@ -458,6 +459,15 @@ aside .f-row .f-name { padding: 5px 8px; }
 }
 kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* Controles de ensayo dentro de «Mis canciones», en pequeño */
+#songCtl, #fragCtl { flex-wrap: nowrap; gap: 6px; margin: 4px 0 6px; }
+#songCtl .go, #fragCtl .go { font-size: 14px; padding: 6px 10px; }
+#songCtl #songBtn, #fragCtl #goBtn { flex: 1 1 auto; }
+#songCtl .speedbtn, #fragCtl .speedbtn { min-width: 74px; flex: none; }
+.h-ctl { padding: 0 2px 6px 2px; }
+.s-body .f-label { margin: 6px 0 2px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.s-body #fragCtl { margin: 2px 0 8px 8px; }
+#boardSlotMain .libpanel { width: 100%; max-width: 900px; margin-left: auto; position: static; max-height: none; }
 </style>
 </head>
 <body>
@@ -498,37 +508,23 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <div class="countin" id="countin" hidden></div>
     </div>
     <div id="boardSlotMain">
-    <div class="sidegroup" id="boardPanel">
-    <div class="panel boardpanel">
-      <h2>Ensayar la canción</h2>
-      <div class="row gorow">
+    <!-- Controles de ensayo: se colocan dentro de «Mis canciones» (bajo la canción y bajo el compás elegidos) -->
+    <div class="sidegroup" id="boardPanel" hidden>
+      <div class="row gorow ctlrow" id="songCtl">
         <button class="btn primary go" type="button" id="songBtn">▶ Empezar canción</button>
         <div class="speedwrap">
           <button class="btn go speedbtn" type="button" id="speedBtn" aria-haspopup="true" aria-expanded="false" title="Velocidad de la canción">1× <span class="caret">▾</span></button>
           <div class="speedmenu" id="speedMenu" hidden role="menu"></div>
         </div>
       </div>
-    </div>
-    <div class="panel boardpanel">
-      <h2>Ensayar un compás</h2>
-      <div class="board">
-        <div>
-          <div class="label">Repetición</div>
-          <div class="big" id="repBig">– <span class="of">de –</span></div>
-        </div>
-        <div style="min-width:0">
-          <div class="label" id="stageLabel"></div>
-          <div class="dots" id="dots"></div>
-        </div>
-      </div>
-      <div class="row gorow">
+      <div class="row gorow ctlrow" id="fragCtl">
         <button class="btn primary go" type="button" id="goBtn">▶ Empezar ensayo</button>
         <div class="speedwrap">
           <button class="btn go speedbtn" type="button" id="fragSpeedBtn" aria-haspopup="true" aria-expanded="false" title="Velocidad del compás">1× <span class="caret">▾</span></button>
           <div class="speedmenu" id="fragSpeedMenu" hidden role="menu"></div>
         </div>
       </div>
-    </div>
+      <div hidden><div id="repBig"></div><div id="stageLabel"></div><div id="dots"></div></div>
     </div>
     </div>
 
@@ -536,7 +532,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   <aside class="col" id="libAside">
     <div id="boardSlotAside"></div>
-    <div class="panel libpanel">
+    <div class="panel libpanel" id="libPanel">
       <h2>Mis canciones <span class="who" id="whoTag"></span></h2>
       <form class="drummer-form" id="drummerForm" hidden>
         <p class="note" id="drummerIntro"></p>
@@ -1046,7 +1042,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       e.stopPropagation();
       const wasOpen = !menu.hidden;
       closeMenus();
-      if (!wasOpen) { render(); menu.hidden = false; btn.setAttribute("aria-expanded", "true"); }
+      if (!wasOpen) {
+        render(); menu.hidden = false; btn.setAttribute("aria-expanded", "true");
+        const r = btn.getBoundingClientRect(), mw = menu.offsetWidth, mh = menu.offsetHeight;
+        let top = r.bottom + 6;
+        if (top + mh > innerHeight - 8) top = Math.max(8, r.top - mh - 6);
+        Object.assign(menu.style, { position: "fixed", right: "auto", left: Math.max(8, Math.min(r.right - mw, innerWidth - mw - 8)) + "px", top: top + "px" });
+      }
     };
     label();
   }
@@ -1056,6 +1058,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const w = document.getElementById("drumWrap"); if (w) w.classList.remove("open");
   }
   document.addEventListener("click", (e) => { if (!e.target.closest(".speedwrap, .drumwrap")) closeMenus(); });
+  document.addEventListener("scroll", (e) => { if (!(e.target.closest && e.target.closest(".speedmenu"))) document.querySelectorAll(".speedmenu").forEach((m) => { if (!m.hidden) closeMenus(); }); }, true);
 
   // ---------- Ensayar la canción entera ----------
   function updateSongBtn() {
@@ -1069,6 +1072,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     updateAvailability();
   }
   $("songBtn").onclick = () => {
+    hideDone();
     if (!playerReady) return toast("Primero carga un vídeo.");
     if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); return; }
     stopSession(true);
@@ -1123,6 +1127,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function releaseAwake() { try { wakeLock && wakeLock.release(); } catch (e) {} wakeLock = null; }
 
   $("goBtn").onclick = () => {
+    hideDone();
     if (running()) return stopSession(true);
     if (!validFrag()) return;
     audio(); keepAwake();
@@ -1165,7 +1170,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         session.ticks.push(setTimeout(() => {
           if (!session || session.phase !== "prep") return;
           const c = $("countin"); c.hidden = false;
-          c.innerHTML = `<div>${i + 1}<small>${pct(fragRate)} · repetición ${session.done + 1} de ${REPS}</small></div>`;
+          c.innerHTML = `<div>${i + 1}<small>Repetición ${session.done + 1} de ${REPS}</small></div>`;
         }, 50 + i * iv * 1000));
       }
       // la música entra justo en el siguiente pulso
@@ -1182,13 +1187,20 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       session = { finished: true };
       renderBoard();
       session = null;
-      $("stageLabel").textContent = "¡Ensayo completado!";
       $("goBtn").textContent = "▶ Empezar ensayo"; $("goBtn").classList.remove("stopping");
-      toast("¡Ensayo completado!");
+      showDone();
       return;
     }
     prepareRep();
   }
+  // «¡Ensayo completado!» sobre el vídeo durante unos segundos
+  let doneTimer = null;
+  function showDone() {
+    const c = $("countin"); c.hidden = false;
+    c.innerHTML = `<div class="donemsg">¡Ensayo completado!<small>Pulsa «Empezar ensayo» para repetirlo</small></div>`;
+    clearTimeout(doneTimer); doneTimer = setTimeout(hideDone, 6000);
+  }
+  function hideDone() { clearTimeout(doneTimer); if ($("countin").querySelector(".donemsg")) $("countin").hidden = true; }
   function recordPractice() {
     const song = lib.songs.find((s) => s.id === currentSongId);
     const f = song && song.fragments.find((x) => x.id === currentFragId);
@@ -1378,6 +1390,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("saveFrag").textContent = currentFragId ? "Guardar cambios" : "Guardar";
     $("newFrag").textContent = currentFragId ? "Guardar como nuevo" : "Nuevo";
     updateLoadBtn();
+    $("boardPanel").append($("songCtl"), $("fragCtl"));   // se aparcan antes de rehacer la lista
     const box = $("library"); box.innerHTML = "";
     const all = mySongs();
     const savedSongs = all.filter(isSaved);
@@ -1429,6 +1442,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         sb.onclick = () => saveSong(song);
         xb.onclick = () => { tomb(songKey(song)); lib.songs = lib.songs.filter((x) => x !== song); if (currentSongId === song.id) currentSongId = null; persist(); renderLibrary(); };
         box.appendChild(row);
+        if (song.id === currentSongId) { const w = document.createElement("div"); w.className = "h-ctl"; w.appendChild($("songCtl")); box.appendChild(w); }
       });
       return;
     }
@@ -1451,8 +1465,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       };
       if (isOpen) {
         const body = document.createElement("div"); body.className = "s-body";
+        if (song.id === currentSongId) body.appendChild($("songCtl"));   // Empezar canción + velocidad
         if (!song.fragments.length) {
           const p = document.createElement("p"); p.className = "noresult"; p.textContent = "Sin compases guardados."; body.appendChild(p);
+        } else {
+          const lab = document.createElement("p"); lab.className = "f-label"; lab.textContent = "Compases guardados"; body.appendChild(lab);
         }
         song.fragments.forEach((f) => {
           const row = document.createElement("div");
@@ -1465,6 +1482,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           const x = row.querySelector(".iconbtn");
           x.onclick = () => askDelete(x, () => { song.fragments = song.fragments.filter((y) => y !== f); tomb(f.id); if (currentFragId === f.id) currentFragId = null; persist(); renderLibrary(); });
           body.appendChild(row);
+          if (f.id === currentFragId && song.id === currentSongId) body.appendChild($("fragCtl"));   // Empezar ensayo + velocidad
         });
         const acts = document.createElement("div"); acts.className = "s-actions";
         // Orden: Cambiar nombre · Pasar a… · Compartir · papelera
@@ -2027,8 +2045,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     h.style.left = (inp.left - st.left) + "px";
     h.style.width = inp.width + "px";
     h.style.height = inp.height + "px";
-    const inAside = $("boardPanel").parentElement === $("boardSlotAside");
-    const top = inAside ? btn.top + btn.height / 2 - inp.height / 2 - st.top : st.height * 0.06;
+    const top = st.height * 0.06;
     h.style.top = Math.max(8, top) + "px";
     // si la frase no cabe en una línea, se reduce un poco la letra (hasta 12 px)
     // si no cabe en una línea: primero letra algo más pequeña (hasta 13 px) y, si aún no cabe, la frase corta
@@ -2047,8 +2064,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const toAside = !document.querySelector("main").classList.contains("wide") && !narrowMQ.matches;
     const slot = $(toAside ? "boardSlotAside" : "boardSlotMain");
     if ($("boardPanel").parentElement !== slot) slot.appendChild($("boardPanel"));
-    if (toAside) { if ($("fragPanel").nextElementSibling !== $("pubPanel")) $("pubPanel").before($("fragPanel")); }
-    else if ($("fragPanel").parentElement !== $("boardSlotMain")) $("boardSlotMain").appendChild($("fragPanel"));
+    if (toAside) {
+      if ($("boardSlotAside").nextElementSibling !== $("libPanel")) $("boardSlotAside").after($("libPanel"));
+      if ($("fragPanel").nextElementSibling !== $("pubPanel")) $("pubPanel").before($("fragPanel"));
+    } else {
+      if ($("libPanel").parentElement !== $("boardSlotMain")) $("boardSlotMain").appendChild($("libPanel"));
+      if ($("fragPanel").parentElement !== $("boardSlotMain") || $("fragPanel").previousElementSibling !== $("libPanel")) $("libPanel").after($("fragPanel"));
+    }
     placeCoverHint();
   }
   narrowMQ.addEventListener ? narrowMQ.addEventListener("change", placeBoard) : narrowMQ.addListener(placeBoard);
