@@ -511,6 +511,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-lines { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
 .sv-linehead { flex: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 16px; padding: 8px 16px 4px; }
 .sv-all { font-weight: 800; font-size: 15px; }
+.sv-legend { flex: 1 1 auto; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 16px; font-size: 13px; color: #5a6876; min-width: 0; }
+.sv-legend span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
+.sv-legend svg { width: 26px; height: 22px; flex: none; }
+.sv-info { margin-right: 28px; }
 .sv-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px 6px; }
 .sv-head > div { flex: 1; min-width: 0; }
 .sv-head b { display: block; font-family: var(--display); font-size: clamp(16px, 2vw, 24px); line-height: 1.15; }
@@ -620,7 +624,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           </div>
         </div>
         <div class="sv-lines">
-          <div class="sv-linehead"><label class="sc-check sv-all"><input type="checkbox" id="scAll"> Partitura completa</label><span class="sv-note" id="scInfo"></span></div>
+          <div class="sv-linehead"><label class="sc-check sv-all"><input type="checkbox" id="scAll"> Partitura completa</label><div class="sv-legend" id="scLegend"></div><span class="sv-note sv-info" id="scInfo"></span></div>
           <div class="sv-sheet" id="svSheet"></div>
         </div>
       </div>
@@ -2464,6 +2468,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("scAll").checked = sel.size === s.lines.length;
     $("scInfo").textContent = list.length ? `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas` : "Marca al menos una línea para ensayar";
     $("scBpmVal").textContent = scBpm(s);
+    scLegend(s);
     const G = geo(scDiv(s));
     s.lines.forEach((line, i) => {
       const ts = i === 0 && !s.plain, CL = ts ? 92 : 62, W = CL + line.length * G.BAR + 14;
@@ -2481,6 +2486,26 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       sh.append(row);
     });
     if (!scoreRun) { scoreRest = buildStrip(); placeStrip(-SC_LEAD); }
+  }
+  // Leyenda: solo los símbolos que lleva esta partitura, dibujados igual que en las líneas
+  function scLegend(s) {
+    const used = new Set();
+    s.lines.flat().forEach((b) => {
+      const up = b.up || b.hh || "", us = b.us || "", low = b.low || "";
+      [...up].forEach((c) => c !== "." && used.add(c === "x" ? "hh" : c === "o" ? "hho" : "cr"));
+      [...us].forEach((c) => c !== "." && used.add(c === "g" ? "G" : "S"));
+      [...low].forEach((c) => c !== "." && used.add(c));
+    });
+    const icon = {
+      cr: ["Crash", svX(13, 13, false, true)],
+      hh: ["Charles cerrado", svX(13, 11, false)],
+      hho: ["Charles abierto", svX(13, 11, true)],
+      S: ["Caja", svHead(13, 11, "S")],
+      G: ["Nota fantasma (muy flojito)", svHead(13, 11, "S", true)],
+      B: ["Bombo", svHead(13, 11, "B")],
+    };
+    $("scLegend").innerHTML = ["cr", "hh", "hho", "S", "G", "B"].filter((k) => used.has(k))
+      .map((k) => `<span><svg class="${musClass()}" viewBox="0 0 26 22" aria-hidden="true">${icon[k][1]}</svg>${icon[k][0]}</span>`).join("");
   }
   function openScore(id) {
     if (scoreRun) stopScore();
