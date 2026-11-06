@@ -290,6 +290,8 @@ main.wide > aside { display: none; }
 .helpdlg .helpok { margin-top: 16px; width: 100%; }
 .helpclose { position: absolute; top: 10px; right: 12px; border: none; background: none; font-size: 26px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
 .helpclose:hover { color: var(--accent-ink); }
+.sharehint { margin: -2px 0 0; font-size: 12.5px; }
+.syncbox { display: flex; flex-direction: column; gap: 8px; padding-top: 8px; border-top: 1px solid var(--line); }
 .linkbtn { align-self: flex-start; border: none; background: none; padding: 0; font-size: 12px; color: var(--muted); text-decoration: underline; cursor: pointer; }
 .linkbtn:hover { color: var(--accent-ink); }
 .speedwrap { position: relative; flex: none; }
@@ -552,10 +554,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       </div>
     </div>
     <div class="panel" id="pubPanel">
-      <h2>Publicar</h2>
+      <h2>Compartir con tu profesor</h2>
       <div class="stack">
-        <button class="btn primary" type="button" id="publishBtn">Publicar mis canciones</button>
+        <button class="btn primary" type="button" id="shareOneBtn">Enviar las canciones del baterista</button>
+        <button class="btn" type="button" id="shareAllBtn" hidden>Enviar las de todos los bateristas</button>
       </div>
+      <p class="note sharehint">Se crea un enlace para mandarle por WhatsApp o correo. Al abrirlo, le aparecen las canciones en su app.</p>
+      <button class="linkbtn" type="button" id="syncToggle" aria-expanded="false">Sincronizar mis dispositivos (avanzado)</button>
+      <div class="syncbox" id="syncBox" hidden>
+        <button class="btn" type="button" id="publishBtn">Publicar mis canciones</button>
       <form class="keyform" id="keyForm" hidden>
         <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este dispositivo). Pégala aquí:</p>
         <input type="password" id="keyInput" autocomplete="off" spellcheck="false" placeholder="github_pat_…" aria-label="Llave de GitHub">
@@ -564,6 +571,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       </form>
       <p class="note" id="pubStatus" hidden></p>
       <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este dispositivo</button>
+      </div>
       <div id="importBox" hidden>
         <textarea id="importText" placeholder="Pega aquí el enlace o el texto copiado"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn small primary" type="button" id="importBtn">Añadir a mi biblioteca</button></div>
@@ -579,6 +587,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   <h3 id="keyHelpTitle">Cómo conseguir tu llave de GitHub</h3>
   <p class="helpsub">Se hace <b>una sola vez</b> y tardas unos 3 minutos.</p>
   <ol>
+    <li>¿No tienes cuenta de GitHub? Créala gratis en <a href="https://github.com/signup" target="_blank" rel="noopener">github.com/signup</a>. Puedes entrar con tu cuenta de Google.</li>
     <li>Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> con tu sesión de GitHub iniciada.</li>
     <li>En <b>Token name</b>, escribe <em>Conquista cada compás</em>.</li>
     <li>En <b>Expiration</b>, elige la fecha más lejana que te deje. Cuando caduque, se crea otra igual.</li>
@@ -890,6 +899,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       // en un aparato sin ningún baterista, pegar un enlace es la forma de traerlos
       set("importToggle", hasSong || !lib.drummers.length, hasDrummer ? "Primero carga una canción" : needWhy);
       if ($("importToggle") && $("importToggle").disabled) $("importBox").hidden = true;
+      updateShareButtons();
     } catch (e) {}
   }
   function setEdge(which, t) {
@@ -1526,6 +1536,40 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const fallback = () => { $("importBox").hidden = false; $("importText").value = url; $("importText").select(); toast("Selecciona el enlace del recuadro y cópialo"); };
     if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => toast(okMsg), fallback); else fallback();
   }
+  // ---------- Compartir con el profesor ----------
+  const savedOf = (ids) => lib.songs.filter((s) => isSaved(s) && ids.includes(s.drummer));
+  const drummersWithSongs = () => lib.drummers.filter((d) => lib.songs.some((s) => isSaved(s) && s.drummer === d.id));
+  async function sendToTeacher(ids) {
+    const songs = savedOf(ids);
+    if (!songs.length) return toast("Todavía no hay canciones guardadas para enviar.");
+    const names = ids.map(drummerName).filter(Boolean);
+    const who = names.length > 1 ? names.slice(0, -1).join(", ") + " y " + names[names.length - 1] : names[0];
+    const url = location.origin + location.pathname + "#c=" + encode({ songs });
+    const text = `Canciones de ${who} para ensayar en Conquista cada compás. Ábrelo y te aparecerán en la app:`;
+    // en móvil y tablet: el menú de compartir del teléfono (WhatsApp, correo…)
+    if (navigator.share && matchMedia("(pointer: coarse)").matches) {
+      try { await navigator.share({ title: "Conquista cada compás", text, url }); return; }
+      catch (e) { if (e && e.name === "AbortError") return; }
+    }
+    const fallback = () => { $("importBox").hidden = false; $("importText").value = text + " " + url; $("importText").select(); toast("Selecciona el texto del recuadro y cópialo"); };
+    if (navigator.clipboard) navigator.clipboard.writeText(text + " " + url).then(() => toast("Enlace copiado: pégalo en WhatsApp o en un correo para tu profesor"), fallback);
+    else fallback();
+  }
+  $("shareOneBtn").onclick = () => { if (drummerId) sendToTeacher([drummerId]); };
+  $("shareAllBtn").onclick = () => sendToTeacher(drummersWithSongs().map((d) => d.id));
+  $("syncToggle").onclick = () => {
+    const open = $("syncBox").hidden;
+    $("syncBox").hidden = !open; $("syncToggle").setAttribute("aria-expanded", String(open));
+  };
+  function updateShareButtons() {
+    const one = drummerId && savedOf([drummerId]).length > 0;
+    $("shareOneBtn").textContent = drummerId ? `Enviar las canciones de ${drummerName(drummerId)}` : "Enviar las canciones del baterista";
+    $("shareOneBtn").disabled = !one;
+    $("shareOneBtn").title = one ? "" : (drummerId ? "Primero guarda alguna canción" : "Primero elige un baterista arriba");
+    const many = drummersWithSongs();
+    $("shareAllBtn").hidden = many.length < 2;
+    $("shareAllBtn").textContent = many.length === 2 ? `Enviar las de ${many[0].name} y ${many[1].name}` : "Enviar las de todos los bateristas";
+  }
   // Une una lista recibida con la propia. Gana siempre la versión más reciente de cada fragmento.
   function mergeLib(d) {
     if (!d || !Array.isArray(d.songs)) throw 0;
@@ -1632,7 +1676,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (res.status === 409) throw { msg: "Alguien ha publicado justo a la vez. Vuelve a pulsar «Publicar»." };
       if (!res.ok) throw { msg: `GitHub no ha aceptado la publicación (error ${res.status}).` };
       const n = lib.songs.filter(isSaved).length;
-      showPubStatus(`Publicado: ${n} ${n === 1 ? "canción" : "canciones"}. En uno o dos minutos lo verán los demás dispositivos.`);
+      showPubStatus(`Publicado: ${n} ${n === 1 ? "canción" : "canciones"}. En uno o dos minutos lo verán tus otros dispositivos.`);
       toast("Canciones publicadas");
     } catch (e) {
       if (e && e.forget) { setKey(""); }
@@ -1654,6 +1698,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("keyCancel").onclick = () => { $("keyForm").hidden = true; $("keyInput").value = ""; };
   $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este dispositivo."); };
   refreshKeyUI();
+  if (getKey()) { $("syncBox").hidden = false; $("syncToggle").setAttribute("aria-expanded", "true"); }
   // Ayuda para conseguir la llave
   const help = $("keyHelp");
   $("keyHelpRepo").textContent = REPO.split("/")[1];
