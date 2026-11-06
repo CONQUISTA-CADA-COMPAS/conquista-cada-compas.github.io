@@ -546,6 +546,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .mus .n.now .h { transform: scale(1.4); filter: drop-shadow(0 0 3px #00d49e); }
 .scorepanel .lib { gap: 2px; margin-inline: -6px; padding-inline: 6px; }
 .scorepanel .s-head { grid-template-columns: minmax(0, 1fr); padding-left: 10px; }
+.scorepanel .s-actions { margin: 2px 0 8px; padding-left: 10px; }
+.scorepanel .sc-owner { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Canción y partitura elegidas: fondo verde clarito */
 .s-item.has-active > .s-line { background: var(--accent-soft); border-radius: 6px; }
 .s-item.has-active > .s-line .s-head:hover { background: transparent; }
@@ -1564,6 +1566,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     libTab = "saved";   // al cambiar de baterista se vuelve a «Canciones guardadas»
     currentSongId = null; currentFragId = null; frag = { start: 0, end: 0 }; $("fragName").value = ""; updateFragUI();
     renderDrummers(); renderLibrary();
+    if (typeof refreshScores === "function") refreshScores();
   }
   $("drummerBtn").onclick = (e) => {
     e.stopPropagation();
@@ -2289,6 +2292,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const scBpm = (s) => scStore.bpm[s.id] || s.bpm;
   let scoreOpen = null, scoreRun = null;
   const curScore = () => SCORES.find((s) => s.id === scoreOpen);
+  scStore.names = scStore.names || {}; scStore.who = scStore.who || {};
+  const scTitle = (s) => scStore.names[s.id] || s.title;
+  const scWho = (s) => (scStore.who[s.id] && (scStore.who[s.id] === "all" || lib.drummers.some((d) => d.id === scStore.who[s.id])) ? scStore.who[s.id] : "all");   // por defecto, de todos
+  const scAllName = () => (lib.drummers.length === 2 ? lib.drummers.map((d) => d.name).join(" y ") : "Todos los bateristas");
+  const scVisible = (s) => { const w = scWho(s); return w === "all" || !drummerId || w === drummerId; };
+  function refreshScores() { if (scoreOpen && !scVisible(curScore())) closeScore(); else renderScores(); }
 
   // Dibujo de la partitura (SVG)
   const SP = 9, Y0 = 62, U = 30, BAR = 8 * U, PAD = U / 2, SVH = 140;
@@ -2339,16 +2348,65 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Panel «Mis partituras»
   function renderScores() {
     const box = $("scoreList"); box.innerHTML = "";
-    SCORES.forEach((s) => {
+    const list = SCORES.filter(scVisible);
+    if (!list.length) box.innerHTML = `<p class="lib-empty">No hay partituras para ${drummerName(drummerId) || "este baterista"}.</p>`;
+    list.forEach((s) => {
       const open = scoreOpen === s.id;
       const item = document.createElement("div");
       item.className = "s-item" + (open ? " open has-active" : "");
       item.innerHTML = `<div class="s-line"><button class="s-head" type="button" title="${open ? "Cerrar la partitura" : "Abrir la partitura"}"><span class="st"></span></button></div>`;
-      item.querySelector(".st").textContent = s.title;
+      item.querySelector(".st").textContent = scTitle(s);
       item.querySelector(".s-head").onclick = () => (open ? closeScore() : openScore(s.id));
+      if (open) {
+        // Cambiar nombre · Pasar a…  (y de quién es)
+        const acts = document.createElement("div"); acts.className = "s-actions";
+        const ren = document.createElement("button"); ren.className = "iconbtn act"; ren.type = "button";
+        ren.title = "Cambiar nombre"; ren.setAttribute("aria-label", "Cambiar nombre");
+        ren.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
+        ren.onclick = () => scRename(item, s);
+        acts.append(ren);
+        const who = scWho(s), owner = document.createElement("span"); owner.className = "sc-owner";
+        owner.textContent = "De: " + (who === "all" ? scAllName() : drummerName(who));
+        if (lib.drummers.length) {
+          const sel = document.createElement("select"); sel.className = "transfer"; sel.setAttribute("aria-label", "Pasar la partitura a…");
+          sel.innerHTML = `<option value="">Pasar a…</option><option value="all"></option>` + lib.drummers.map((d) => `<option value="${d.id}"></option>`).join("");
+          sel.querySelectorAll("option").forEach((o) => {
+            if (!o.value) return;
+            const name = o.value === "all" ? scAllName() : (lib.drummers.length === 1 ? "" : "Solo ") + drummerName(o.value);
+            o.textContent = (o.value === who ? "✓ " : "") + name;
+          });
+          sel.onchange = () => {
+            const v = sel.value; if (!v) return;
+            scStore.who[s.id] = v; scSave();
+            toast(v === "all" ? `«${scTitle(s)}» es ahora de ${scAllName()}` : `«${scTitle(s)}» es ahora solo de ${drummerName(v)}`);
+            refreshScores();
+          };
+          acts.append(sel);
+        }
+        acts.append(owner);
+        const body = document.createElement("div"); body.append(acts);
+        item.append(body);
+      }
       box.append(item);
     });
     updateScoreBtn();
+  }
+  function scRename(item, s) {
+    const head = item.querySelector(".s-head");
+    const form = document.createElement("form"); form.className = "rename";
+    form.innerHTML = `<input type="text" maxlength="120" aria-label="Nuevo nombre de la partitura" placeholder="Nombre de la partitura"><button class="btn small primary" type="submit">Guardar</button><button class="btn small ghost" type="button">Cancelar</button>`;
+    const input = form.querySelector("input"); input.value = scTitle(s);
+    head.replaceWith(form); input.focus(); input.select();
+    const done = () => { renderScores(); if (scoreOpen === s.id) $("svTitle").textContent = scTitle(s); };
+    form.querySelector(".ghost").onclick = done;
+    input.addEventListener("keydown", (e) => { if (e.key === "Escape") { e.stopPropagation(); done(); } });
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const name = input.value.trim();
+      if (!name) return toast("Escribe un nombre para la partitura.");
+      if (name !== scTitle(s)) { if (name === s.title) delete scStore.names[s.id]; else scStore.names[s.id] = name; scSave(); toast("Nombre cambiado"); }
+      done();
+    });
   }
   function toggleLine(s, i) {
     if (scoreRun) return;
@@ -2364,7 +2422,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function renderSheet() {
     const s = curScore(); if (!s) return;
     const sel = scSel(s), sh = $("svSheet");
-    $("svTitle").textContent = s.title; $("svSub").textContent = s.sub;
+    $("svTitle").textContent = scTitle(s); $("svSub").textContent = s.sub;
     sh.innerHTML = "";
     const list = [...sel].sort((a, b) => a - b).map((i) => i + 1);
     $("scAll").checked = sel.size === s.lines.length;
