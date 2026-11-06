@@ -15,9 +15,9 @@ Léelo entero antes de tocar nada. Resume lo decidido con Gonzalo (el usuario) e
 
 Una página web (un solo archivo `index.html`, sin servidor ni librerías externas) para que los niños ensayen batería con los vídeos de **Jack Young** en YouTube:
 
-- **Ensayar la canción**: la canción entera desde 0:00, a la velocidad elegida (1×, 0,95×, 0,9×, 0,85×, 0,8×, 0,75×, 0,7×). Gonzalo comprobó que YouTube acepta esas velocidades intermedias.
-- **Ensayar un compás**: repite la parte difícil marcada (inicio y final) **10 veces**, con **cuenta de 3 clics** antes de cada vuelta (ritmo fijo de 100 BPM ajustado a la velocidad) y 1 s de pausa. Bolas magenta para las vueltas hechas.
-- **Mis canciones**: pestañas «Canciones guardadas» y «Otros ensayos» (historial). Cada canción se despliega y muestra sus compases (antes se llamaban «fragmentos»; en la interfaz se dice **«compases»**).
+- **Mis canciones** es el primer panel de la columna derecha y lo integra todo. Pestañas «Canciones guardadas» y «Otros ensayos» (historial). Al desplegar una canción (que carga el vídeo en pausa en 0:00) aparece debajo, en pequeño, **«▶ Empezar canción» + velocidad** (1×, 0,95×, 0,9×, 0,85×, 0,8×, 0,75×, 0,7×; Gonzalo comprobó que YouTube acepta las intermedias). Debajo, «Compases guardados» y la lista. Al pinchar en un compás aparece bajo él **«▶ Empezar ensayo» + velocidad**. Los botones son elementos fijos (`#songCtl`, `#fragCtl`) que `renderLibrary()` aparca en `#boardPanel` (oculto) y vuelve a colocar.
+- **Ensayar un compás**: repite la parte marcada **10 veces**, con **cuenta de 3 clics** antes de cada vuelta (100 BPM fijos ajustados a la velocidad) y 1 s de pausa. Sin bolas de progreso: el aviso grande sobre el vídeo dice solo «Repetición X de 10» (nada de porcentajes) y al terminar muestra «¡Ensayo completado!» unos segundos.
+- Si la columna derecha se oculta o la pantalla es estrecha, «Mis canciones» y «Guardar compases» pasan debajo del vídeo.
 - **Guardar compases**: marcar inicio/final (−1 s, −0,2, +0,2, +1 s), escuchar y guardar. Con un compás elegido, «Guardar» modifica ese mismo.
 - **Bateristas**: menú «Baterista» arriba (junto a «Cargar canción»). Cada baterista tiene sus canciones. Lápiz para renombrar. No se recuerda el baterista elegido entre visitas (se elige cada vez).
 - **Compartir bateristas y canciones**: enlace `#c=…` (JSON en base64) por WhatsApp/correo. Si el baterista no tiene canciones, el botón es «Enviar a <nombre>» (caso de Pedro creando a sus alumnos). Al abrir un enlace solo se **añade y actualiza**, nunca se borra. Si llega un baterista con el mismo nombre que uno local, se pregunta «¿Es el mismo?» (unir o añadir como «Nombre (2)»); la respuesta se recuerda con `aka`. Compases con el mismo inicio y final (±0,05 s) se unen en uno.
@@ -26,9 +26,9 @@ Una página web (un solo archivo `index.html`, sin servidor ni librerías extern
 
 ### Diseño
 
-- Verde de marca `--accent: #00d49e`; magenta `--done: #ff0b5e` para las vueltas hechas y el menú de bateristas. Tema claro y oscuro con tokens en `:root`.
+- Verde de marca `--accent: #00d49e`; magenta `--done: #ff0b5e` para el menú de bateristas y los botones «Parar». Tema claro y oscuro con tokens en `:root`.
 - Tipos: Bricolage Grotesque (títulos), Atkinson Hyperlegible (texto), JetBrains Mono (números).
-- Columna derecha con los paneles de ensayo arriba; debe caber todo sin hacer scroll en un portátil (~1900×920). Gonzalo cuida mucho el espacio y la alineación: compruébalo con capturas de Playwright antes de dar algo por terminado.
+- Columna derecha con «Mis canciones» arriba; debe caber todo sin hacer scroll en un portátil (~1900×920). Gonzalo cuida mucho el espacio y la alineación: compruébalo con capturas de Playwright antes de dar algo por terminado.
 
 ## Dónde está publicada
 
