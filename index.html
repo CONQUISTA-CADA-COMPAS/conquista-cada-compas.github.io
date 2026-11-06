@@ -226,6 +226,14 @@ main.wide > aside { display: none; }
   background: rgba(6, 14, 24, .55); color: #fff; font-family: var(--display); font-weight: 800;
   font-size: clamp(80px, 18vw, 200px); line-height: 1;
 }
+.ready { position: absolute; inset: 0; z-index: 6; display: grid; place-items: center; text-align: center; padding: 16px;
+  background: rgba(6, 14, 24, .78); color: #fff; }
+.ready > div { display: flex; flex-direction: column; align-items: center; gap: 14px; }
+.ready p { margin: 0; font-family: var(--display); font-weight: 800; font-size: clamp(24px, 6vw, 44px); line-height: 1.15; text-wrap: balance; }
+.ready small { font-size: 15px; opacity: .85; }
+.readyplay { width: 104px; height: 104px; border-radius: 50%; border: none; background: var(--accent); color: var(--accent-fg); display: grid; place-items: center; box-shadow: 0 8px 30px rgba(0,0,0,.35); }
+.readyplay svg { margin-left: 6px; }
+.readycancel { background: none; border: 1.5px solid rgba(255,255,255,.5); color: #fff; border-radius: 8px; padding: 6px 16px; font-weight: 700; font-size: 14px; }
 .countin .donemsg { font-size: clamp(30px, 4.5vw, 54px); text-align: center; padding: 0 16px; }
 .countin small { display: block; font-size: 22px; font-family: var(--body); font-weight: 700; text-align: center; margin-top: 8px; opacity: .85; }
 
@@ -513,6 +521,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         </div>
       </div>
       <div class="countin" id="countin" hidden></div>
+      <!-- En el móvil: pantalla de «preparados» hasta que se pulsa play -->
+      <div class="ready" id="readyOverlay" hidden>
+        <div>
+          <p id="readyText"></p>
+          <button class="readyplay" type="button" id="readyPlay" aria-label="Empezar"><svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
+          <small>Coloca el móvil y pulsa play</small>
+          <button class="readycancel" type="button" id="readyCancel">Cancelar</button>
+        </div>
+      </div>
     </div>
     <div id="boardSlotMain">
     <!-- Controles de ensayo: se colocan dentro de «Mis canciones» (bajo la canción y bajo el compás elegidos) -->
@@ -789,6 +806,23 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     };
     document.addEventListener("fullscreenchange", onFs);
     document.addEventListener("webkitfullscreenchange", onFs);
+  }
+
+  // En el móvil (pantalla táctil): pantalla completa y esperar a que pulsen play antes de empezar
+  const touchDevice = () => window.matchMedia("(pointer: coarse)").matches;
+  function enterFs() {
+    if (!canFullscreen || fsElement()) return;
+    try { const r = (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  }
+  function askReady(text, start) {
+    enterFs();
+    $("readyText").textContent = text;
+    $("readyOverlay").hidden = false;
+    $("readyPlay").onclick = () => { $("readyOverlay").hidden = true; start(); };
+    $("readyCancel").onclick = () => {
+      $("readyOverlay").hidden = true;
+      if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
+    };
   }
 
   function openVideo(id, t = 0) {
@@ -1083,13 +1117,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!playerReady) return toast("Primero carga un vídeo.");
     if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); return; }
     stopSession(true);
-    keepAwake();
-    songPlaying = true;
-    player.seekTo(0, true);
-    applyRate(songRate);
-    player.playVideo();
-    $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
-    updateSongBtn();
+    const start = () => {
+      keepAwake();
+      songPlaying = true;
+      player.seekTo(0, true);
+      applyRate(songRate);
+      player.playVideo();
+      $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
+      updateSongBtn();
+    };
+    if (touchDevice()) askReady("Empezar ensayo de canción", start); else start();
   };
   speedPicker("speedBtn", "speedMenu", () => songRate, (r) => { songRate = r; if (songPlaying) applyRate(r); });
 
@@ -1137,11 +1174,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     hideDone();
     if (running()) return stopSession(true);
     if (!validFrag()) return;
-    audio(); keepAwake();
-    $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
-    songPlaying = false;
-    session = { done: 0, phase: "prep" };
-    renderBoard(); prepareRep(); updateSongBtn();
+    const start = () => {
+      audio(); keepAwake();
+      $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
+      songPlaying = false;
+      session = { done: 0, phase: "prep" };
+      renderBoard(); prepareRep(); updateSongBtn();
+    };
+    if (touchDevice()) {
+      if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); }
+      if (playerReady) seekPaused(frag.start);
+      askReady("Empezar ensayo de compás", start);
+    } else start();
   };
   function stopSession(userStop) {
     if (!session) return;
