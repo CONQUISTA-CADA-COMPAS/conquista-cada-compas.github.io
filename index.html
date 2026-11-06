@@ -171,7 +171,10 @@ input:focus, select:focus { border-color: var(--accent); outline: none; }
 .btn.hit:hover { color: var(--accent-ink); border-color: var(--accent); }
 .tab:not(.on):hover, .s-head:hover .st, .f-row .f-name:hover, .h-row .h-title:hover, .s-actions .dangerlink:hover { color: var(--accent-ink); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
-.btn.primary:hover { filter: brightness(1.08); }
+/* Botones verdes: magenta al pasar el ratón por encima */
+.btn.primary:not(:disabled):not(.stopping):hover { background: var(--done); border-color: var(--done); color: #fff; }
+.readyplay:hover, .speedmenu button.sel:hover { background: var(--done); color: #fff; }
+.speedmenu button.sel:hover { border-color: var(--done); }
 .btn.ghost { background: transparent; }
 .btn.small { padding: 5px 10px; font-size: 14px; }
 .btn.hit { border-color: var(--hit); color: var(--hit); background: transparent; }
