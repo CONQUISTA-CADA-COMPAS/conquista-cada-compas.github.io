@@ -1620,8 +1620,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       try { await navigator.share({ title: "Conquista cada compás", text, url }); return; }
       catch (e) { if (e && e.name === "AbortError") return; }
     }
-    const fallback = () => { $("importBox").hidden = false; $("importText").value = text + " " + url; $("importText").select(); toast("Selecciona el texto del recuadro y cópialo"); };
-    if (navigator.clipboard) navigator.clipboard.writeText(text + " " + url).then(() => toast("Enlace copiado: pégalo en WhatsApp o en un correo"), fallback);
+    // en el ordenador se copia solo el enlace: así también funciona si se pega en la barra de direcciones
+    const fallback = () => { $("importBox").hidden = false; $("importText").value = url; $("importText").select(); toast("Selecciona el enlace del recuadro y cópialo"); };
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(() => toast("Enlace copiado: pégalo en WhatsApp, en un correo o en el navegador"), fallback);
     else fallback();
   }
   $("shareOneBtn").onclick = () => { if (drummerId) sendToTeacher([drummerId]); };
