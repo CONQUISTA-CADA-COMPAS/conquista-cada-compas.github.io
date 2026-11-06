@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-06T08:30:44.857Z",
+ "published": "2026-11-06T08:33:55.873Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -75,6 +75,8 @@
   "yjgrqzvc": 1793874256480,
   "m2mz9brr": 1793874256480,
   "song:ramon01:Yq0UTvjCMCI": 1793953580434,
-  "drummer:ramon01": 1793953580434
+  "drummer:ramon01": 1793953580434,
+  "song::Yq0UTvjCMCI": 1793953580434,
+  "song:n4u5pzcx:Yq0UTvjCMCI": 1793953580434
  }
 }
