@@ -555,8 +555,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .mus .h { transform-box: fill-box; transform-origin: center; transition: transform .12s ease-out, filter .12s; }
 .mus .n.now .h { transform: scale(1.4); filter: drop-shadow(0 0 3px #00d49e); }
 .scorepanel .lib { gap: 2px; margin-inline: -6px; padding-inline: 6px; }
-.scorepanel .s-head { grid-template-columns: minmax(0, 1fr); padding-left: 10px; }
-.scorepanel .s-actions { margin: 2px 0 8px; padding-left: 10px; }
+.scorepanel .s-head { grid-template-columns: 16px minmax(0, 1fr); }
+.scorepanel .s-actions { margin: 2px 0 8px; padding-left: 40px; }
 /* Canción y partitura elegidas: fondo verde clarito */
 .s-item.has-active > .s-line { background: var(--accent-soft); border-radius: 6px; }
 .s-item.has-active > .s-line .s-head:hover { background: transparent; }
@@ -1810,7 +1810,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     lib.songs = lib.songs.map((s) => (set.has(s.id) ? ordered[k++] : s));
     persist(); renderLibrary();
   }
-  function enableSongDrag(box) {
+  function enableSongDrag(box, apply = applySongOrder) {   // también sirve para las partituras
     const order = () => [...box.querySelectorAll(".s-item")].map((x) => x.dataset.song);
     box.querySelectorAll(".grip").forEach((g) => {
       const item = g.closest(".s-item");
@@ -1834,7 +1834,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           window.removeEventListener("pointerup", end);
           window.removeEventListener("pointercancel", end);
           item.classList.remove("dragging"); document.body.classList.remove("dragging-song");
-          if (order().join() !== before) { applySongOrder(order()); toast("Orden guardado"); }
+          if (order().join() !== before) { apply(order()); toast("Orden guardado"); }
         };
         window.addEventListener("pointermove", move);
         window.addEventListener("pointerup", end);
@@ -1847,7 +1847,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         const ids = order(), i = ids.indexOf(item.dataset.song), j = i + (e.key === "ArrowUp" ? -1 : 1);
         if (j < 0 || j >= ids.length) return;
         [ids[i], ids[j]] = [ids[j], ids[i]];
-        applySongOrder(ids);
+        apply(ids);
         const ng = box.querySelector(`[data-song="${item.dataset.song}"] .grip`); if (ng) ng.focus();
       });
     });
@@ -2389,13 +2389,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Panel «Mis partituras»
   function renderScores() {
     const box = $("scoreList"); box.innerHTML = "";
-    const list = SCORES.filter(scVisible);
+    const pos = (s) => { const i = (scStore.order || []).indexOf(s.id); return i < 0 ? 1e6 + SCORES.indexOf(s) : i; };
+    const list = SCORES.filter(scVisible).sort((a, b) => pos(a) - pos(b));
     if (!list.length) box.innerHTML = `<p class="lib-empty">No hay partituras para ${drummerName(drummerId) || "este baterista"}.</p>`;
     list.forEach((s) => {
       const open = scoreOpen === s.id;
       const item = document.createElement("div");
       item.className = "s-item" + (open ? " open has-active" : "");
-      item.innerHTML = `<div class="s-line"><button class="s-head" type="button" title="${open ? "Cerrar la partitura" : "Abrir la partitura"}"><span class="st"></span></button></div>`;
+      item.dataset.song = s.id;   // (mismo nombre que en las canciones, para reutilizar el arrastre)
+      item.innerHTML = `<div class="s-line"><span class="grip" tabindex="0" role="button" title="Arrastra para cambiar de posición (o usa las flechas ↑ ↓)" aria-label="Mover partitura"><svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/><circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/></g></svg></span><button class="s-head" type="button" title="${open ? "Cerrar la partitura" : "Abrir la partitura"}" aria-expanded="${open}"><span class="chev">▶</span><span class="st"></span></button></div>`;
       item.querySelector(".st").textContent = scTitle(s);
       item.querySelector(".s-head").onclick = () => (open ? closeScore() : openScore(s.id));
       if (open) {
@@ -2432,6 +2434,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         item.append(body);
       }
       box.append(item);
+    });
+    if (list.length > 1) enableSongDrag(box, (ids) => {
+      const rest = (scStore.order || []).concat(SCORES.map((x) => x.id)).filter((id, i, a) => !ids.includes(id) && a.indexOf(id) === i);
+      scStore.order = ids.concat(rest); scSave(); renderScores();
     });
     updateScoreBtn();
   }
