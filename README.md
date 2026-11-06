@@ -4,4 +4,5 @@ Aplicación web para ensayar batería con vídeos de YouTube: repite en bucle la
 
 - Se abre en: https://conquista-cada-compas.github.io/
 - Todo está en `index.html`. Las canciones de cada baterista se guardan en el navegador de cada aparato.
-- `canciones.json` (opcional) es la lista publicada que ve cualquiera que abra la dirección. Se genera con el botón «Publicar mis canciones».
+- `canciones.json` es la lista que se comparte entre los dispositivos de la familia. La escribe la propia app con el botón «Sincronizar».
+- `CLAUDE.md`: notas para continuar el proyecto con Claude.
