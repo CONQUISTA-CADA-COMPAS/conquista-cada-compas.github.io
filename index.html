@@ -935,8 +935,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       set("songBtn", hasSong || songPlaying, hasDrummer ? "Primero carga una canción" : needWhy);
       set("goBtn", hasFrag || running(), !hasDrummer ? needWhy : !hasSong ? "Primero carga una canción" : "Primero elige o marca unos compases");
       // Publicar: en cuanto el baterista elegido tenga canciones guardadas (o haya una canción cargada)
-      const canPublish = hasSong || (hasDrummer && mySongs().some(isSaved));
-      set("publishBtn", canPublish, hasDrummer ? "Primero guarda alguna canción" : needWhy);
+      // Sincronizar: disponible en cuanto haya canciones guardadas de cualquier baterista (no hace falta elegir uno)
+      const canPublish = hasSong || lib.songs.some(isSaved);
+      set("publishBtn", canPublish, "Primero guarda alguna canción");
       set("exportBtn", hasSong, hasDrummer ? "Primero carga una canción" : needWhy);
       // en un aparato sin ningún baterista, pegar un enlace es la forma de traerlos
       set("importToggle", hasSong || !lib.drummers.length, hasDrummer ? "Primero carga una canción" : needWhy);
