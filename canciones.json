@@ -1,14 +1,21 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-05T19:45:55.311Z",
+ "published": "2026-11-06T06:50:49.409Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
-   "name": "Darío"
+   "name": "Darío",
+   "updated": 0
   },
   {
    "id": "9ar14mgy",
-   "name": "Gabriel"
+   "name": "Gabriel",
+   "updated": 0
+  },
+  {
+   "id": "ramon01",
+   "name": "Ramón",
+   "updated": 0
   }
  ],
  "songs": [
@@ -65,6 +72,14 @@
    "title": "Jerk It Out - The Ceasars (Grade 3)",
    "drummer": "9ar14mgy",
    "updated": 1793897518636,
+   "fragments": []
+  },
+  {
+   "id": "da0hm41v",
+   "videoId": "Yq0UTvjCMCI",
+   "title": "Canción de Ramón (prueba)",
+   "drummer": "ramon01",
+   "updated": 1793947503748,
    "fragments": []
   }
  ],
