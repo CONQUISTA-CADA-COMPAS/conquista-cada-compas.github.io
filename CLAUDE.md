@@ -61,6 +61,18 @@ Decidido con Gonzalo en el chat de partituras:
 - **Animación: tira continua** (estilo fácil de Jack Young): las líneas marcadas se ponen una tras otra y se repiten **10 veces** sin pausa; la tira se mueve a la izquierda y la barra que marca el golpe se queda quieta. Misma pantalla de play, cuenta atrás y «Repetición X de 10» que en «Ensayar un compás».
 - **Pasar a limpio** (le encantó la idea): Gonzalo manda la hoja al chat, Claude la lee nota a nota y la guarda en formato digital; la app la dibuja siempre con los mismos símbolos, la toca con sonidos de batería y resalta cada nota «un pelín» (Pedro) al pasar la barra. Errores posibles en hojas borrosas: revisar escuchando.
 - **Metrónomo con macro y micro pulso** (Pedro): clic fuerte en cada tiempo (más fuerte en el primero del compás) y clic suave en la subdivisión (2, 3 o 4 por tiempo según la partitura). Casilla «Subdivisión».
+- **Base de notación: la «Drumeo Notation Key»** (la eligió Gonzalo como referencia). Pentagrama de 5 líneas, contando desde abajo (línea 1 = la de abajo; espacio 1 = entre las líneas 1 y 2):
+  - **Caja**: nota normal en el espacio 3. **Cross stick**: × en el mismo sitio que la caja.
+  - **Bombo**: espacio 1. **2.º bombo**: debajo del pentagrama (bajo la línea 1).
+  - **Charles cerrado**: × encima del pentagrama (espacio sobre la línea 5). **Charles abierto**: ⊗ (× dentro de un círculo) en el mismo sitio. **Charles con el pie** (y *splash* de pie): × bajo el pentagrama; el *splash* de pie, ⊗.
+  - **Ride**: × sobre la línea 5. **Campana del ride**: rombo sobre la línea 5.
+  - **Crash**: × sobre la línea adicional encima del pentagrama. **Choke** (cortar el plato): el crash con la marca de corte. **China**: ⊗ también por encima, con línea adicional. **Cencerro**: rombo en el espacio 4.
+  - **Toms**: alto en el espacio 4, medio en la línea 4, bajo en la línea 3, **base** (*floor tom*) en el espacio 2.
+  - **Nota fantasma**: la nota entre paréntesis. **Acento**: «>» encima.
+  - **Doble**: una raya cruzada en la plica (dos golpes). **Redoble**: tres rayas en la plica.
+  - **Crescendo / decrescendo**: horquillas debajo (abriéndose / cerrándose).
+  - **Flam**: una notita pequeña justo antes. **Drag**: dos notitas pequeñas antes.
+  - Lo ya dibujado en la app (charles × y ⊗ encima, caja en el espacio 3, bombo en el espacio 1) ya coincide con esta base.
 - **Colores de Jack Young como opción** (apagados por defecto): charles amarillo (× cerrado, ⊗ abierto), caja roja con «S», bombo negro con «K», crash verde, ride azul, toms 1/2/3 (amarillo/azul/verde) con su número.
 - **Tap**: botón que pone la velocidad tocando al ritmo; cada toque debe notarse (destello magenta) y cambiar la velocidad desde el 2.º toque.
 - Botones verdes con texto blanco; casillas verdes con la marca en blanco.
