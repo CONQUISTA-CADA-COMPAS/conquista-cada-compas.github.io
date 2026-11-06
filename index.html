@@ -488,32 +488,29 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 #boardSlotMain .libpanel { width: 100%; max-width: 900px; margin-left: auto; position: static; max-height: none; }
 /* ---------- Mis partituras ---------- */
 .countin { z-index: 5; }
-.scorepanel .s-body.sc-body { padding: 2px 0 12px 24px; gap: 8px; }
-.sc-label { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.sc-lines { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 5px; }
-.sc-chip { border: 1.5px solid var(--line); background: var(--surface); border-radius: 7px; padding: 5px 2px; font-weight: 700; font-size: 13px; white-space: nowrap; color: var(--fg); }
-.sc-chip:hover { border-color: var(--accent); color: var(--accent-ink); }
-.sc-chip.on, .sc-chip.on:hover { background: var(--accent); border-color: var(--accent); color: #fff; }
-.sc-chip.all { grid-column: 1 / -1; }
-.sc-ctl { display: flex; gap: 6px; align-items: center; }
-.sc-ctl #scoreGo { flex: 1 1 auto; font-size: 14px; padding: 6px 10px; }
 .sc-bpm { display: inline-flex; align-items: center; border: 1.5px solid var(--line); border-radius: 8px; overflow: hidden; flex: none; }
 .sc-bpm button { border: none; background: var(--surface); padding: 5px 8px; font-weight: 800; font-size: 15px; color: var(--fg); }
 .sc-bpm button:hover { background: var(--surface-2); color: var(--accent-ink); }
 .sc-bpm span { font-family: var(--mono); font-weight: 700; font-size: 14px; min-width: 3.4ch; text-align: center; font-variant-numeric: tabular-nums; }
 .sc-bpm span.flash { animation: scFlashTxt .5s ease-out; }
-.sc-tap { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); }
-.sc-tap .btn { padding: 4px 12px; font-size: 13px; }
-.sc-tap .btn.flash { animation: scFlash .35s ease-out; }
+#scTap.flash { animation: scFlash .35s ease-out; }
 @keyframes scFlash { from { background: var(--done); border-color: var(--done); color: #fff; } }
 @keyframes scFlashTxt { from { color: var(--done); } }
-.sc-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; font-size: 13px; }
 .sc-check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; user-select: none; }
 .sc-check input { appearance: none; -webkit-appearance: none; margin: 0; flex: none; width: 16px; height: 16px; border: 2px solid var(--muted); border-radius: 4px; background: var(--surface) center / 11px no-repeat; cursor: pointer; }
 .sc-check input:checked { background-color: var(--accent); border-color: var(--accent); background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.3l2.6 2.6L10 3.4' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 .sc-check input:focus-visible { outline: 2px solid var(--done); outline-offset: 2px; }
 /* La partitura ocupa el sitio del vídeo: papel blanco */
-.scoreview { position: absolute; inset: 0; z-index: 4; background: #fff; color: #15202b; display: flex; flex-direction: column; overflow: hidden; }
+.scoreview { position: absolute; inset: 0; z-index: 4; background: #fff; color: #15202b; display: flex; flex-direction: column; overflow: hidden;
+  --surface: #ffffff; --surface-2: #e3e8ee; --fg: #16202b; --muted: #5a6876; --line: #cfd7e0; --accent-ink: #00a57a; --done-soft: #ffe4ee; color-scheme: light; }
+.sv-ctl { flex: none; display: flex; flex-wrap: wrap; align-items: center; gap: 8px 22px; padding: 10px 16px; border-top: 1px solid #e3e8ee; border-bottom: 1px solid #e3e8ee; font-size: 14px; }
+.sv-ctl #scoreGo { font-size: 15px; padding: 8px 16px; }
+.sv-group { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; }
+.sv-cap { font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: #5a6876; }
+.sv-note { font-size: 13px; color: #5a6876; }
+.sv-lines { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+.sv-linehead { flex: none; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 6px 16px; padding: 8px 16px 4px; }
+.sv-all { font-weight: 800; font-size: 15px; }
 .sv-head { display: flex; align-items: center; gap: 12px; padding: 12px 16px 6px; }
 .sv-head > div { flex: 1; min-width: 0; }
 .sv-head b { display: block; font-family: var(--display); font-size: clamp(16px, 2vw, 24px); line-height: 1.15; }
@@ -521,17 +518,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-rep { font-family: var(--display); font-weight: 800; font-size: clamp(15px, 1.8vw, 22px); color: #ff0b5e; white-space: nowrap; }
 .sv-close { border: 1.5px solid #cfd7e0; background: #fff; color: #15202b; border-radius: 8px; width: 34px; height: 34px; font-size: 20px; line-height: 1; flex: none; }
 .sv-close:hover { border-color: #ff0b5e; color: #ff0b5e; }
-.sv-sheet { flex: 1; min-height: 0; overflow-y: auto; padding: 0 16px 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 2px 18px; align-content: start; }
-.sv-hint { grid-column: 1 / -1; font-size: 13px; color: #5a6876; margin: 0 0 4px; }
+.sv-sheet { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 0 16px 14px; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 430px), 1fr)); gap: 2px 18px; align-content: start; }
 .sv-row { border: 2px solid transparent; border-radius: 8px; padding: 2px 6px 0; cursor: pointer; background: none; text-align: left; color: inherit; font: inherit; }
 .sv-row:hover { background: #f1fbf8; }
 .sv-row.on { border-color: #00d49e; background: #eafbf6; }
-.sv-row .sv-l { font-size: 13px; font-weight: 800; color: #5a6876; }
+.sv-row .sv-l { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 800; color: #5a6876; }
+.sv-row .box { width: 16px; height: 16px; border: 2px solid #5a6876; border-radius: 4px; background: #fff center / 11px no-repeat; }
+.sv-row.on .box { background-color: #00d49e; border-color: #00d49e; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M2 6.3l2.6 2.6L10 3.4' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
 .sv-row.on .sv-l { color: #00a57a; }
 .sv-row svg { display: block; width: 100%; height: auto; }
-.sv-strip { position: relative; flex: 1; min-height: 0; overflow: hidden; }
+.sv-strip { position: relative; flex: none; height: clamp(120px, 30%, 250px); overflow: hidden; }
 .sv-track { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
-.sv-play { position: absolute; top: 4%; bottom: 4%; left: 28%; width: 3px; margin-left: -1.5px; background: #ff0b5e; border-radius: 2px; z-index: 2; box-shadow: 0 0 0 4px rgba(255, 11, 94, .15); }
+.sv-play { position: absolute; top: 2%; bottom: 2%; left: 28%; width: 3px; margin-left: -1.5px; background: #ff0b5e; border-radius: 2px; z-index: 2; box-shadow: 0 0 0 4px rgba(255, 11, 94, .15); }
 /* Notas: siempre sobre papel blanco */
 .mus { --c-hh: #15202b; --c-sn: #15202b; --c-k: #15202b; --ol: transparent; }
 .mus.color { --c-hh: #f2b400; --c-sn: #e3262f; --c-k: #15202b; --ol: #15202b; }
@@ -546,8 +544,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .mus .ts { font: 800 22px var(--display); fill: currentColor; }
 .mus .h { transform-box: fill-box; transform-origin: center; transition: transform .12s ease-out, filter .12s; }
 .mus .n.now .h { transform: scale(1.4); filter: drop-shadow(0 0 3px #00d49e); }
-#scoreCtl { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
 .scorepanel .lib { gap: 2px; margin-inline: -6px; padding-inline: 6px; }
+.scorepanel .s-head .chev { font-size: 14px; }
+.scorepanel .s-item.open .s-head .chev { transform: none; color: var(--accent-ink); }
+.scorepanel .s-item.open .s-head { background: var(--accent-soft); }
+/* En el móvil la partitura necesita más alto que el vídeo */
+@media (max-width: 980px) { .stage.scoring { aspect-ratio: auto; height: calc(100svh - 24px); max-height: 900px; } }
 </style>
 </head>
 <body>
@@ -588,8 +590,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <!-- Mis partituras: la partitura ocupa el sitio del vídeo (papel blanco) -->
       <div class="scoreview" id="scoreView" hidden>
         <div class="sv-head"><div><b id="svTitle"></b><span class="sv-sub" id="svSub"></span></div><span class="sv-rep" id="svRep" hidden></span><button class="sv-close" type="button" id="svClose" title="Cerrar la partitura y volver al vídeo" aria-label="Cerrar la partitura">×</button></div>
-        <div class="sv-sheet" id="svSheet"></div>
-        <div class="sv-strip" id="svStrip" hidden><div class="sv-play"></div><div class="sv-track" id="svTrack"></div></div>
+        <div class="sv-strip" id="svStrip"><div class="sv-play"></div><div class="sv-track" id="svTrack"></div></div>
+        <div class="sv-ctl" id="scoreCtl">
+          <button class="btn primary go" type="button" id="scoreGo">▶ Empezar ensayo</button>
+          <div class="sv-group"><span class="sv-cap">Velocidad</span>
+            <div class="sc-bpm" title="Velocidad en golpes por minuto"><button type="button" id="scSlower" aria-label="Más despacio">−</button><span id="scBpmVal">70</span><button type="button" id="scFaster" aria-label="Más deprisa">+</button></div>
+            <span class="sv-note">golpes por minuto</span>
+            <button class="btn small" type="button" id="scTap" title="Pulsa varias veces al ritmo para poner la velocidad">Tap</button><span class="sv-note" id="scTapHint" aria-live="polite"></span></div>
+          <div class="sv-group">
+            <label class="sc-check"><input type="checkbox" id="scDrums"> Sonido de batería</label>
+            <label class="sc-check"><input type="checkbox" id="scClick"> Metrónomo</label>
+            <label class="sc-check"><input type="checkbox" id="scSub"> Subdivisión</label>
+            <label class="sc-check"><input type="checkbox" id="scColors"> Colores</label>
+          </div>
+        </div>
+        <div class="sv-lines">
+          <div class="sv-linehead"><label class="sc-check sv-all"><input type="checkbox" id="scAll"> Partitura completa</label><span class="sv-note" id="scInfo"></span></div>
+          <div class="sv-sheet" id="svSheet"></div>
+        </div>
       </div>
       <div class="countin" id="countin" hidden></div>
       <!-- En el móvil: pantalla de «preparados» hasta que se pulsa play -->
@@ -668,21 +686,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <div class="panel scorepanel" id="scorePanel">
       <h2>Mis partituras</h2>
       <div class="lib" id="scoreList"></div>
-      <div hidden id="scorePark">
-        <div id="scoreCtl">
-          <div class="sc-ctl">
-            <button class="btn primary go" type="button" id="scoreGo">▶ Empezar ensayo</button>
-            <div class="sc-bpm" title="Velocidad en golpes por minuto"><button type="button" id="scSlower" aria-label="Más despacio">−</button><span id="scBpmVal">70</span><button type="button" id="scFaster" aria-label="Más deprisa">+</button></div>
-          </div>
-          <div class="sc-tap"><button class="btn" type="button" id="scTap" title="Pulsa varias veces al ritmo para poner la velocidad">Tap</button><span>golpes por minuto</span><span id="scTapHint" aria-live="polite"></span></div>
-          <div class="sc-opts">
-            <label class="sc-check"><input type="checkbox" id="scDrums"> Sonido de batería</label>
-            <label class="sc-check"><input type="checkbox" id="scClick"> Metrónomo</label>
-            <label class="sc-check"><input type="checkbox" id="scSub"> Subdivisión</label>
-            <label class="sc-check"><input type="checkbox" id="scColors"> Colores</label>
-          </div>
-        </div>
-      </div>
     </div>
     <div class="panel" id="pubPanel">
       <h2>Compartir bateristas y canciones</h2>
@@ -2315,27 +2318,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // Panel «Mis partituras»
   function renderScores() {
-    $("scorePark").append($("scoreCtl"));   // se aparcan antes de rehacer la lista
     const box = $("scoreList"); box.innerHTML = "";
     SCORES.forEach((s) => {
-      const open = scoreOpen === s.id, sel = scSel(s), all = sel.size === s.lines.length;
+      const open = scoreOpen === s.id;
       const item = document.createElement("div");
-      item.className = "s-item" + (open ? " open" : "");
-      item.innerHTML = `<div class="s-line"><button class="s-head" type="button"><span class="chev">▶</span><span class="st"></span><span class="sc">${s.lines.length} líneas</span></button></div>`;
+      item.className = "s-item" + (open ? " open has-active" : "");
+      item.innerHTML = `<div class="s-line"><button class="s-head" type="button" title="${open ? "Cerrar la partitura" : "Abrir la partitura"}"><span class="chev">♪</span><span class="st"></span><span class="sc">${s.lines.length} líneas</span></button></div>`;
       item.querySelector(".st").textContent = s.title;
       item.querySelector(".s-head").onclick = () => (open ? closeScore() : openScore(s.id));
-      if (open) {
-        const body = document.createElement("div");
-        body.className = "s-body sc-body";
-        body.innerHTML = `<span class="sc-label">Líneas que vas a ensayar</span>
-          <div class="sc-lines">${s.lines.map((_, i) => `<button type="button" class="sc-chip${sel.has(i) ? " on" : ""}" data-l="${i}" aria-pressed="${sel.has(i)}">Línea ${i + 1}</button>`).join("")}
-          <button type="button" class="sc-chip all${all ? " on" : ""}" aria-pressed="${all}">Partitura completa</button></div>`;
-        body.append($("scoreCtl"));
-        box.append(item); item.append(body);
-        body.querySelectorAll(".sc-chip").forEach((c) => (c.onclick = () => toggleLine(s, c.classList.contains("all") ? "all" : +c.dataset.l)));
-      } else box.append(item);
+      box.append(item);
     });
-    if (scoreOpen) $("scBpmVal").textContent = scBpm(curScore());
     updateScoreBtn();
   }
   function toggleLine(s, i) {
@@ -2345,14 +2337,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     else if (sel.has(i)) { if (sel.size > 1) sel.delete(i); else return toast("Deja marcada al menos una línea."); }
     else sel.add(i);
     scStore.sel[s.id] = [...sel].sort((a, b) => a - b); scSave();
-    renderScores(); renderSheet();
+    renderSheet();
   }
   // La hoja entera, en el sitio del vídeo
   function renderSheet() {
     const s = curScore(); if (!s) return;
     const sel = scSel(s), sh = $("svSheet");
     $("svTitle").textContent = s.title; $("svSub").textContent = s.sub;
-    sh.innerHTML = `<p class="sv-hint">Toca las líneas que quieras ensayar y pulsa «Empezar ensayo».</p>`;
+    sh.innerHTML = "";
+    const list = [...sel].sort((a, b) => a - b).map((i) => i + 1);
+    $("scAll").checked = sel.size === s.lines.length;
+    $("scInfo").textContent = `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas`;
+    $("scBpmVal").textContent = scBpm(s);
     s.lines.forEach((line, i) => {
       const CL = i === 0 ? 92 : 62, W = CL + 2 * BAR + 14;
       let g = svStaff(4, W - 4);
@@ -2362,10 +2358,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const row = document.createElement("button");
       row.type = "button"; row.className = "sv-row" + (sel.has(i) ? " on" : "");
       row.setAttribute("aria-pressed", sel.has(i));
-      row.innerHTML = `<span class="sv-l">${sel.has(i) ? "✓ " : ""}Línea ${i + 1}</span><svg class="${musClass()}" viewBox="0 12 ${W} ${SVH - 12}" aria-hidden="true">${g}</svg>`;
+      row.innerHTML = `<span class="sv-l"><span class="box"></span>Línea ${i + 1}</span><svg class="${musClass()}" viewBox="0 12 ${W} ${SVH - 12}" aria-hidden="true">${g}</svg>`;
       row.onclick = () => toggleLine(s, i);
       sh.append(row);
     });
+    if (!scoreRun) { scoreRest = buildStrip(); placeStrip(-SC_LEAD); }
   }
   function openScore(id) {
     if (scoreRun) stopScore();
@@ -2374,17 +2371,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!$("readyOverlay").hidden) $("readyCancel").click();
     hideDone();
     scoreOpen = id;
-    $("scoreView").hidden = false; showStrip(false);
+    $("scoreView").hidden = false; $("stage").classList.add("scoring");
     renderScores(); renderSheet();
   }
   function closeScore() {
     if (!scoreOpen) return;
     if (scoreRun) stopScore();
     if (readyKind === "score" && !$("readyOverlay").hidden) $("readyCancel").click();
-    scoreOpen = null; $("scoreView").hidden = true;
+    scoreOpen = null; $("scoreView").hidden = true; $("stage").classList.remove("scoring");
     renderScores();
   }
-  function showStrip(on) { $("svSheet").hidden = on; $("svStrip").hidden = !on; }
+  let scoreRest = null;
+  $("scAll").onchange = () => { const s = curScore(); if (s) toggleLine(s, "all"); };
 
   // La tira: las líneas elegidas, una tras otra, 10 veces
   function buildStrip() {
@@ -2403,7 +2401,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function placeStrip(T) {
     const box = $("svStrip"), w = box.clientWidth, h = box.clientHeight;
-    const k = Math.max(0.55, Math.min(2.2, (h * 0.55) / (SVH + 12), w / 1000));   // se ven unos 3 compases por delante
+    const k = Math.max(0.5, Math.min(2.2, (h * 0.92) / (SVH + 12), Math.max(0.9, w / 1000)));   // en el móvil, más grande aunque se vea menos por delante   // se ven unos 3 compases por delante
     $("svTrack").style.transform = `translate(${w * 0.28 - (PAD + T * U) * k}px, ${Math.max(0, (h - (SVH + 12) * k) / 2)}px) scale(${k})`;
   }
 
@@ -2447,12 +2445,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (songCounting || songPlaying) stopSong();
     if (!$("readyOverlay").hidden) $("readyCancel").click();
     hideDone();
-    scoreRun = null; showStrip(true);
+    scoreRun = null;
     const st = buildStrip(); placeStrip(-SC_LEAD);
     readyKind = "score";
     askReady("Empezar ensayo de partitura", () => startScore(st));
     const cancel = $("readyCancel").onclick;
-    $("readyCancel").onclick = () => { cancel(); if (!scoreRun) showStrip(false); };
+    $("readyCancel").onclick = () => { cancel(); };
   }
   function startScore(st) {
     const ctx = audio(); if (!ctx) return toast("Este navegador no puede hacer sonar el metrónomo.");
@@ -2506,7 +2504,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     scoreRun = null;
     if (!$("countin").querySelector(".donemsg")) $("countin").hidden = true;
     $("svRep").hidden = true;
-    releaseAwake(); showStrip(false); updateScoreBtn();
+    releaseAwake(); updateScoreBtn();
+    if (curScore()) { scoreRest = buildStrip(); placeStrip(-SC_LEAD); }
   }
   $("scoreGo").onclick = () => {
     hideDone();
@@ -2544,7 +2543,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (k === "colors") document.querySelectorAll("#scoreView svg").forEach((g) => g.classList.toggle("color", scOpt.colors));
     };
   });
-  if (window.ResizeObserver) new ResizeObserver(() => { if (!$("svStrip").hidden && !scoreRun) placeStrip(-SC_LEAD); }).observe($("stage"));
+  if (window.ResizeObserver) new ResizeObserver(() => { if (scoreOpen && !scoreRun) placeStrip(-SC_LEAD); }).observe($("stage"));
   renderScores();
 
   // ---------- Teclado ----------
