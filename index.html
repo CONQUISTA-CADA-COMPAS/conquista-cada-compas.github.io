@@ -273,6 +273,23 @@ main.wide > aside { display: none; }
 .keyform { display: flex; flex-direction: column; gap: 8px; }
 .keyform p { margin: 0; }
 .keyform input { width: 100%; font-family: var(--mono); font-size: 13px; }
+.helplink { border: none; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--accent-ink); text-decoration: underline; cursor: pointer; }
+.helplink:hover { color: var(--fg); }
+/* Ventana de ayuda: centrada, fondo blanco, borde verde, texto negro con palabras clave en verde */
+.helpdlg { width: min(92vw, 520px); max-height: 88vh; overflow: auto; padding: 22px 24px 20px; border: 2px solid var(--accent); border-radius: 14px;
+  background: var(--surface); color: var(--fg); box-shadow: 0 20px 60px rgba(10, 20, 30, .3); }
+.helpdlg::backdrop { background: rgba(10, 16, 22, .55); }
+.helpdlg h3 { font-family: var(--display); font-size: 20px; font-weight: 800; margin: 0 28px 4px 0; }
+.helpdlg .helpsub { margin: 0 0 12px; color: var(--muted); font-size: 14px; }
+.helpdlg ol { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 8px; font-size: 15px; line-height: 1.4; }
+.helpdlg ol li::marker { color: var(--accent-ink); font-weight: 800; }
+.helpdlg b { color: var(--accent-ink); }
+.helpdlg a { color: var(--accent-ink); font-weight: 700; overflow-wrap: anywhere; }
+.helpdlg .helpnote { margin: 14px 0 0; padding: 10px 12px; border-radius: 8px; background: var(--accent-soft); font-size: 14px; }
+.helpdlg .helpnote b { color: var(--fg); }
+.helpdlg .helpok { margin-top: 16px; width: 100%; }
+.helpclose { position: absolute; top: 10px; right: 12px; border: none; background: none; font-size: 26px; line-height: 1; color: var(--muted); cursor: pointer; padding: 4px; }
+.helpclose:hover { color: var(--accent-ink); }
 .linkbtn { align-self: flex-start; border: none; background: none; padding: 0; font-size: 12px; color: var(--muted); text-decoration: underline; cursor: pointer; }
 .linkbtn:hover { color: var(--accent-ink); }
 .speedwrap { position: relative; flex: none; }
@@ -552,7 +569,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <button class="btn primary" type="button" id="publishBtn">Publicar mis canciones</button>
       </div>
       <form class="keyform" id="keyForm" hidden>
-        <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este dispositivo). Pégala aquí:</p>
+        <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este dispositivo). Pégala aquí: <button class="helplink" type="button" id="keyHelpBtn">¿Cómo consigo la llave?</button></p>
         <input type="password" id="keyInput" autocomplete="off" spellcheck="false" placeholder="github_pat_…" aria-label="Llave de GitHub">
         <div class="row" style="gap:6px"><button class="btn small primary" type="submit">Guardar y publicar</button><button class="btn small ghost" type="button" id="keyCancel">Cancelar</button></div>
       </form>
@@ -567,6 +584,23 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 </main>
 
 <div class="toast" id="toast" hidden></div>
+
+<dialog class="helpdlg" id="keyHelp" aria-labelledby="keyHelpTitle">
+  <button class="helpclose" type="button" id="keyHelpClose" aria-label="Cerrar">×</button>
+  <h3 id="keyHelpTitle">Cómo conseguir tu llave de GitHub</h3>
+  <p class="helpsub">Se hace <b>una sola vez</b> y tardas unos 3 minutos.</p>
+  <ol>
+    <li>Abre <a href="https://github.com/settings/personal-access-tokens/new" target="_blank" rel="noopener">github.com/settings/personal-access-tokens/new</a> con tu sesión de GitHub iniciada.</li>
+    <li>En <b>Token name</b>, escribe <em>Conquista cada compás</em>.</li>
+    <li>En <b>Expiration</b>, elige la fecha más lejana que te deje. Cuando caduque, se crea otra igual.</li>
+    <li>En <b>Repository access</b>, marca <b>Only select repositories</b> y elige <b id="keyHelpRepo">conquista-cada-compas</b>.</li>
+    <li>En <b>Permissions</b>, pulsa <b>+ Add permissions</b>, marca <b>Contents</b> y cámbialo a <b>Read and write</b>.</li>
+    <li>Pulsa <b>Generate token</b> y copia el código que empieza por <b>github_pat_</b>. Solo se muestra una vez.</li>
+    <li>Pégalo en el recuadro y pulsa <b>Guardar y publicar</b>.</li>
+  </ol>
+  <p class="helpnote"><b>Importante:</b> no compartas la llave con nadie. Se guarda solo en este dispositivo y puedes quitarla cuando quieras.</p>
+  <button class="btn primary helpok" type="button" id="keyHelpOk">Entendido</button>
+</dialog>
 
 <script>
 (() => {
@@ -1630,6 +1664,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("keyCancel").onclick = () => { $("keyForm").hidden = true; $("keyInput").value = ""; };
   $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este dispositivo."); };
   refreshKeyUI();
+  // Ayuda para conseguir la llave
+  const help = $("keyHelp");
+  $("keyHelpRepo").textContent = REPO.split("/")[1];
+  $("keyHelpBtn").onclick = () => { if (help.showModal) help.showModal(); else help.setAttribute("open", ""); };
+  const closeHelp = () => { if (help.close) help.close(); else help.removeAttribute("open"); $("keyInput").focus(); };
+  $("keyHelpOk").onclick = closeHelp; $("keyHelpClose").onclick = closeHelp;
+  help.addEventListener("click", (e) => { if (e.target === help) closeHelp(); });   // clic fuera de la ventana
   async function loadPublished() {
     if (location.protocol === "file:") return;
     try {
