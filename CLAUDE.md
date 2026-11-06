@@ -74,6 +74,7 @@ Decidido con Gonzalo en el chat de partituras:
   - **Crescendo / decrescendo**: horquillas debajo (abriéndose / cerrándose).
   - **Flam**: una notita pequeña justo antes. **Drag**: dos notitas pequeñas antes.
   - Lo ya dibujado en la app (charles × y ⊗ encima, caja en el espacio 3, bombo en el espacio 1) ya coincide con esta base.
+- Junto a «Partitura completa» va la **leyenda**: solo los símbolos que lleva esa partitura, dibujados igual que en las líneas y con su nombre (Crash, Charles cerrado/abierto, Caja, Nota fantasma, Bombo). «Se ensaya: …» a la derecha, algo separado del borde.
 - **Colores de Jack Young como opción** (apagados por defecto): charles amarillo (× cerrado, ⊗ abierto), caja roja con «S», bombo negro con «K», crash verde, ride azul, toms 1/2/3 (amarillo/azul/verde) con su número.
 - **Tap**: botón que pone la velocidad tocando al ritmo; cada toque debe notarse (destello magenta) y cambiar la velocidad desde el 2.º toque.
 - Botones verdes con texto blanco; casillas verdes con la marca en blanco.
