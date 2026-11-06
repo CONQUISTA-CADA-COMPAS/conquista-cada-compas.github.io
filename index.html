@@ -531,8 +531,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-track { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
 .sv-play { position: absolute; top: 2%; bottom: 2%; left: 28%; width: 3px; margin-left: -1.5px; background: #ff0b5e; border-radius: 2px; z-index: 2; box-shadow: 0 0 0 4px rgba(255, 11, 94, .15); }
 /* Notas: siempre sobre papel blanco */
-.mus { --c-hh: #15202b; --c-sn: #15202b; --c-k: #15202b; --ol: transparent; }
-.mus.color { --c-hh: #f2b400; --c-sn: #e3262f; --c-k: #15202b; --ol: #15202b; }
+.mus { --c-hh: #15202b; --c-sn: #15202b; --c-k: #15202b; --c-cr: #15202b; --ol: transparent; }
+.mus.color { --c-hh: #f2b400; --c-sn: #e3262f; --c-k: #15202b; --c-cr: #1fa463; --ol: #15202b; }
+.mus .cr { stroke: var(--c-cr); }
+.mus .tup { font: italic 700 12px Georgia, "Times New Roman", serif; fill: currentColor; text-anchor: middle; }
 .mus .st { stroke: #c9d1d9; }
 .mus .hh { stroke: var(--c-hh); }
 .mus .ol { stroke: var(--ol); }
@@ -547,7 +549,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .scorepanel .lib { gap: 2px; margin-inline: -6px; padding-inline: 6px; }
 .scorepanel .s-head { grid-template-columns: minmax(0, 1fr); padding-left: 10px; }
 .scorepanel .s-actions { margin: 2px 0 8px; padding-left: 10px; }
-.scorepanel .sc-owner { margin-left: auto; font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Canción y partitura elegidas: fondo verde clarito */
 .s-item.has-active > .s-line { background: var(--accent-soft); border-radius: 6px; }
 .s-item.has-active > .s-line .s-head:hover { background: transparent; }
@@ -1786,7 +1787,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         del.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6M14 11v6"/></svg>`;
         del.onclick = () => askDelete(del, () => { deleteSong(song); persist(); renderLibrary(); });
         acts.appendChild(del);
-        body.appendChild(acts);
+        body.prepend(acts);   // justo debajo del título, encima de «Compases guardados»
         el.appendChild(body);
       }
       box.appendChild(el);
@@ -2268,7 +2269,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // ---------- Mis partituras ----------
   // Partituras pasadas a limpio en el chat, nota a nota, y comprobadas por Gonzalo.
-  // Cada compás: 8 corcheas. hh: x = charles cerrado, o = charles abierto. low: S = caja, B = bombo.
+  // Cada compás: 4 tiempos × div casillas (div 2 = corcheas, div 3 = tresillos).
+  // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash.  us (caja con plica arriba): S = caja, g = nota fantasma.
+  // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
   const SCORES = [
     { id: "2-bar-beats-unit1", title: "2 bar drum beats", sub: "Unit 1 – Rock, Pop, Soul, Funk · principiantes en 4", bpm: 70, lines: [
       [{ hh: "xxxxoxxx", low: "B.SB.BS." }, { hh: "xxxoxxxx", low: "BBS.BBS." }],
@@ -2280,8 +2283,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       [{ hh: "xxxxxoxx", low: "B.SB..S." }, { hh: "xxxxxoxx", low: "B.S..BS." }],
       [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
     ] },
+    { id: "ritmo-reto-grade-8", title: "Ritmo reto grade 8", sub: "Tresillos con notas fantasma · compases 24 y 25", bpm: 100, div: 3, plain: true, lines: [
+      [{ up: "c.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "B....B...B.." }, { up: "x.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "..B........B" }],
+    ] },
   ];
-  const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 10;   // cuenta de 5 tiempos = 10 corcheas
+  const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5;   // cuenta de 5 tiempos
   let scStore = {};
   try { scStore = JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch (e) {}
   scStore.sel = scStore.sel || {}; scStore.bpm = scStore.bpm || {};
@@ -2292,52 +2298,79 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const scBpm = (s) => scStore.bpm[s.id] || s.bpm;
   let scoreOpen = null, scoreRun = null;
   const curScore = () => SCORES.find((s) => s.id === scoreOpen);
-  scStore.names = scStore.names || {}; scStore.who = scStore.who || {};
+  scStore.names = scStore.names || {}; scStore.who = scStore.who || {}; scStore.deleted = scStore.deleted || {};
   const scTitle = (s) => scStore.names[s.id] || s.title;
   const scWho = (s) => (scStore.who[s.id] && (scStore.who[s.id] === "all" || lib.drummers.some((d) => d.id === scStore.who[s.id])) ? scStore.who[s.id] : "all");   // por defecto, de todos
   const scAllName = () => (lib.drummers.length === 2 ? lib.drummers.map((d) => d.name).join(" y ") : "Todos los bateristas");
-  const scVisible = (s) => { const w = scWho(s); return w === "all" || !drummerId || w === drummerId; };
+  const scVisible = (s) => { if (scStore.deleted[s.id]) return false; const w = scWho(s); return w === "all" || !drummerId || w === drummerId; };
   function refreshScores() { if (scoreOpen && !scVisible(curScore())) closeScore(); else renderScores(); }
 
   // Dibujo de la partitura (SVG)
-  const SP = 9, Y0 = 62, U = 30, BAR = 8 * U, PAD = U / 2, SVH = 140;
-  const yHH = Y0 - SP * 0.5, ySN = Y0 + SP * 1.5, yBD = Y0 + SP * 3.5, TOP = Y0 - SP * 3.6, BOT = Y0 + SP * 7;
+  const SP = 9, Y0 = 62, SVH = 152;
+  const yCR = Y0 - SP, yHH = Y0 - SP * 0.5, ySN = Y0 + SP * 1.5, yBD = Y0 + SP * 3.5, TOP = Y0 - SP * 3.6, BOT = Y0 + SP * 7;
+  // Ancho de cada tiempo según cómo se divide (corcheas o tresillos)
+  const geo = (div) => { const SU = div === 3 ? 32 : 30, BW = SU * div; return { div, SU, BW, BAR: 4 * BW, PAD: SU / 2 }; };
+  const scDiv = (s) => (s && s.div) || 2;
   const svStaff = (x0, x1) => { let s = ""; for (let i = 0; i < 5; i++) s += `<line class="st" x1="${x0}" x2="${x1}" y1="${Y0 + i * SP}" y2="${Y0 + i * SP}" stroke-width="1.2"/>`; return s; };
   const svBar = (x, w = 1.4) => `<rect x="${x - w / 2}" y="${Y0}" width="${w}" height="${SP * 4}" fill="currentColor"/>`;
   const svDots = (x) => `<circle cx="${x}" cy="${Y0 + SP * 1.5}" r="2.2" fill="currentColor"/><circle cx="${x}" cy="${Y0 + SP * 2.5}" r="2.2" fill="currentColor"/>`;
-  function svX(cx, cy, open) {
-    const d = `M${cx - 4.3} ${cy - 4.3}L${cx + 4.3} ${cy + 4.3}M${cx + 4.3} ${cy - 4.3}L${cx - 4.3} ${cy + 4.3}`;
+  function svX(cx, cy, open, crash) {
+    const d = `M${cx - 4.3} ${cy - 4.3}L${cx + 4.3} ${cy + 4.3}M${cx + 4.3} ${cy - 4.3}L${cx - 4.3} ${cy + 4.3}`, k = crash ? "cr" : "hh";
     const c = open ? `<circle cx="${cx}" cy="${cy}" r="6.2" fill="none" class="ol" stroke-width="3.6"/><circle cx="${cx}" cy="${cy}" r="6.2" fill="none" class="hh" stroke-width="1.8"/>` : "";
-    return `<g class="h"><path d="${d}" class="ol" stroke-width="4" stroke-linecap="round"/><path d="${d}" class="hh" stroke-width="2.2" stroke-linecap="round"/>${c}</g>`;
+    const ledger = crash ? `<line x1="${cx - 8}" x2="${cx + 8}" y1="${cy}" y2="${cy}" stroke="currentColor" stroke-width="1.2"/>` : "";
+    return `${ledger}<g class="h"><path d="${d}" class="ol" stroke-width="4" stroke-linecap="round"/><path d="${d}" class="${k}" stroke-width="2.2" stroke-linecap="round"/>${c}</g>`;
   }
-  const svHead = (cx, cy, ch) => `<g class="h"><ellipse cx="${cx}" cy="${cy}" rx="6.4" ry="4.9" transform="rotate(-20 ${cx} ${cy})" class="${ch === "S" ? "sn" : "k"}"/><text class="let" x="${cx}" y="${cy + 0.3}">${ch === "S" ? "S" : "K"}</text></g>`;
+  // Nota de caja (S) o bombo (K); ghost = nota fantasma, entre paréntesis
+  const svHead = (cx, cy, ch, ghost) => `<g class="h"><ellipse cx="${cx}" cy="${cy}" rx="6.4" ry="4.9" transform="rotate(-20 ${cx} ${cy})" class="${ch === "S" ? "sn" : "k"}"/><text class="let" x="${cx}" y="${cy + 0.3}">${ch === "S" ? "S" : "K"}</text>${ghost ? `<path d="M${cx - 9} ${cy - 6}q-3.5 6 0 12M${cx + 9} ${cy - 6}q3.5 6 0 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>` : ""}</g>`;
+  // Corchete de tresillo con su «3» (arriba o abajo)
+  const svTup = (x1, x2, y, below) => { const m = (x1 + x2) / 2, d = below ? -4 : 4; return `<path d="M${x1} ${y + d}V${y}H${m - 7}M${m + 7} ${y}H${x2}V${y + d}" fill="none" stroke="currentColor" stroke-width="1.1"/><text class="tup" x="${m}" y="${y + 4}">3</text>`; };
   const svQRest = (cx) => { const y = Y0 + SP * 0.6; return `<path d="M${cx - 2} ${y}l5 6.5-4.5 5.5 5 6.5c-4-2.2-7.5 0-4 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`; };
   const svERest = (cx) => { const y = Y0 + SP * 1.4; return `<circle cx="${cx - 2.5}" cy="${y}" r="2.6" fill="currentColor"/><path d="M${cx - 2.5} ${y + 2}c2.5 1 4.5 0 6-2.6l-4.2 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`; };
-  // Compases a partir de x0; t0 = corchea en la que empiezan. Devuelve el SVG y las notas con su momento.
-  function svBars(barList, x0, t0, id) {
+  // Compases a partir de x0; t0 = tiempo (en pulsos) en que empiezan. Devuelve el SVG y las notas con su momento.
+  function svBars(barList, x0, t0, id, g) {
     let svg = "", notes = [], k = 0;
+    const div = g.div, xs = (bx, q) => bx + g.PAD + q * g.SU;
     barList.forEach((bar, bi) => {
-      const bx = x0 + bi * BAR;
+      const bx = x0 + bi * g.BAR, up = bar.up || bar.hh || "", us = bar.us || "", low = bar.low || "";
+      const at = (str, q) => str[q] || ".", tq = (q) => t0 + bi * 4 + q / div;
       for (let beat = 0; beat < 4; beat++) {
-        const p = beat * 2, stems = [];
-        [p, p + 1].filter((q) => bar.hh[q] !== ".").forEach((q) => {
-          const cx = bx + PAD + q * U, nid = `${id}n${k++}`, open = bar.hh[q] === "o";
-          stems.push(cx + 4.3);
-          svg += `<g class="n" id="${nid}"><rect x="${cx + 3.6}" y="${TOP}" width="1.5" height="${yHH - TOP - (open ? 6 : 1)}" fill="currentColor"/>${svX(cx, yHH, open)}</g>`;
-          notes.push({ t: t0 + bi * 8 + q, inst: open ? "hho" : "hh", id: nid });
+        const p = beat * div, slots = Array.from({ length: div }, (_, j) => p + j);
+        // Voz de arriba: platos y caja con la plica hacia arriba
+        const ups = slots.filter((q) => at(up, q) !== "." || at(us, q) !== "."), stems = [];
+        ups.forEach((q) => {
+          const cx = xs(bx, q), nid = `${id}n${k++}`, cym = at(up, q), sn = at(us, q);
+          let heads = "", lowY = TOP + 6;
+          if (cym !== ".") {
+            const y = cym === "c" ? yCR : yHH; heads += svX(cx, y, cym === "o", cym === "c"); lowY = Math.max(lowY, y - (cym === "o" ? 6 : 1));
+            notes.push({ t: tq(q), inst: cym === "o" ? "hho" : cym === "c" ? "cr" : "hh", id: nid });
+          }
+          if (sn !== ".") { heads += svHead(cx, ySN, "S", sn === "g"); lowY = ySN; notes.push({ t: tq(q), inst: sn === "g" ? "G" : "S", id: nid }); }
+          const sx = sn !== "." ? cx + 5.6 : cx + 4.3;
+          stems.push(sx);
+          svg += `<g class="n" id="${nid}"><rect x="${sx - 0.75}" y="${TOP}" width="1.5" height="${lowY - TOP}" fill="currentColor"/>${heads}${ups.length === 1 ? `<path d="M${sx} ${TOP}c1 6 9 7 9 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>` : ""}</g>`;
         });
-        if (stems.length === 2) svg += `<rect x="${stems[0] - 0.7}" y="${TOP}" width="${stems[1] - stems[0] + 1.4}" height="4.2" fill="currentColor"/>`;
-        const a = bar.low[p], b = bar.low[p + 1];
-        const low = (q, ch, flag) => {
-          const cx = bx + PAD + q * U, cy = ch === "S" ? ySN : yBD, sx = cx - 5.9, nid = `${id}n${k++}`;
+        if (stems.length > 1) svg += `<rect x="${stems[0] - 0.75}" y="${TOP}" width="${stems[stems.length - 1] - stems[0] + 1.5}" height="4.2" fill="currentColor"/>`;
+        if (div === 3 && stems.length > 1) svg += svTup(stems[0] - 4, stems[stems.length - 1] + 4, TOP - 10);
+        // Voz de abajo: bombo (y caja) con la plica hacia abajo
+        const lowNote = (q, flag) => {
+          const ch = at(low, q), cx = xs(bx, q), cy = ch === "S" ? ySN : yBD, sx = cx - 5.9, nid = `${id}n${k++}`;
           svg += `<g class="n" id="${nid}"><rect x="${sx - 0.75}" y="${cy}" width="1.5" height="${BOT - cy}" fill="currentColor"/>${svHead(cx, cy, ch)}${flag ? `<path d="M${sx} ${BOT}c1-6 9-7 9-15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>` : ""}</g>`;
-          notes.push({ t: t0 + bi * 8 + q, inst: ch, id: nid });
+          notes.push({ t: tq(q), inst: ch, id: nid });
           return sx;
         };
-        if (a !== "." && b !== ".") { const s1 = low(p, a), s2 = low(p + 1, b); svg += `<rect x="${s1 - 0.75}" y="${BOT - 4.2}" width="${s2 - s1 + 1.5}" height="4.2" fill="currentColor"/>`; }
-        else if (a !== ".") low(p, a);
-        else if (b !== ".") { svg += svERest(bx + PAD + p * U); low(p + 1, b, true); }
-        else svg += svQRest(bx + PAD + p * U + U / 2);
+        const lows = slots.filter((q) => at(low, q) !== ".");
+        if (div === 2) {
+          const a = at(low, p), b = at(low, p + 1);
+          if (a !== "." && b !== ".") { const s1 = lowNote(p), s2 = lowNote(p + 1); svg += `<rect x="${s1 - 0.75}" y="${BOT - 4.2}" width="${s2 - s1 + 1.5}" height="4.2" fill="currentColor"/>`; }
+          else if (a !== ".") lowNote(p);
+          else if (b !== ".") { svg += svERest(xs(bx, p)); lowNote(p + 1, true); }
+          else svg += svQRest(xs(bx, p) + g.SU / 2);
+        } else if (lows.length === 1 && lows[0] === p) lowNote(p);   // en el tiempo: negra
+        else if (lows.length) {
+          const xsBeam = lows.map((q) => lowNote(q, lows.length === 1));
+          if (xsBeam.length > 1) svg += `<rect x="${xsBeam[0] - 0.75}" y="${BOT - 4.2}" width="${xsBeam[xsBeam.length - 1] - xsBeam[0] + 1.5}" height="4.2" fill="currentColor"/>`;
+          svg += svTup(xs(bx, p) - 8, xs(bx, p + div - 1) + 2, BOT + 9, true);
+        }
       }
       if (bi > 0) svg += svBar(bx);
     });
@@ -2365,8 +2398,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         ren.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>`;
         ren.onclick = () => scRename(item, s);
         acts.append(ren);
-        const who = scWho(s), owner = document.createElement("span"); owner.className = "sc-owner";
-        owner.textContent = "De: " + (who === "all" ? scAllName() : drummerName(who));
+        const who = scWho(s);
         if (lib.drummers.length) {
           const sel = document.createElement("select"); sel.className = "transfer"; sel.setAttribute("aria-label", "Pasar la partitura a…");
           sel.innerHTML = `<option value="">Pasar a…</option><option value="all"></option>` + lib.drummers.map((d) => `<option value="${d.id}"></option>`).join("");
@@ -2383,7 +2415,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           };
           acts.append(sel);
         }
-        acts.append(owner);
+        const del = document.createElement("button"); del.className = "iconbtn act trash"; del.type = "button";
+        del.title = "Borrar partitura"; del.setAttribute("aria-label", "Borrar partitura");
+        del.innerHTML = `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg>`;
+        del.onclick = () => askDelete(del, () => { scStore.deleted[s.id] = Date.now(); scSave(); closeScore(); renderScores(); toast(`«${scTitle(s)}» borrada`); });
+        acts.append(del);
         const body = document.createElement("div"); body.append(acts);
         item.append(body);
       }
@@ -2428,16 +2464,19 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("scAll").checked = sel.size === s.lines.length;
     $("scInfo").textContent = list.length ? `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas` : "Marca al menos una línea para ensayar";
     $("scBpmVal").textContent = scBpm(s);
+    const G = geo(scDiv(s));
     s.lines.forEach((line, i) => {
-      const CL = i === 0 ? 92 : 62, W = CL + 2 * BAR + 14;
+      const ts = i === 0 && !s.plain, CL = ts ? 92 : 62, W = CL + line.length * G.BAR + 14;
       let g = svStaff(4, W - 4);
       g += `<rect x="10" y="${Y0 + SP}" width="4" height="${SP * 2}" fill="currentColor"/><rect x="17" y="${Y0 + SP}" width="4" height="${SP * 2}" fill="currentColor"/>`;
-      if (i === 0) g += `<text class="ts" x="44" y="${Y0 + SP * 1.95}" text-anchor="middle">4</text><text class="ts" x="44" y="${Y0 + SP * 3.95}" text-anchor="middle">4</text>`;
-      g += svBar(CL - 18, 3.6) + svBar(CL - 13) + svDots(CL - 7) + svBars(line, CL, 0, `sh${i}`).svg + svDots(W - 20) + svBar(W - 14) + svBar(W - 8, 3.6);
+      if (ts) g += `<text class="ts" x="44" y="${Y0 + SP * 1.95}" text-anchor="middle">4</text><text class="ts" x="44" y="${Y0 + SP * 3.95}" text-anchor="middle">4</text>`;
+      g += (s.plain ? svBar(CL - 13) : svBar(CL - 18, 3.6) + svBar(CL - 13) + svDots(CL - 7)) + svBars(line, CL, 0, `sh${i}`, G).svg
+        + (s.plain ? svBar(W - 14) : svDots(W - 20) + svBar(W - 14) + svBar(W - 8, 3.6));
       const row = document.createElement("button");
       row.type = "button"; row.className = "sv-row" + (sel.has(i) ? " on" : "");
+      if (s.lines.length < 3) row.style.gridColumn = "1 / -1";   // pocas líneas: que se vean grandes
       row.setAttribute("aria-pressed", sel.has(i));
-      row.innerHTML = `<span class="sv-l"><span class="box"></span>Línea ${i + 1}</span><svg class="${musClass()}" viewBox="0 12 ${W} ${SVH - 12}" aria-hidden="true">${g}</svg>`;
+      row.innerHTML = `<span class="sv-l"><span class="box"></span>Línea ${i + 1}</span><svg class="${musClass()}" viewBox="0 6 ${W} ${SVH - 6}" aria-hidden="true">${g}</svg>`;
       row.onclick = () => toggleLine(s, i);
       sh.append(row);
     });
@@ -2470,23 +2509,25 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // La tira: las líneas elegidas, una tras otra, 10 veces
   function buildStrip() {
-    const s = curScore(), lines = [...scSel(s)].sort((a, b) => a - b);
-    let svg = "", x = 0, t = 0, events = [];
+    const s = curScore(), lines = [...scSel(s)].sort((a, b) => a - b), G = geo(scDiv(s));
+    let svg = "", lbl = "", x = 0, t = 0, cycle = 0, events = [];
+    lines.forEach((li) => (cycle += s.lines[li].length * 4));
     for (let r = 0; r < SC_REPS; r++) lines.forEach((li, j) => {
-      const b = svBars(s.lines[li], x, t, `r${r}l${li}`);
-      svg += `<text class="lbl" x="${x + 6}" y="14">${j === 0 ? `Rep. ${r + 1} · ` : ""}Línea ${li + 1}</text>`;
-      svg += svStaff(x, x + 2 * BAR) + svBar(x, j === 0 && r > 0 ? 3.6 : j === 0 ? 1.4 : 2.6) + b.svg;
-      events.push(...b.notes); x += 2 * BAR; t += 16;
+      const b = svBars(s.lines[li], x, t, `r${r}l${li}`, G), w = s.lines[li].length * G.BAR;
+      lbl += `<text class="lbl" x="${x + 6}" y="12">${j === 0 ? `Rep. ${r + 1} · ` : ""}Línea ${li + 1}</text>`;
+      svg += svStaff(x, x + w) + svBar(x, j === 0 && r > 0 ? 3.6 : j === 0 ? 1.4 : 2.6) + b.svg;
+      events.push(...b.notes); x += w; t += s.lines[li].length * 4;
     });
     svg += svBar(x - 6) + svBar(x, 3.6);
-    $("svTrack").innerHTML = `<svg class="${musClass()}" width="${x + 40}" height="${SVH + 12}" viewBox="0 0 ${x + 40} ${SVH + 12}">${svg}</svg>`;
+    $("svTrack").innerHTML = `<svg class="${musClass()}" width="${x + 40}" height="${SVH + 18}" viewBox="0 0 ${x + 40} ${SVH + 18}">${lbl}<g transform="translate(0 16)">${svg}</g></svg>`;
     events.sort((a, b) => a.t - b.t);
-    return { events, els: events.map((e) => document.getElementById(e.id)), total: t, cycle: lines.length * 16 };
+    return { events, els: events.map((e) => document.getElementById(e.id)), total: t, cycle };
   }
   function placeStrip(T) {
     const box = $("svStrip"), w = box.clientWidth, h = box.clientHeight;
-    const k = Math.max(0.5, Math.min(2.2, (h * 0.92) / (SVH + 12), Math.max(0.9, w / 1000)));   // en el móvil, más grande aunque se vea menos por delante   // se ven unos 3 compases por delante
-    $("svTrack").style.transform = `translate(${w * 0.28 - (PAD + T * U) * k}px, ${Math.max(0, (h - (SVH + 12) * k) / 2)}px) scale(${k})`;
+    const G = geo(scDiv(curScore())), H = SVH + 18;
+    const k = Math.max(0.5, Math.min(2.2, (h * 0.92) / H, Math.max(0.9, w / 1000)));   // se ven unos 3 compases por delante; en el móvil, más grande
+    $("svTrack").style.transform = `translate(${w * 0.28 - (G.PAD + T * G.BW) * k}px, ${Math.max(0, (h - H * k) / 2)}px) scale(${k})`;
   }
 
   // Sonidos de batería y metrónomo (pulso grande y pequeño)
@@ -2502,9 +2543,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (inst === "B") {
       const o = audioCtx.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13);
       o.connect(scEnv(out, t, 1, 0.38)); o.start(t); o.stop(t + 0.4);
-    } else if (inst === "S") {
-      scNoiseHit(out, t, 0.19, "highpass", 1200, 0.55);
-      const o = audioCtx.createOscillator(); o.type = "triangle"; o.frequency.value = 190; o.connect(scEnv(out, t, 0.45, 0.1)); o.start(t); o.stop(t + 0.12);
+    } else if (inst === "S" || inst === "G") {   // G = nota fantasma: la misma caja, muy flojito
+      const v = inst === "G" ? 0.22 : 1;
+      scNoiseHit(out, t, inst === "G" ? 0.1 : 0.19, "highpass", 1200, 0.55 * v);
+      const o = audioCtx.createOscillator(); o.type = "triangle"; o.frequency.value = 190; o.connect(scEnv(out, t, 0.45 * v, 0.1)); o.start(t); o.stop(t + 0.12);
+    } else if (inst === "cr") {
+      scNoiseHit(out, t, 1.4, "highpass", 4500, 0.4);
+      scNoiseHit(out, t, 0.5, "bandpass", 9000, 0.25);
     } else {
       const r = scoreRun;
       if (r.openHH) { r.openHH.gain.cancelScheduledValues(t); r.openHH.gain.setValueAtTime(0.2, t); r.openHH.gain.linearRampToValueAtTime(0.0001, t + 0.02); r.openHH = null; }
@@ -2541,8 +2586,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const ctx = audio(); if (!ctx) return toast("Este navegador no puede hacer sonar el metrónomo.");
     keepAwake();
     $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
-    const e = 30 / scBpm(curScore()), out = ctx.createGain(); out.connect(ctx.destination);
-    scoreRun = Object.assign(st, { e, out, t0: ctx.currentTime + 0.15 + SC_LEAD * e, nextEv: 0, nextClick: -SC_LEAD, hi: 0, openHH: null });
+    const div = scDiv(curScore()), e = 60 / scBpm(curScore()), out = ctx.createGain(); out.connect(ctx.destination);   // e = segundos por tiempo
+    scoreRun = Object.assign(st, { e, div, out, t0: ctx.currentTime + 0.15 + SC_LEAD * e, nextEv: 0, nextClick: -SC_LEAD * div, hi: 0, openHH: null });
     scoreRun.timer = setInterval(scSchedule, 25); scSchedule();
     scoreRun.raf = requestAnimationFrame(scFrame);
     updateScoreBtn();
@@ -2550,10 +2595,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function scSchedule() {
     const r = scoreRun; if (!r) return;
     const horizon = audioCtx.currentTime + 0.2;
-    while (r.nextClick < r.total && r.t0 + r.nextClick * r.e < horizon) {
-      const c = r.nextClick, t = r.t0 + c * r.e;
-      if (c < 0) { if (c % 2 === 0) scClick(r.out, t, c === -SC_LEAD ? 2 : 1); }
-      else if (scOpt.click) { if (c % 8 === 0) scClick(r.out, t, 2); else if (c % 2 === 0) scClick(r.out, t, 1); else if (scOpt.sub) scClick(r.out, t, 0); }
+    // Metrónomo: clic fuerte en cada tiempo (más en el 1.º del compás) y suave en cada subdivisión (2 o 3 por tiempo)
+    while (r.nextClick < r.total * r.div && r.t0 + (r.nextClick / r.div) * r.e < horizon) {
+      const c = r.nextClick, t = r.t0 + (c / r.div) * r.e;
+      if (c < 0) { if (c % r.div === 0) scClick(r.out, t, c === -SC_LEAD * r.div ? 2 : 1); }
+      else if (scOpt.click) { if (c % (4 * r.div) === 0) scClick(r.out, t, 2); else if (c % r.div === 0) scClick(r.out, t, 1); else if (scOpt.sub) scClick(r.out, t, 0); }
       r.nextClick++;
     }
     while (r.nextEv < r.events.length && r.t0 + r.events[r.nextEv].t * r.e < horizon) {
@@ -2567,7 +2613,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     placeStrip(Math.min(T, r.total));
     const c = $("countin");
     if (T < 0) {
-      const n = Math.min(5, Math.floor((T + SC_LEAD) / 2) + 1);
+      const n = Math.min(5, Math.floor(T + SC_LEAD) + 1);
       if (n >= 1 && r.shown !== n) { r.shown = n; c.hidden = false; c.innerHTML = `<div>${n}<small>Empieza la partitura</small></div>`; }
     } else {
       if (r.shown) { r.shown = 0; c.hidden = true; }
@@ -2576,10 +2622,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     }
     while (r.hi < r.events.length && r.events[r.hi].t <= T) {
       const el = r.els[r.hi];
-      if (el) { el.classList.add("now"); setTimeout(() => el.classList.remove("now"), Math.max(140, r.e * 600)); }
+      if (el) { el.classList.add("now"); setTimeout(() => el.classList.remove("now"), Math.max(140, (r.e / r.div) * 600)); }
       r.hi++;
     }
-    if (T >= r.total + 1) { stopScore(); showDone(); return; }
+    if (T >= r.total + 0.5) { stopScore(); showDone(); return; }
     r.raf = requestAnimationFrame(scFrame);
   }
   function stopScore() {
