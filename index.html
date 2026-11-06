@@ -552,12 +552,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <button class="btn primary" type="button" id="publishBtn">Publicar mis canciones</button>
       </div>
       <form class="keyform" id="keyForm" hidden>
-        <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este aparato). Pégala aquí:</p>
+        <p class="note">Para publicar desde aquí hace falta tu <b>llave de GitHub</b> (solo la primera vez en este dispositivo). Pégala aquí:</p>
         <input type="password" id="keyInput" autocomplete="off" spellcheck="false" placeholder="github_pat_…" aria-label="Llave de GitHub">
         <div class="row" style="gap:6px"><button class="btn small primary" type="submit">Guardar y publicar</button><button class="btn small ghost" type="button" id="keyCancel">Cancelar</button></div>
       </form>
       <p class="note" id="pubStatus" hidden></p>
-      <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este aparato</button>
+      <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este dispositivo</button>
       <div id="importBox" hidden>
         <textarea id="importText" placeholder="Pega aquí el enlace o el texto copiado"></textarea>
         <div class="row" style="margin-top:8px"><button class="btn small primary" type="button" id="importBtn">Añadir a mi biblioteca</button></div>
@@ -676,7 +676,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("fsBtn").onclick = () => {
       if (fsElement()) { (document.exitFullscreen || document.webkitExitFullscreen).call(document); return; }
       const req = stageEl.requestFullscreen || stageEl.webkitRequestFullscreen;
-      try { const r = req.call(stageEl); if (r && r.catch) r.catch(() => toast("Este aparato no permite la pantalla completa.")); } catch (e) { toast("Este aparato no permite la pantalla completa."); }
+      try { const r = req.call(stageEl); if (r && r.catch) r.catch(() => toast("Este dispositivo no permite la pantalla completa.")); } catch (e) { toast("Este dispositivo no permite la pantalla completa."); }
     };
     const onFs = () => {
       const on = !!fsElement();
@@ -1599,7 +1599,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (res.status === 409) throw { msg: "Alguien ha publicado justo a la vez. Vuelve a pulsar «Publicar»." };
       if (!res.ok) throw { msg: `GitHub no ha aceptado la publicación (error ${res.status}).` };
       const n = lib.songs.filter(isSaved).length;
-      showPubStatus(`Publicado: ${n} ${n === 1 ? "canción" : "canciones"}. En uno o dos minutos lo verán los demás aparatos.`);
+      showPubStatus(`Publicado: ${n} ${n === 1 ? "canción" : "canciones"}. En uno o dos minutos lo verán los demás dispositivos.`);
       toast("Canciones publicadas");
     } catch (e) {
       if (e && e.forget) { setKey(""); }
@@ -1619,7 +1619,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     setKey(k); $("keyInput").value = ""; $("keyForm").hidden = true; publishToGitHub();
   });
   $("keyCancel").onclick = () => { $("keyForm").hidden = true; $("keyInput").value = ""; };
-  $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este aparato."); };
+  $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este dispositivo."); };
   refreshKeyUI();
   async function loadPublished() {
     if (location.protocol === "file:") return;
