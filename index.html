@@ -124,7 +124,10 @@ header.top.wide { grid-template-columns: minmax(0, 1fr) auto; }
 .drummenu .drow .dname { flex: 1; min-width: 0; }
 .drummenu .drow .dname:hover, .drummenu .drow .dname:focus-visible { background: none; }
 .drummenu .drow.sel .dname::after { content: "  ✓"; }
-.drummenu .dtrash { flex: none; display: inline-flex; margin-left: auto; padding: 8px 8px; color: var(--muted); opacity: .6; }
+.drummenu .dtrash { flex: none; display: inline-flex; padding: 8px 6px; color: var(--muted); opacity: .6; }
+.drummenu .dren { margin-left: auto; }
+.drummenu .dren:hover, .drummenu .dren:focus-visible { color: var(--accent-ink); }
+.drummenu .drename { border-top: none; margin-top: 0; padding-top: 0; }
 .drummenu .dtrash:hover, .drummenu .dtrash:focus-visible { color: var(--done); opacity: 1; background: none; }
 .drummenu .dconfirm { padding: 6px 4px; display: flex; flex-direction: column; gap: 6px; }
 .drummenu .dconfirm p { margin: 0; font-size: 13px; font-weight: 700; color: var(--fg); white-space: normal; }
@@ -1180,7 +1183,27 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         no.onclick = (e2) => { e2.stopPropagation(); renderDrummers(); sizeDrummerMenu(); $("drummerMenu").hidden = false; $("drumWrap").classList.add("open"); };
         row.replaceWith(c); no.focus();
       };
-      row.append(o, del);   // nombre a la izquierda, papelera alineada a la derecha
+      // lápiz para cambiar el nombre (p. ej. añadir el apellido), a la izquierda de la papelera
+      const ren = document.createElement("button"); ren.type = "button"; ren.className = "dtrash dren";
+      ren.title = `Cambiar el nombre de ${d.name}`; ren.setAttribute("aria-label", ren.title); ren.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>`;
+      ren.onclick = (ev) => {
+        ev.stopPropagation();
+        const f = document.createElement("form"); f.className = "addform drename";
+        f.innerHTML = `<input type="text" maxlength="40" aria-label="Nuevo nombre del baterista"><button class="btn small primary" type="submit" aria-label="Guardar nombre">✓</button>`;
+        const inp = f.querySelector("input"); inp.value = d.name;
+        f.onclick = (e2) => e2.stopPropagation();
+        row.replaceWith(f); selectFromStart(inp);
+        inp.addEventListener("keydown", (e2) => { if (e2.key === "Escape") { e2.stopPropagation(); renderDrummers(); sizeDrummerMenu(); } });
+        f.addEventListener("submit", (e2) => {
+          e2.preventDefault();
+          const name = inp.value.trim();
+          if (!name) return toast("Escribe el nombre del baterista.");
+          if (lib.drummers.some((x) => x !== d && norm(x.name) === norm(name))) return toast(`Ya hay un baterista llamado ${name}.`);
+          if (name !== d.name) { d.name = name; d.updated = Date.now(); persist(); toast("Nombre cambiado"); }
+          closeMenus(); renderDrummers(); renderLibrary();
+        });
+      };
+      row.append(o, ren, del);   // nombre a la izquierda; lápiz y papelera a la derecha
       menu.appendChild(row);
     });
     const add = document.createElement("button"); add.type = "button"; add.className = "add"; add.textContent = "+ Añadir baterista…";
@@ -1530,7 +1553,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function cleanLib(obj, withDeleted) {
     const used = new Set(obj.songs.map((s) => s.drummer).filter(Boolean));
     const out = {
-      drummers: lib.drummers.filter((d) => obj === lib || used.has(d.id)).map((d) => ({ id: d.id, name: d.name })),
+      drummers: lib.drummers.filter((d) => obj === lib || used.has(d.id)).map((d) => ({ id: d.id, name: d.name, updated: d.updated || 0 })),
       songs: obj.songs.filter(isSaved).map((s) => ({ id: s.id, videoId: s.videoId, title: s.title, drummer: s.drummer, updated: s.updated || 0,
         fragments: s.fragments.map((f) => ({ id: f.id, name: f.name, start: f.start, end: f.end, updated: f.updated || 0 })) })),
     };
@@ -1594,7 +1617,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     (d.drummers || []).forEach((dr) => {
       if (lib.deleted["drummer:" + dr.id]) return;   // borrado en este aparato
       let ex = lib.drummers.find((x) => x.id === dr.id) || lib.drummers.find((x) => norm(x.name) === norm(dr.name));
-      if (!ex) { ex = { id: dr.id, name: dr.name }; lib.drummers.push(ex); }
+      if (!ex) { ex = { id: dr.id, name: dr.name, updated: dr.updated || 0 }; lib.drummers.push(ex); }
+      // si el padre le cambió el nombre (p. ej. añadió el apellido), gana el nombre más reciente
+      else if (ex.id === dr.id && dr.name && dr.name !== ex.name && (dr.updated || 0) > (ex.updated || 0)) { ex.name = dr.name; ex.updated = dr.updated; }
       map[dr.id] = ex.id;
     });
     fixDrummers();
