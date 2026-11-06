@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-06T08:33:55.873Z",
+ "published": "2026-11-06T08:39:00.748Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -11,9 +11,22 @@
    "id": "9ar14mgy",
    "name": "Gabriel",
    "updated": 0
+  },
+  {
+   "id": "9g2wgbzk",
+   "name": "Jimmy",
+   "updated": 0
   }
  ],
  "songs": [
+  {
+   "id": "4z3hceyz",
+   "videoId": "Yq0UTvjCMCI",
+   "title": "Wherever I May Roam   Metallica 🥁 Grade 2 Beginner Version",
+   "drummer": "9g2wgbzk",
+   "updated": 1793954172910,
+   "fragments": []
+  },
   {
    "id": "eqghlqzl",
    "videoId": "FI4tahavfsg",
@@ -77,6 +90,7 @@
   "song:ramon01:Yq0UTvjCMCI": 1793953580434,
   "drummer:ramon01": 1793953580434,
   "song::Yq0UTvjCMCI": 1793953580434,
-  "song:n4u5pzcx:Yq0UTvjCMCI": 1793953580434
+  "song:n4u5pzcx:Yq0UTvjCMCI": 1793953580434,
+  "song:9g2wgbzk:Yq0UTvjCMCI": 1793953580434
  }
 }
