@@ -331,9 +331,9 @@ textarea { width: 100%; min-height: 90px; font: 13px var(--mono); background: va
 .libpanel .lib { min-height: 0; gap: 2px; margin-inline: -6px; padding-inline: 6px; }
 /* La columna derecha tiene su propio scroll: se mueve ella sola y el vídeo se queda quieto */
 @media (min-width: 981px) {
-  main:not(.wide) > aside.col { position: sticky; top: var(--aside-top, 80px); max-height: calc(100vh - var(--aside-top, 80px) - 12px);
+  main:not(.wide) > aside.col { position: sticky; top: var(--aside-top, 80px); max-height: var(--aside-h, calc(100vh - var(--aside-top, 80px) - 12px));
     overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent;
-    margin-right: -8px; padding-right: 8px; padding-bottom: 4px; }
+    margin-right: -8px; padding-right: 8px; padding-bottom: 0; }
   main:not(.wide) > aside.col::-webkit-scrollbar { width: 8px; }
   main:not(.wide) > aside.col::-webkit-scrollbar-thumb { background: var(--line); border-radius: 8px; }
 }
@@ -1763,6 +1763,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const a = $("libAside"); if (!a) return;
     const top = Math.round(a.getBoundingClientRect().top + window.scrollY);
     document.documentElement.style.setProperty("--aside-top", top + "px");
+    // la columna termina justo donde termina el vídeo
+    const st = $("stage").getBoundingClientRect();
+    const stageBottom = Math.round(st.bottom + window.scrollY);
+    if (st.height > 0 && stageBottom > top + 200) document.documentElement.style.setProperty("--aside-h", (stageBottom - top) + "px");
+    else document.documentElement.style.removeProperty("--aside-h");
   }
   window.addEventListener("resize", sizeAside);
   function alignHeader() {
