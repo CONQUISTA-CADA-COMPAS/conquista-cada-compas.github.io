@@ -2282,15 +2282,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash, r = plato ride.  beats = tiempos por compás (4 si no se dice).  us (caja con plica arriba): S = caja, g = nota fantasma.
   // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
   const SCORES = [
-    { id: "2-bar-beats-unit1", title: "2 bar drum beats", sub: "Unit 1 – Rock, Pop, Soul, Funk · principiantes en 4", bpm: 70, lines: [
-      [{ hh: "xxxxoxxx", low: "B.SB.BS." }, { hh: "xxxoxxxx", low: "BBS.BBS." }],
-      [{ hh: "xxxxxxoo", low: "B.S..BSS" }, { hh: "xxxxxxxo", low: "B.S..BSB" }],
-      [{ hh: "xxxxxoxx", low: "BBSB.BS." }, { hh: "xxxxxoxx", low: "BBSB..S." }],
-      [{ hh: "xoxoxxxx", low: "B.S.BBS." }, { hh: "xxxoxxxx", low: "BBS..BS." }],
-      [{ hh: "xxxoxoxx", low: "B.SB.BS." }, { hh: "xxxxxoxx", low: "B.SS.BS." }],
-      [{ hh: "xxxxooxx", low: "B.SSBBS." }, { hh: "xxxxooxx", low: "B.SBB.S." }],
-      [{ hh: "xxxxxoxx", low: "B.SB..S." }, { hh: "xxxxxoxx", low: "B.S..BS." }],
-      [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
+    { id: "ritmo-reto-grade-8", title: "Ritmo reto grade 8", sub: "Tresillos con notas fantasma · compases 24 y 25", bpm: 100, div: 3, plain: true, lines: [
+      [{ up: "c.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "B....B...B.." }, { up: "x.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "..B........B" }],
     ] },
     { id: "biblia-3", title: "Biblia 3", sub: "Página 154 · 32 ejercicios de bombo en 2/4 (semicorcheas)", bpm: 60, div: 4, beats: 2, ts: [2, 4], lines: (() => {
       // Plato en corcheas, caja en el 2; el bombo cambia: tiempo 1 (P) + tiempo 2 (Q). «-» = silencio.
@@ -2300,8 +2293,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const bars = ex.map(([a, b], i) => ({ n: i + 1, up: "r.r.r.r.", us: "....S...", low: P[a] + Q[b] }));
       return Array.from({ length: 8 }, (_, i) => bars.slice(i * 4, i * 4 + 4));
     })() },
-    { id: "ritmo-reto-grade-8", title: "Ritmo reto grade 8", sub: "Tresillos con notas fantasma · compases 24 y 25", bpm: 100, div: 3, plain: true, lines: [
-      [{ up: "c.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "B....B...B.." }, { up: "x.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "..B........B" }],
+    { id: "2-bar-beats-unit1", title: "2 bar drum beats", sub: "Unit 1 – Rock, Pop, Soul, Funk · principiantes en 4", bpm: 70, lines: [
+      [{ hh: "xxxxoxxx", low: "B.SB.BS." }, { hh: "xxxoxxxx", low: "BBS.BBS." }],
+      [{ hh: "xxxxxxoo", low: "B.S..BSS" }, { hh: "xxxxxxxo", low: "B.S..BSB" }],
+      [{ hh: "xxxxxoxx", low: "BBSB.BS." }, { hh: "xxxxxoxx", low: "BBSB..S." }],
+      [{ hh: "xoxoxxxx", low: "B.S.BBS." }, { hh: "xxxoxxxx", low: "BBS..BS." }],
+      [{ hh: "xxxoxoxx", low: "B.SB.BS." }, { hh: "xxxxxoxx", low: "B.SS.BS." }],
+      [{ hh: "xxxxooxx", low: "B.SSBBS." }, { hh: "xxxxooxx", low: "B.SBB.S." }],
+      [{ hh: "xxxxxoxx", low: "B.SB..S." }, { hh: "xxxxxoxx", low: "B.S..BS." }],
+      [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
     ] },
   ];
   const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5;   // cuenta de 5 tiempos
@@ -2460,7 +2460,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Panel «Mis partituras»
   function renderScores() {
     const box = $("scoreList"); box.innerHTML = "";
-    const pos = (s) => { const i = (scStore.order || []).indexOf(s.id); return i < 0 ? 1e6 + SCORES.indexOf(s) : i; };
+    const pos = (s) => { const i = (scStore.order2 || []).indexOf(s.id); return i < 0 ? 1e6 + SCORES.indexOf(s) : i; };
     const list = SCORES.filter(scVisible).sort((a, b) => pos(a) - pos(b));
     if (!list.length) box.innerHTML = `<p class="lib-empty">No hay partituras para ${drummerName(drummerId) || "este baterista"}.</p>`;
     list.forEach((s) => {
@@ -2507,8 +2507,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       box.append(item);
     });
     if (list.length > 1) enableSongDrag(box, (ids) => {
-      const rest = (scStore.order || []).concat(SCORES.map((x) => x.id)).filter((id, i, a) => !ids.includes(id) && a.indexOf(id) === i);
-      scStore.order = ids.concat(rest); scSave(); renderScores();
+      const rest = (scStore.order2 || []).concat(SCORES.map((x) => x.id)).filter((id, i, a) => !ids.includes(id) && a.indexOf(id) === i);
+      scStore.order2 = ids.concat(rest); scSave(); renderScores();
     });
     updateScoreBtn();
   }
