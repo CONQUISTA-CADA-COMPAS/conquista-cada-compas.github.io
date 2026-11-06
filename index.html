@@ -592,6 +592,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <button class="helplink" type="button" id="keyHelpBtn">¿Cómo consigo la llave?</button>
       </form>
       <p class="note" id="pubStatus" hidden></p>
+      <button class="linkbtn" type="button" id="familyLinkBtn" hidden>Copiar enlace familiar (para tus otros dispositivos)</button>
       <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este dispositivo</button>
     </div>
   </aside>
@@ -1726,9 +1727,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     return `${owner}/${repo}`;
   })();
   const getKey = () => { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } };
+  // Dispositivos «de la familia»: los que tienen la llave o han abierto una vez el enlace familiar (#familia).
+  // Los demás (profesor, otros padres) no ven la lista sincronizada: solo lo suyo y lo que les compartan.
+  const FAMILY_KEY = "ensayo-en-bucle-familia";
+  const isFamily = () => { try { return !!localStorage.getItem(FAMILY_KEY) || !!getKey(); } catch (e) { return false; } };
+  const markFamily = () => { try { localStorage.setItem(FAMILY_KEY, "1"); } catch (e) {} };
+
   const setKey = (k) => { try { k ? localStorage.setItem(KEY_STORE, k) : localStorage.removeItem(KEY_STORE); } catch (e) {} };
   function showPubStatus(t) { $("pubStatus").textContent = t; $("pubStatus").hidden = !t; }
-  function refreshKeyUI() { $("keyForget").hidden = !getKey(); }
+  function refreshKeyUI() {
+    $("keyForget").hidden = !getKey();
+    if ($("familyLinkBtn")) $("familyLinkBtn").hidden = !isFamily();
+  }
   function b64utf8(str) { const bytes = new TextEncoder().encode(str); let bin = ""; bytes.forEach((b) => (bin += String.fromCharCode(b))); return btoa(bin); }
   async function publishToGitHub() {
     const key = getKey();
@@ -1777,11 +1787,17 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     e.preventDefault();
     const k = $("keyInput").value.trim();
     if (!/^(github_pat_|ghp_)[A-Za-z0-9_]{20,}$/.test(k)) { showPubStatus("Eso no parece una llave de GitHub. Empieza por «github_pat_»."); return; }
-    setKey(k); $("keyInput").value = ""; $("keyForm").hidden = true; publishToGitHub();
+    setKey(k); markFamily(); $("keyInput").value = ""; $("keyForm").hidden = true; publishToGitHub();
   });
   $("keyCancel").onclick = () => { $("keyForm").hidden = true; $("keyInput").value = ""; };
   $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este dispositivo."); };
   refreshKeyUI();
+  $("familyLinkBtn").onclick = () => {
+    const url = location.origin + location.pathname + "#familia";
+    const ok = () => toast("Enlace familiar copiado: ábrelo una vez en cada dispositivo de tu familia");
+    const fallback = () => { $("importBox").hidden = false; $("importText").value = url; $("importText").select(); toast("Selecciona el enlace del recuadro y cópialo"); };
+    if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, fallback); else fallback();
+  };
   // Ayuda de «Compartir canciones»
   const shareHelp = $("shareHelp");
   const openDlg = (d) => { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); };
@@ -1798,6 +1814,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   help.addEventListener("click", (e) => { if (e.target === help) closeHelp(); });   // clic fuera de la ventana
   async function loadPublished() {
     if (location.protocol === "file:") return;
+    if (!isFamily()) return;
     try {
       const res = await fetch("canciones.json?v=" + Date.now(), { cache: "no-store" });
       if (!res.ok) return;
@@ -1915,6 +1932,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   renderDrummers(); renderBoard(); renderLibrary(); updateFragUI();
   loadPublished();
 
+  // Enlace familiar: este dispositivo pasa a recibir la lista sincronizada
+  if (location.hash === "#familia") {
+    markFamily();
+    try { history.replaceState(null, "", location.pathname); } catch (e) {}
+    loadPublished().then(() => toast("Dispositivo de la familia: ya verás las canciones sincronizadas"));
+  }
   // Abrir un enlace compartido
   const hm = location.hash.match(/^#c=([\w-]+)/);
   if (hm) {
