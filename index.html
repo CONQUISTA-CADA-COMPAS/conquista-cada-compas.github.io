@@ -526,7 +526,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <div>
           <p id="readyText"></p>
           <button class="readyplay" type="button" id="readyPlay" aria-label="Empezar"><svg width="44" height="44" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg></button>
-          <small>Coloca el móvil y pulsa play</small>
+          <small id="readyHint">Coloca el móvil y pulsa play</small>
           <button class="readycancel" type="button" id="readyCancel">Cancelar</button>
         </div>
       </div>
@@ -814,15 +814,39 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!canFullscreen || fsElement()) return;
     try { const r = (stageEl.requestFullscreen || stageEl.webkitRequestFullscreen).call(stageEl); if (r && r.catch) r.catch(() => {}); } catch (e) {}
   }
-  function askReady(text, start) {
-    enterFs();
+  // Pantalla «preparados»: el play empieza normal; la barra espaciadora empieza con cuenta atrás de 5
+  let readySpace = null;
+  function askReady(text, start, startSolo, viaSpace) {
+    if (touchDevice()) enterFs();
     $("readyText").textContent = text;
+    $("readyHint").textContent = viaSpace || !touchDevice()
+      ? "Pulsa la barra espaciadora y tendrás 5 segundos para ir a la batería"
+      : "Coloca el móvil y pulsa play";
     $("readyOverlay").hidden = false;
-    $("readyPlay").onclick = () => { $("readyOverlay").hidden = true; start(); };
+    const close = () => { $("readyOverlay").hidden = true; readySpace = null; };
+    $("readyPlay").onclick = () => { close(); (viaSpace ? startSolo : start)(); };
+    readySpace = () => { close(); startSolo(); };
     $("readyCancel").onclick = () => {
-      $("readyOverlay").hidden = true;
+      close();
       if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     };
+  }
+  // Cuenta atrás 1…5 (un número por segundo, con clic) antes de que empiece la canción
+  let countdownTimers = null;
+  function countdown(n, label, done) {
+    cancelCountdown();
+    const ctx = audio(), t0 = ctx ? ctx.currentTime + 0.05 : 0;
+    countdownTimers = [];
+    for (let i = 0; i < n; i++) {
+      if (ctx) click(i === 0, t0 + i);
+      countdownTimers.push(setTimeout(() => { const c = $("countin"); c.hidden = false; c.innerHTML = `<div>${i + 1}<small>${label}</small></div>`; }, 50 + i * 1000));
+    }
+    countdownTimers.push(setTimeout(() => { countdownTimers = null; $("countin").hidden = true; done(); }, 50 + n * 1000));
+  }
+  function cancelCountdown() {
+    if (!countdownTimers) return false;
+    countdownTimers.forEach(clearTimeout); countdownTimers = null; $("countin").hidden = true;
+    return true;
   }
 
   function openVideo(id, t = 0) {
@@ -1117,7 +1141,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!playerReady) return toast("Primero carga un vídeo.");
     if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); return; }
     stopSession(true);
-    const start = () => {
+    if (touchDevice()) askReady("Empezar ensayo de canción", () => startSong(false), () => startSong(true)); else startSong(false);
+  };
+  function startSong(solo) {
+    const go = () => {
       keepAwake();
       songPlaying = true;
       player.seekTo(0, true);
@@ -1126,8 +1153,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
       updateSongBtn();
     };
-    if (touchDevice()) askReady("Empezar ensayo de canción", start); else start();
-  };
+    if (!solo) return go();
+    keepAwake(); seekPaused(0);
+    countdown(5, "Empieza la canción", go);
+  }
   speedPicker("speedBtn", "speedMenu", () => songRate, (r) => { songRate = r; if (songPlaying) applyRate(r); });
 
   // ---------- Ensayar un compás: 10 vueltas, cuenta de 3 clics ----------
@@ -1174,19 +1203,21 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     hideDone();
     if (running()) return stopSession(true);
     if (!validFrag()) return;
-    const start = () => {
-      audio(); keepAwake();
-      $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
-      songPlaying = false;
-      session = { done: 0, phase: "prep" };
-      renderBoard(); prepareRep(); updateSongBtn();
-    };
-    if (touchDevice()) {
-      if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); }
-      if (playerReady) seekPaused(frag.start);
-      askReady("Empezar ensayo de compás", start);
-    } else start();
+    if (touchDevice()) readyFrag(false); else startFrag(false);
   };
+  // solo = empezado con la barra espaciadora: la primera cuenta es de 5, a un número por segundo
+  function startFrag(solo) {
+    audio(); keepAwake();
+    $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
+    songPlaying = false;
+    session = { done: 0, phase: "prep", first: solo ? { beats: 5, iv: 1 } : null };
+    renderBoard(); prepareRep(); updateSongBtn();
+  }
+  function readyFrag(viaSpace) {
+    if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); }
+    if (playerReady) seekPaused(frag.start);
+    askReady("Empezar ensayo de compás", () => startFrag(false), () => startFrag(true), viaSpace);
+  }
   function stopSession(userStop) {
     if (!session) return;
     clearTimeout(session.timer);
@@ -1213,10 +1244,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     };
     session.timer = setTimeout(() => {
       if (!session) return;
-      const ctx = audio(); const iv = 60 / (CLICK_BPM * fragRate);
+      const first = session.done === 0 && session.first;
+      const beats = first ? first.beats : COUNT_BEATS;
+      const ctx = audio(); const iv = first ? first.iv : 60 / (CLICK_BPM * fragRate);
       const t0 = ctx ? ctx.currentTime + 0.05 : 0;
       session.ticks = [];
-      for (let i = 0; i < COUNT_BEATS; i++) {
+      for (let i = 0; i < beats; i++) {
         if (ctx) click(i === 0, t0 + i * iv);
         session.ticks.push(setTimeout(() => {
           if (!session || session.phase !== "prep") return;
@@ -1225,7 +1258,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         }, 50 + i * iv * 1000));
       }
       // la música entra justo en el siguiente pulso
-      session.timer = setTimeout(startPlaying, 50 + COUNT_BEATS * iv * 1000 - 120);
+      session.timer = setTimeout(startPlaying, 50 + beats * iv * 1000 - 120);
     }, session.done === 0 ? 300 : GAP_MS);
   }
   function endRep() {
@@ -2056,11 +2089,28 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   };
 
   // ---------- Teclado ----------
+  // Barra espaciadora (para ensayar solos, lejos del ordenador):
+  // 1.ª pulsación: pantalla «Empezar ensayo…»; 2.ª: cuenta atrás de 5 y empieza. Si algo suena, lo para.
+  function spaceBar() {
+    if (readySpace) return readySpace();
+    if (cancelCountdown()) return;
+    if (running()) return stopSession(true);
+    if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); return; }
+    hideDone();
+    if (playerReady && currentFragId && frag.end - frag.start >= 1) return readyFrag(true);
+    if (playerReady && currentSongId) {
+      stopSession(true);
+      return askReady("Empezar ensayo de canción", () => startSong(false), () => startSong(true), true);
+    }
+    togglePlay();
+  }
   document.addEventListener("keydown", (e) => {
     if (e.target.matches("input, textarea, select")) return;
-    if (e.code === "Space") { e.preventDefault(); togglePlay(); }
+    if (e.code === "Space") { e.preventDefault(); spaceBar(); }
     if (e.key === "Escape") {
-      if ([...document.querySelectorAll(".speedmenu, .drummenu")].some((m) => !m.hidden)) { closeMenus(); } else stopSession(true);
+      if ([...document.querySelectorAll(".speedmenu, .drummenu")].some((m) => !m.hidden)) { closeMenus(); }
+      else if (!$("readyOverlay").hidden) $("readyCancel").click();
+      else if (!cancelCountdown()) stopSession(true);
     }
   });
 
