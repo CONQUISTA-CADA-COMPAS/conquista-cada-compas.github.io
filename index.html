@@ -827,18 +827,19 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   // Pantalla «preparados»: el play empieza normal; la barra espaciadora empieza con cuenta atrás de 5
   let readySpace = null;
-  function askReady(text, start, startSolo, viaSpace) {
+  // Siempre igual, se empiece como se empiece: pantalla «Empezar ensayo…» → play (o barra espaciadora) → cuenta de 5
+  function askReady(text, start) {
     if (touchDevice()) enterFs();
     $("readyText").textContent = text;
-    $("readyHint").textContent = viaSpace || !touchDevice()
-      ? "Pulsa la barra espaciadora y tendrás 5 segundos para ir a la batería"
-      : "Coloca el móvil y pulsa play";
+    $("readyHint").textContent = touchDevice()
+      ? "Pulsa al play cuando estés listo para ensayar"
+      : "Pulsa al play o a la barra espaciadora cuando estés listo para ensayar";
     $("readyOverlay").hidden = false;
     const close = () => { $("readyOverlay").hidden = true; readySpace = null; };
-    $("readyPlay").onclick = () => { close(); (viaSpace ? startSolo : start)(); };
-    readySpace = () => { close(); startSolo(); };
+    $("readyPlay").onclick = () => { close(); start(); };
+    readySpace = () => { close(); start(); };
     $("readyCancel").onclick = () => {
-      close();
+      close(); readyKind = null; setTimeout(updateSongBtn, 0);
       if (fsElement()) (document.exitFullscreen || document.webkitExitFullscreen).call(document);
     };
   }
@@ -1161,23 +1162,44 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const st = playerReady && player.getPlayerState ? player.getPlayerState() : -1;
     // si YouTube aún no ha cargado (o no puede cargar), no hay nada sonando
     if (!window.YT || !YT.PlayerState) songPlaying = false;
-    else if (session || st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED) songPlaying = false;
-    $("songBtn").textContent = songPlaying ? "■ Parar canción" : "▶ Empezar canción";
-    $("songBtn").classList.toggle("stopping", songPlaying);
+    // recién pulsado play, YouTube tarda un momento en arrancar: ese «en pausa» de antes no cuenta
+    else if (session || (!songStarting && (st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED))) songPlaying = false;
+    if (st === YT.PlayerState.PLAYING) songStarting = false;
+    const busy = songPlaying || songCounting;
+    $("songBtn").textContent = busy ? "■ Parar canción" : "▶ Empezar canción";
+    $("songBtn").classList.toggle("stopping", busy);
     updateAvailability();
+  }
+  let songStarting = false, songCounting = false, readyKind = null;
+  const songWaiting = () => readyKind === "song" && !$("readyOverlay").hidden;
+  function stopSong() {
+    if (songCounting) { cancelCountdown(); songCounting = false; }
+    if (songWaiting()) $("readyCancel").click();
+    if (songPlaying) player.pauseVideo();
+    songPlaying = false; songStarting = false; updateSongBtn();
   }
   $("songBtn").onclick = () => {
     hideDone();
     if (!playerReady) return toast("Primero carga un vídeo.");
-    if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); return; }
-    stopSession(true);
-    if (touchDevice()) askReady("Empezar ensayo de canción", () => startSong(false), () => startSong(true)); else startSong(false);
+    if (songWaiting()) return readySpace && readySpace();   // 2.º clic = play
+    if (songPlaying || songCounting) return stopSong();
+    readySong();
   };
+  function readySong() {
+    stopSession(true);
+    if (!$("readyOverlay").hidden) $("readyCancel").click();
+    keepAwake(); seekPaused(0);
+    readyKind = "song";
+    askReady("Empezar ensayo de canción", () => startSong(true));
+    updateSongBtn();
+  }
   function startSong(solo) {
     const go = () => {
+      songCounting = false;
       cancelPrime();
       keepAwake();
-      songPlaying = true;
+      songPlaying = true; songStarting = true;
+      setTimeout(() => { songStarting = false; updateSongBtn(); }, 4000);
       player.seekTo(0, true);
       applyRate(songRate);
       player.playVideo();
@@ -1186,6 +1208,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     };
     if (!solo) return go();
     keepAwake(); seekPaused(0);
+    songCounting = true; updateSongBtn();
     countdown(5, "Empieza la canción", go);
   }
   speedPicker("speedBtn", "speedMenu", () => songRate, (r) => { songRate = r; if (songPlaying) applyRate(r); });
@@ -1233,8 +1256,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("goBtn").onclick = () => {
     hideDone();
     if (running()) return stopSession(true);
+    if (!$("readyOverlay").hidden && readyKind === "frag") return readySpace && readySpace();   // 2.º clic = play
     if (!validFrag()) return;
-    if (touchDevice()) readyFrag(false); else startFrag(false);
+    readyFrag();
   };
   // solo = empezado con la barra espaciadora: la primera cuenta es de 5, a un número por segundo
   function startFrag(solo) {
@@ -1244,10 +1268,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     session = { done: 0, phase: "prep", first: solo ? { beats: 5, iv: 1 } : null };
     renderBoard(); prepareRep(); updateSongBtn();
   }
-  function readyFrag(viaSpace) {
+  function readyFrag() {
     if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); }
     if (playerReady) seekPaused(frag.start);
-    askReady("Empezar ensayo de compás", () => startFrag(false), () => startFrag(true), viaSpace);
+    if (songCounting || songPlaying) stopSong();
+    if (!$("readyOverlay").hidden) $("readyCancel").click();
+    readyKind = "frag";
+    askReady("Empezar ensayo de compás", () => startFrag(true));
   }
   function stopSession(userStop) {
     if (!session) return;
@@ -2124,15 +2151,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // 1.ª pulsación: pantalla «Empezar ensayo…»; 2.ª: cuenta atrás de 5 y empieza. Si algo suena, lo para.
   function spaceBar() {
     if (readySpace) return readySpace();
+    if (songCounting || songPlaying) return stopSong();
     if (cancelCountdown()) return;
     if (running()) return stopSession(true);
-    if (songPlaying) { player.pauseVideo(); songPlaying = false; updateSongBtn(); return; }
     hideDone();
-    if (playerReady && currentFragId && frag.end - frag.start >= 1) return readyFrag(true);
-    if (playerReady && currentSongId) {
-      stopSession(true);
-      return askReady("Empezar ensayo de canción", () => startSong(false), () => startSong(true), true);
-    }
+    if (playerReady && currentFragId && frag.end - frag.start >= 1) return readyFrag();
+    if (playerReady && currentSongId) return readySong();
     togglePlay();
   }
   document.addEventListener("keydown", (e) => {
