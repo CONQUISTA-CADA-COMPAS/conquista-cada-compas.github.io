@@ -371,7 +371,10 @@ body.dragging-song, body.dragging-song * { cursor: grabbing !important; user-sel
 .s-item.has-active .s-head .st { color: var(--accent-ink); }
 .s-head .sc { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
 .s-body { display: flex; flex-direction: column; gap: 2px; padding: 0 0 10px 40px; }
-.f-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; border-radius: 6px; }
+.f-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; border-radius: 6px; }
+.f-chev { background: none; border: none; padding: 6px 0 6px 6px; color: var(--muted); font-size: 10px; text-align: left; }
+.f-chev .chev, .f-label .chev { display: inline-block; transition: transform .15s; }
+.f-row.open .f-chev .chev, .f-label.open .chev { transform: rotate(90deg); }
 .f-row .f-name { background: none; border: none; text-align: left; padding: 6px 8px; border-radius: 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 15px; }
 .f-row:hover { background: var(--surface-2); }
 .f-row.active { background: var(--accent-soft); }
@@ -465,8 +468,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 #songCtl #songBtn, #fragCtl #goBtn { flex: 1 1 auto; }
 #songCtl .speedbtn, #fragCtl .speedbtn { min-width: 74px; flex: none; }
 .h-ctl { padding: 0 2px 6px 2px; }
-.s-body .f-label { margin: 6px 0 2px; font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
-.s-body #fragCtl { margin: 2px 0 8px 8px; }
+.s-body .f-label { display: flex; align-items: center; gap: 8px; width: 100%; margin: 6px 0 2px; padding: 4px 2px; background: none; border: none; border-radius: 6px;
+  font-size: 12px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); text-align: left; }
+.s-body .f-label:hover { background: var(--surface-2); }
+.s-body .f-label .chev { font-size: 10px; width: 14px; }
+.s-body .f-label .sc { font-family: var(--mono); font-size: 11px; letter-spacing: 0; background: var(--surface-2); border-radius: 999px; padding: 0 7px; }
+.s-body #fragCtl { margin: 2px 0 8px 22px; }
 #boardSlotMain .libpanel { width: 100%; max-width: 900px; margin-left: auto; position: static; max-height: none; }
 </style>
 </head>
@@ -1384,6 +1391,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const openSongs = new Set();
   let libTab = "saved";
   document.querySelectorAll(".tab").forEach((t) => t.onclick = () => { libTab = t.dataset.tab; renderLibrary(); });
+  const fragsClosed = new Set();   // canciones con la lista de compases plegada
+  let fragCtlClosed = false;       // botones de ensayo del compás elegido plegados
   function renderLibrary() {
     updateAvailability();
     // Con un fragmento elegido, guardar sobrescribe ese mismo fragmento
@@ -1469,20 +1478,34 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         if (!song.fragments.length) {
           const p = document.createElement("p"); p.className = "noresult"; p.textContent = "Sin compases guardados."; body.appendChild(p);
         } else {
-          const lab = document.createElement("p"); lab.className = "f-label"; lab.textContent = "Compases guardados"; body.appendChild(lab);
+          // «Compases guardados» con su desplegable para plegar o desplegar la lista
+          const listOpen = !fragsClosed.has(song.id);
+          const lab = document.createElement("button"); lab.type = "button"; lab.className = "f-label" + (listOpen ? " open" : "");
+          lab.setAttribute("aria-expanded", String(listOpen));
+          lab.innerHTML = `<span class="chev">▶</span>Compases guardados <span class="sc"></span>`;
+          lab.querySelector(".sc").textContent = song.fragments.length;
+          lab.onclick = () => { listOpen ? fragsClosed.add(song.id) : fragsClosed.delete(song.id); renderLibrary(); };
+          body.appendChild(lab);
         }
-        song.fragments.forEach((f) => {
+        if (!fragsClosed.has(song.id)) song.fragments.forEach((f) => {
+          const isCur = f.id === currentFragId && song.id === currentSongId;
+          const ctlOpen = isCur && !fragCtlClosed;
           const row = document.createElement("div");
-          row.className = "f-row" + (f.id === currentFragId ? " active" : "");
-          row.innerHTML = `<button class="f-name" type="button"></button><button class="iconbtn" type="button" title="Borrar" aria-label="Borrar">×</button>`;
+          row.className = "f-row" + (f.id === currentFragId ? " active" : "") + (ctlOpen ? " open" : "");
+          row.innerHTML = `<button class="f-chev" type="button" aria-label="Mostrar u ocultar «Empezar ensayo»" aria-expanded="${ctlOpen}"><span class="chev">▶</span></button><button class="f-name" type="button"></button><button class="iconbtn" type="button" title="Borrar" aria-label="Borrar">×</button>`;
+          // desplegable del compás: abre (y elige) o pliega sus botones de ensayo
+          row.querySelector(".f-chev").onclick = () => {
+            if (isCur) { fragCtlClosed = !fragCtlClosed; renderLibrary(); }
+            else { fragCtlClosed = false; openFragment(song, f); }
+          };
           const nb = row.querySelector(".f-name");
           nb.textContent = f.name;
           nb.title = `${f.name} · ${fmt(f.start)} → ${fmt(f.end)}` + (f.last ? ` · último ensayo ${new Date(f.last.date).toLocaleDateString("es-ES", { day: "numeric", month: "short" })} al ${pct(f.last.maxRate)}` : "");
-          nb.onclick = () => openFragment(song, f);
+          nb.onclick = () => { fragCtlClosed = false; openFragment(song, f); };
           const x = row.querySelector(".iconbtn");
           x.onclick = () => askDelete(x, () => { song.fragments = song.fragments.filter((y) => y !== f); tomb(f.id); if (currentFragId === f.id) currentFragId = null; persist(); renderLibrary(); });
           body.appendChild(row);
-          if (f.id === currentFragId && song.id === currentSongId) body.appendChild($("fragCtl"));   // Empezar ensayo + velocidad
+          if (ctlOpen) body.appendChild($("fragCtl"));   // Empezar ensayo + velocidad
         });
         const acts = document.createElement("div"); acts.className = "s-actions";
         // Orden: Cambiar nombre · Pasar a… · Compartir · papelera
