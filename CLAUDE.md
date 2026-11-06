@@ -28,6 +28,7 @@ Una página web (un solo archivo `index.html`, sin servidor ni librerías extern
 ### Diseño
 
 - Verde de marca `--accent: #00d49e`; magenta `--done: #ff0b5e` para el menú de bateristas y los botones «Parar». Tema claro y oscuro con tokens en `:root`.
+- Los botones rellenos de verde se ponen **magenta al pasar el ratón** por encima.
 - Tipos: Bricolage Grotesque (títulos), Atkinson Hyperlegible (texto), JetBrains Mono (números).
 - Columna derecha con «Mis canciones» arriba; debe caber todo sin hacer scroll en un portátil (~1900×920). Gonzalo cuida mucho el espacio y la alineación: compruébalo con capturas de Playwright antes de dar algo por terminado.
 
@@ -37,6 +38,7 @@ Una página web (un solo archivo `index.html`, sin servidor ni librerías extern
 - Dirección: **https://conquista-cada-compas.github.io/** (GitHub Pages desde `main`; tarda uno o dos minutos en actualizarse; Ctrl + F5 si no se ve).
 - Se dejó **Netlify** porque cada subida gastaba créditos del plan gratuito. No volver a proponerlo.
 - Claude sube los cambios directamente (commit y push a `main`). Gonzalo ya no descarga ni sube archivos a mano.
+- **Si Gonzalo dice «no carga»** tras una subida: GitHub Pages se ha atascado. Se arregla con un commit vacío «Reintentar la publicación de la página» (`git commit --allow-empty`) y push; tarda 2–3 minutos.
 - `canciones.json` lo escribe también la propia app (commits «Sincronizar canciones desde la app»): **haz siempre `git pull` / rebase antes de hacer push** y no lo sobrescribas.
 
 ## Datos guardados (no romper)
