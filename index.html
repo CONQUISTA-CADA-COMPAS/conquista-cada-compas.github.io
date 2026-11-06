@@ -712,8 +712,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <div class="lib" id="scoreList"></div>
     </div>
     <div class="panel" id="pubPanel">
-      <h2>Compartir bateristas y canciones</h2>
-      <p class="note sharehint" id="shareHint">Pasa tus bateristas y sus canciones a otra persona o a otro dispositivo con un enlace por WhatsApp o correo.</p>
+      <h2>Comparte canciones y partituras</h2>
+      <p class="note sharehint" id="shareHint" hidden></p>
       <div class="stack">
         <button class="btn primary" type="button" id="shareOneBtn">Enviar las canciones del baterista</button>
         <button class="btn" type="button" id="shareAllBtn" hidden>Enviar las de todos los bateristas</button>
@@ -726,8 +726,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     </div>
     <div class="panel" id="syncPanel">
       <h2>Sincronizar mis dispositivos</h2>
-      <p class="note sharehint">Sube tus bateristas, canciones y compases a tu web para tenerlos al día en todos tus dispositivos. También los verá quien abra tu enlace.</p>
-      <div class="stack">
+            <div class="stack">
         <button class="btn primary" type="button" id="publishBtn">Sincronizar</button>
       </div>
       <form class="keyform" id="keyForm" hidden>
@@ -747,7 +746,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
 <dialog class="helpdlg" id="shareHelp" aria-labelledby="shareHelpTitle">
   <button class="helpclose" type="button" data-close aria-label="Cerrar">×</button>
-  <h3 id="shareHelpTitle">Cómo funciona «Compartir bateristas y canciones»</h3>
+  <h3 id="shareHelpTitle">Cómo funciona «Comparte canciones y partituras»</h3>
   <p class="helpsub">Sirve para <b>pasar tus bateristas y sus canciones a otra persona</b> o <b>a otro dispositivo tuyo</b>, sin cuentas ni llaves.</p>
   <ol>
     <li>Elige el baterista arriba y pulsa <b>Enviar las canciones de…</b> (o <b>las de todos</b>).</li>
@@ -1972,9 +1971,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("shareOneBtn").textContent = !drummerId ? "Enviar las canciones del baterista" : has ? `Enviar las canciones de ${name}` : `Enviar a ${name}`;
     $("shareOneBtn").disabled = !drummerId;
     $("shareOneBtn").title = drummerId ? "" : "Primero elige un baterista arriba";
+    $("shareHint").hidden = !(drummerId && !has);   // solo se explica cuando el baterista aún no tiene canciones
     $("shareHint").textContent = drummerId && !has
       ? `${name} todavía no tiene canciones. Comparte este enlace por WhatsApp o correo: quien lo abra verá a ${name} en la app, listo para guardar sus canciones.`
-      : "Pasa tus bateristas y sus canciones a otra persona o a otro dispositivo con un enlace por WhatsApp o correo.";
+      : "";
     const many = drummersWithSongs();
     $("shareAllBtn").hidden = many.length < 2;
     $("shareAllBtn").textContent = many.length === 2 ? `Enviar las de ${many[0].name} y ${many[1].name}` : `Enviar las de los ${many.length} bateristas`;
