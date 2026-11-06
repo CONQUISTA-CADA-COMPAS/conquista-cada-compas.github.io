@@ -2275,7 +2275,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false }, scStore.opt || {});
   function scSave() { scStore.opt = scOpt; try { localStorage.setItem(SCORE_KEY, JSON.stringify(scStore)); } catch (e) {} }
   const scSelNow = {};   // líneas marcadas (no se recuerdan: al abrir, solo la línea 1)
-  const scSel = (s) => new Set(scSelNow[s.id] && scSelNow[s.id].length ? scSelNow[s.id] : [0]);
+  const scSel = (s) => new Set(scSelNow[s.id] || [0]);
   const scBpm = (s) => scStore.bpm[s.id] || s.bpm;
   let scoreOpen = null, scoreRun = null;
   const curScore = () => SCORES.find((s) => s.id === scoreOpen);
@@ -2343,9 +2343,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function toggleLine(s, i) {
     if (scoreRun) return;
     const sel = scSel(s);
-    if (i === "all") { if (sel.size === s.lines.length) { sel.clear(); sel.add(0); } else s.lines.forEach((_, k) => sel.add(k)); }
+    if (i === "all") { if (sel.size === s.lines.length) sel.clear(); else s.lines.forEach((_, k) => sel.add(k)); }
     else if (sel.size === s.lines.length && s.lines.length > 1) { sel.clear(); sel.add(i); }   // con la partitura entera marcada, pinchar una línea deja solo esa
-    else if (sel.has(i)) { if (sel.size > 1) sel.delete(i); else return toast("Deja marcada al menos una línea."); }
+    else if (sel.has(i)) sel.delete(i);
     else sel.add(i);
     scSelNow[s.id] = [...sel].sort((a, b) => a - b);
     renderSheet();
@@ -2358,7 +2358,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     sh.innerHTML = "";
     const list = [...sel].sort((a, b) => a - b).map((i) => i + 1);
     $("scAll").checked = sel.size === s.lines.length;
-    $("scInfo").textContent = `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas`;
+    $("scInfo").textContent = list.length ? `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas` : "Marca al menos una línea para ensayar";
     $("scBpmVal").textContent = scBpm(s);
     s.lines.forEach((line, i) => {
       const CL = i === 0 ? 92 : 62, W = CL + 2 * BAR + 14;
@@ -2457,6 +2457,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function readyScore() {
     if (!curScore()) return;
+    if (!scSel(curScore()).size) return toast("Marca al menos una línea para empezar el ensayo.");
     if (running()) stopSession(true);
     if (songCounting || songPlaying) stopSong();
     if (!$("readyOverlay").hidden) $("readyCancel").click();
