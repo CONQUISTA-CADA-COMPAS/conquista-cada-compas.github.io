@@ -2923,7 +2923,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function updateTransport() {
     const songOn = songPlaying || songCounting || songPaused, fragOn = running();
-    $("transport").hidden = !(songOn || fragOn);
+    $("transport").hidden = true;   // Gonzalo prefiere no tener la barra sobre el vídeo (tapaba la partitura)
     const paused = fragOn ? !!session.paused : songPaused;
     $("tPause").innerHTML = paused
       ? `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>`
