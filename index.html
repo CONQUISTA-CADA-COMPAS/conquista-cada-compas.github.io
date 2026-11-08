@@ -587,6 +587,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .stage.scoring .countin small { font-size: 18px; margin-top: 4px; }
 /* En el móvil la partitura necesita más alto que el vídeo */
 @media (max-width: 980px) { .stage.scoring { aspect-ratio: auto; height: 470px; max-height: 80svh; } }
+/* Pausa y barra de control sobre el vídeo */
+#songCtl .pausebtn, #fragCtl .pausebtn { flex: none; font-size: 14px; padding: 6px 10px; }
+.transport { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 5; display: flex; gap: 6px; padding: 6px;
+  background: rgba(6, 14, 24, .62); border-radius: 999px; opacity: .8; }
+.transport:hover, .transport:focus-within { opacity: 1; }
+.transport button { min-width: 44px; height: 44px; padding: 0 10px; border: none; border-radius: 999px; background: transparent; color: #fff;
+  display: inline-flex; align-items: center; justify-content: center; gap: 2px; font: 700 13px var(--body); }
+.transport button:hover { background: rgba(255, 255, 255, .16); }
+.transport #tPause { background: var(--accent); color: var(--accent-fg); min-width: 52px; }
+.transport #tPause:hover { background: var(--done); color: #fff; }
+.seekflash { position: absolute; top: 50%; transform: translateY(-50%); z-index: 5; padding: 10px 16px; border-radius: 999px; pointer-events: none;
+  background: rgba(6, 14, 24, .62); color: #fff; font: 800 22px var(--display); }
 </style>
 </head>
 <body>
@@ -648,6 +660,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         </div>
       </div>
       <div class="countin" id="countin" hidden></div>
+      <!-- Mientras se ensaya: atrás 5 s, pausa/seguir, adelante 5 s y parar (también en pantalla completa) -->
+      <div class="transport" id="transport" hidden>
+        <button type="button" id="tBack" title="Atrás 5 segundos (←)" aria-label="Atrás 5 segundos"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6 4 12l7 6zM20 6l-7 6 7 6z" fill="currentColor"/></svg><span>5 s</span></button>
+        <button type="button" id="tPause" title="Pausa (barra espaciadora)" aria-label="Pausa"></button>
+        <button type="button" id="tFwd" title="Adelante 5 segundos (→)" aria-label="Adelante 5 segundos"><span>5 s</span><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="m13 6 7 6-7 6zM4 6l7 6-7 6z" fill="currentColor"/></svg></button>
+        <button type="button" id="tStop" title="Parar (Esc)" aria-label="Parar"><svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2" fill="currentColor"/></svg></button>
+      </div>
+      <div class="seekflash" id="seekFlash" hidden></div>
       <!-- En el móvil: pantalla de «preparados» hasta que se pulsa play -->
       <div class="ready" id="readyOverlay" hidden>
         <div>
@@ -663,6 +683,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <div class="sidegroup" id="boardPanel" hidden>
       <div class="row gorow ctlrow" id="songCtl">
         <button class="btn primary go" type="button" id="songBtn">▶ Empezar canción</button>
+        <button class="btn go pausebtn" type="button" id="songPause" hidden>❚❚ Pausa</button>
         <div class="speedwrap">
           <button class="btn go speedbtn" type="button" id="speedBtn" aria-haspopup="true" aria-expanded="false" title="Velocidad de la canción">1× <span class="caret">▾</span></button>
           <div class="speedmenu" id="speedMenu" hidden role="menu"></div>
@@ -670,6 +691,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       </div>
       <div class="row gorow ctlrow" id="fragCtl">
         <button class="btn primary go" type="button" id="goBtn">▶ Empezar ensayo</button>
+        <button class="btn go pausebtn" type="button" id="fragPause" hidden>❚❚ Pausa</button>
         <div class="speedwrap">
           <button class="btn go speedbtn" type="button" id="fragSpeedBtn" aria-haspopup="true" aria-expanded="false" title="Velocidad del compás">1× <span class="caret">▾</span></button>
           <div class="speedmenu" id="fragSpeedMenu" hidden role="menu"></div>
@@ -1020,6 +1042,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         onReady: () => { playerReady = true; },
         onStateChange: (e) => {
           if (primeAt !== null && e.data === YT.PlayerState.PLAYING) finishPrime();
+          if (running() && e.data === YT.PlayerState.PAUSED && session.phase === "play") { session.paused = "play"; session.phase = "paused"; renderBoard(); }
+          else if (running() && e.data === YT.PlayerState.PLAYING && session.phase === "paused" && session.paused === "play") { session.paused = null; session.phase = "play"; renderBoard(); }
           updateSongBtn();
           if (e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.CUED) ensureSong();
         },
@@ -1301,26 +1325,50 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     // si YouTube aún no ha cargado (o no puede cargar), no hay nada sonando
     if (!window.YT || !YT.PlayerState) songPlaying = false;
     // recién pulsado play, YouTube tarda un momento en arrancar: ese «en pausa» de antes no cuenta
-    else if (session || (!songStarting && (st === YT.PlayerState.PAUSED || st === YT.PlayerState.ENDED))) songPlaying = false;
-    if (st === YT.PlayerState.PLAYING) songStarting = false;
-    const busy = songPlaying || songCounting;
-    $("songBtn").textContent = busy ? "■ Parar canción" : "▶ Empezar canción";
+    else if (session || st === YT.PlayerState.ENDED) { songPlaying = false; songPaused = false; }
+    // pausado desde el propio vídeo de YouTube: cuenta como pausa, no como final
+    else if (!songStarting && st === YT.PlayerState.PAUSED && songPlaying) { songPlaying = false; songPaused = true; }
+    if (st === YT.PlayerState.PLAYING) {
+      songStarting = false;
+      if (songPaused && !session) { songPaused = false; songPlaying = true; }   // seguido desde el propio vídeo
+    }
+    const busy = songPlaying || songCounting || songPaused;
+    $("songBtn").textContent = busy ? "■ Parar" : "▶ Empezar canción";
     $("songBtn").classList.toggle("stopping", busy);
+    $("songPause").hidden = !busy;
+    $("songPause").textContent = songPaused ? "▶ Seguir" : "❚❚ Pausa";
+    updateTransport();
     updateAvailability();
   }
-  let songStarting = false, songCounting = false, readyKind = null;
+  let songStarting = false, songCounting = false, songPaused = false, readyKind = null;
   const songWaiting = () => readyKind === "song" && !$("readyOverlay").hidden;
   function stopSong() {
     if (songCounting) { cancelCountdown(); songCounting = false; }
     if (songWaiting()) $("readyCancel").click();
     if (songPlaying) player.pauseVideo();
-    songPlaying = false; songStarting = false; updateSongBtn();
+    songPlaying = false; songStarting = false; songPaused = false; updateSongBtn();
   }
+  // Pausa: se queda donde está; al seguir, cuenta de 3 y continúa desde ese punto
+  function pauseSong() {
+    if (songCounting) { cancelCountdown(); songCounting = false; }
+    else if (songPlaying) player.pauseVideo();
+    songPlaying = false; songStarting = false; songPaused = true; updateSongBtn();
+  }
+  function resumeSong() {
+    songPaused = false; songCounting = true; updateSongBtn();
+    countdown(3, "Seguimos", () => {
+      songCounting = false; cancelPrime(); keepAwake();
+      songPlaying = true; songStarting = true;
+      setTimeout(() => { songStarting = false; updateSongBtn(); }, 4000);
+      applyRate(songRate); player.playVideo(); updateSongBtn();
+    });
+  }
+  $("songPause").onclick = () => (songPaused ? resumeSong() : pauseSong());
   $("songBtn").onclick = () => {
     hideDone();
     if (!playerReady) return toast("Primero carga un vídeo.");
     if (songWaiting()) return readySpace && readySpace();   // 2.º clic = play
-    if (songPlaying || songCounting) return stopSong();
+    if (songPlaying || songCounting || songPaused) return stopSong();
     readySong();
   };
   function readySong() {
@@ -1385,8 +1433,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       d.className = "dot" + (k < done ? " done" : "") + (cur && k === done ? " now" : "");
       dots.appendChild(d);
     }
-    $("goBtn").textContent = running() ? "■ Parar ensayo" : "▶ Empezar ensayo";
+    $("goBtn").textContent = running() ? "■ Parar" : "▶ Empezar ensayo";
     $("goBtn").classList.toggle("stopping", running());
+    $("fragPause").hidden = !running();
+    $("fragPause").textContent = running() && session.paused ? "▶ Seguir" : "❚❚ Pausa";
+    updateTransport();
     updateAvailability();
   }
   async function keepAwake() { try { if (navigator.wakeLock) wakeLock = await navigator.wakeLock.request("screen"); } catch (e) {} }
@@ -1416,8 +1467,32 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     readyKind = "frag";
     askReady("Empezar ensayo de compás", () => startFrag(true));
   }
+  // Pausa del compás: no se pierde la repetición. Al seguir: cuenta de 3 y continúa donde se quedó.
+  function pauseFrag() {
+    if (!running() || session.paused) return;
+    clearTimeout(session.timer); (session.ticks || []).forEach(clearTimeout); cancelCountdown();
+    $("countin").hidden = true;
+    session.paused = session.phase === "play" || session.phase === "resume" ? "play" : "prep";
+    if (session.phase === "play") player.pauseVideo();
+    session.phase = "paused";
+    renderBoard();
+  }
+  function resumeFrag() {
+    if (!running() || !session.paused) return;
+    const was = session.paused; session.paused = null;
+    if (was === "play") {
+      session.phase = "resume";
+      countdown(3, `Repetición ${session.done + 1} de ${REPS}`, () => {
+        if (!running() || session.phase !== "resume") return;
+        session.phase = "play"; cancelPrime(); applyRate(fragRate); player.playVideo(); renderBoard();
+      });
+    } else prepareRep();
+    renderBoard();
+  }
+  $("fragPause").onclick = () => (running() && session.paused ? resumeFrag() : pauseFrag());
   function stopSession(userStop) {
     if (!session) return;
+    cancelCountdown();
     clearTimeout(session.timer);
     (session.ticks || []).forEach(clearTimeout);
     $("countin").hidden = true;
@@ -2834,6 +2909,37 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   if (window.ResizeObserver) new ResizeObserver(() => { if (!scoreOpen) return; scOverlayBox(); if (!scoreRun) placeStrip(SC_REST); }).observe($("stage"));
   renderScores();
 
+  // ---------- Adelantar / retrasar 5 segundos ----------
+  function seekBy(d) {
+    if (!playerReady || scoreOpen || songCounting) return;
+    if (session && !session.preview && !["play", "paused"].includes(session.phase)) return;   // durante la cuenta, no
+    let t = now() + d;
+    if (running()) t = Math.max(frag.start, Math.min(frag.end - 0.3, t));   // dentro del compás que se ensaya
+    else { const D = duration() || Infinity; t = Math.max(0, Math.min(D - 0.5, t)); }
+    isPlaying() ? player.seekTo(t, true) : seekPaused(t);
+    const f = $("seekFlash"); f.textContent = d < 0 ? `« ${-d} s` : `${d} s »`;
+    f.style.left = d < 0 ? "6%" : ""; f.style.right = d < 0 ? "" : "6%";
+    f.hidden = false; clearTimeout(seekBy._t); seekBy._t = setTimeout(() => (f.hidden = true), 700);
+  }
+  function updateTransport() {
+    const songOn = songPlaying || songCounting || songPaused, fragOn = running();
+    $("transport").hidden = !(songOn || fragOn);
+    const paused = fragOn ? !!session.paused : songPaused;
+    $("tPause").innerHTML = paused
+      ? `<svg width="24" height="24" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5v14l11-7z" fill="currentColor"/></svg>`
+      : `<svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 5h4v14H7zM13 5h4v14h-4z" fill="currentColor"/></svg>`;
+    $("tPause").title = paused ? "Seguir (barra espaciadora)" : "Pausa (barra espaciadora)";
+    $("tPause").setAttribute("aria-label", paused ? "Seguir" : "Pausa");
+  }
+  function togglePause() {
+    if (running()) return session.paused ? resumeFrag() : pauseFrag();
+    if (songPlaying || songCounting || songPaused) return songPaused ? resumeSong() : pauseSong();
+  }
+  $("tPause").onclick = togglePause;
+  $("tBack").onclick = () => seekBy(-5);
+  $("tFwd").onclick = () => seekBy(5);
+  $("tStop").onclick = () => { if (running()) stopSession(true); else stopSong(); };
+
   // ---------- Teclado ----------
   // Barra espaciadora (para ensayar solos, lejos del ordenador):
   // 1.ª pulsación: pantalla «Empezar ensayo…»; 2.ª: cuenta atrás de 5 y empieza. Si algo suena, lo para.
@@ -2841,9 +2947,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (readySpace) return readySpace();
     if (scoreRun) return stopScore();
     if (scoreOpen) { hideDone(); return readyScore(); }
-    if (songCounting || songPlaying) return stopSong();
+    if (running() || songCounting || songPlaying || songPaused) return togglePause();
     if (cancelCountdown()) return;
-    if (running()) return stopSession(true);
     hideDone();
     if (playerReady && currentFragId && frag.end - frag.start >= 1) return readyFrag();
     if (playerReady && currentSongId) return readySong();
@@ -2852,11 +2957,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   document.addEventListener("keydown", (e) => {
     if (e.target.matches("input, textarea, select")) return;
     if (e.code === "Space") { e.preventDefault(); spaceBar(); }
+    if (e.key === "ArrowLeft" || e.key === "ArrowRight") { if (playerReady && !scoreOpen) { e.preventDefault(); seekBy(e.key === "ArrowLeft" ? -5 : 5); } }
     if (e.key === "Escape") {
       if ([...document.querySelectorAll(".speedmenu, .drummenu")].some((m) => !m.hidden)) { closeMenus(); }
       else if (!$("readyOverlay").hidden) $("readyCancel").click();
       else if (scoreRun) stopScore();
-      else if (!cancelCountdown()) stopSession(true);
+      else if (running()) stopSession(true);
+      else if (songPlaying || songCounting || songPaused) stopSong();
+      else cancelCountdown();
     }
   });
 
