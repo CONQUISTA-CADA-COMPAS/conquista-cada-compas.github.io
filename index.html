@@ -710,7 +710,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <div class="ytp-head">
           <strong class="ytp-title">Vídeos de Jack Young</strong>
           <div class="ytp-box">
-            <input type="search" id="ytQuery" placeholder="Busca entre los vídeos de Jack Young (p. ej. Killers)" autocomplete="off" aria-label="Buscar vídeos de Jack Young">
+            <input type="search" id="ytQuery" placeholder="Busca entre los vídeos de Jack Young" autocomplete="off" aria-label="Buscar vídeos de Jack Young">
             <button type="button" id="ytClose" title="Cerrar el buscador (Esc)" aria-label="Cerrar el buscador">×</button>
           </div>
         </div>
@@ -769,7 +769,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <form class="drummer-form" id="drummerForm" hidden>
         <p class="note" id="drummerIntro"></p>
         <div class="row" style="gap:6px">
-          <input type="text" id="drummerName" maxlength="30" placeholder="Nombre (p. ej. Dari)" aria-label="Nombre del baterista">
+          <input type="text" id="drummerName" maxlength="30" placeholder="Nombre del baterista" aria-label="Nombre del baterista">
           <button class="btn small primary" type="submit">Añadir</button>
           <button class="btn small ghost" type="button" id="drummerCancel">Cancelar</button>
         </div>
@@ -796,7 +796,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           <div class="nudges"><button class="btn" type="button" data-nudge="end" data-d="-1">−1 s</button><button class="btn" type="button" data-nudge="end" data-d="-0.2">−0,2</button><button class="btn" type="button" data-nudge="end" data-d="0.2">+0,2</button><button class="btn" type="button" data-nudge="end" data-d="1">+1 s</button></div>
         </div>
       </div>
-      <input type="text" id="fragName" placeholder="Nombre (p. ej. «Fill del estribillo»)" aria-label="Nombre de los compases">
+      <input type="text" id="fragName" placeholder="Establece un nombre" aria-label="Nombre de los compases">
       <div class="row fragbtns">
         <button class="btn primary" type="button" id="saveFrag">Guardar</button>
         <button class="btn" type="button" id="newFrag">Nuevo</button>
@@ -3120,7 +3120,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function ytOpen() {
     $("ytPanel").hidden = false; $("ytSearchBtn").setAttribute("aria-expanded", "true"); $("stage").classList.add("searching");
     // frase del recuadro: la larga si cabe; si no, una corta
-    $("ytQuery").placeholder = $("ytQuery").clientWidth >= 430 ? "Busca entre los vídeos de Jack Young (p. ej. Killers)" : "Busca una canción o un grupo";
+    $("ytQuery").placeholder = $("ytQuery").clientWidth >= 430 ? "Busca entre los vídeos de Jack Young" : "Busca una canción o un grupo";
     ytSel = 0; ytEnsure(); ytRender();
     setTimeout(() => $("ytQuery").focus(), 0);
   }
