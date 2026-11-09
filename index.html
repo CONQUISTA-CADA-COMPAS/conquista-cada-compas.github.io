@@ -157,7 +157,26 @@ header.top.wide .h-right .drumwrap { flex: 0 0 auto; min-width: 160px; }
 /* Acceso a los vídeos de Jack Young, dentro del recuadro del enlace, a la derecha */
 .ytsearch { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 6px;
   padding: 5px 10px; border-radius: 6px; color: var(--fg); text-decoration: none; font-size: 15px; }
-.ytsearch:hover { background: var(--done); color: #fff; }
+.ytsearch:hover, .ytsearch[aria-expanded="true"] { background: var(--done); color: #fff; }
+.ytsearch { border: none; background: none; font: inherit; font-size: 15px; cursor: pointer; }
+/* Buscador de vídeos de Jack Young: ocupa la ventana del vídeo, con su propio scroll (la columna derecha no se mueve) */
+.ytpanel { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
+  background: var(--surface); border-radius: var(--r); overflow: hidden; }
+.ytp-head { display: flex; gap: 10px; align-items: center; }
+.ytp-title { font-family: var(--display); font-size: 18px; white-space: nowrap; }
+.ytp-head input { flex: 1; min-width: 0; font-size: 16px; padding: 9px 11px; }
+.ytp-status { margin: 0; font-size: 13px; color: var(--muted); }
+.ytp-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 14px 12px;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-content: start; padding: 2px; }
+.ytp-item { display: flex; flex-direction: column; gap: 6px; width: 100%; padding: 6px; border: none; background: none; border-radius: 10px;
+  text-align: left; cursor: pointer; color: var(--fg); font: inherit; }
+.ytp-item:hover, .ytp-item:focus-visible, .ytp-item.sel { background: var(--accent-soft); outline: none; }
+.ytp-item img { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; border-radius: 8px; background: var(--surface-2); }
+.ytp-item .t { font-size: 14px; font-weight: 700; line-height: 1.3; overflow-wrap: anywhere; }
+.ytp-item .d { display: block; font-size: 12px; font-weight: 400; color: var(--muted); margin-top: 2px; }
+.ytp-out { font-size: 13px; color: var(--accent-ink); font-weight: 700; }
+/* en el móvil la ventana es baja: mientras se busca, se alarga */
+@media (max-width: 980px) { .stage.searching { aspect-ratio: auto; height: 78vh; max-width: none; } .ytp-list { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
 
 input[type="text"], input[type="number"], input[type="url"], select {
   background: var(--surface); border: 1.5px solid var(--line); border-radius: 8px; padding: 9px 11px; min-width: 0;
@@ -616,7 +635,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   </div>
   <form class="load" id="loadForm">
     <input type="url" id="urlInput" placeholder="Pega aquí el enlace del vídeo de YouTube" aria-label="Enlace de YouTube">
-    <a class="ytsearch" href="https://www.youtube.com/@JackYoungDrums/videos" target="_blank" rel="noopener" title="Buscar vídeos de Jack Young en YouTube (se abre en otra pestaña)"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Buscar</a>
+    <button class="ytsearch" type="button" id="ytSearchBtn" title="Buscar entre los vídeos de Jack Young" aria-expanded="false" aria-controls="ytPanel"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Buscar</button>
   </form>
   <span class="logo logo-end" aria-hidden="true"></span>
   </div>
@@ -666,6 +685,17 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         </div>
       </div>
       <div class="countin" id="countin" hidden></div>
+      <div class="ytpanel" id="ytPanel" hidden>
+        <div class="ytp-head">
+          <strong class="ytp-title">Vídeos de Jack Young</strong>
+          <input type="search" id="ytQuery" placeholder="Busca entre los vídeos de Jack Young (p. ej. Killers)" autocomplete="off" aria-label="Buscar vídeos de Jack Young">
+          <button class="iconbtn" type="button" id="ytClose" aria-label="Cerrar el buscador">×</button>
+        </div>
+        <p class="ytp-status" id="ytStatus"></p>
+        <div class="ytp-list" id="ytList" role="listbox" aria-label="Vídeos de Jack Young"></div>
+        <a class="ytp-out" href="https://www.youtube.com/@JackYoungDrums/videos" target="_blank" rel="noopener">Abrir el canal de Jack Young en YouTube ↗</a>
+      </div>
+
       <!-- Mientras se ensaya: atrás 5 s, pausa/seguir, adelante 5 s y parar (también en pantalla completa) -->
       <div class="transport" id="transport" hidden>
         <button type="button" id="tBack" title="Atrás 5 segundos (←)" aria-label="Atrás 5 segundos"><svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true"><path d="M11 6 4 12l7 6zM20 6l-7 6 7 6z" fill="currentColor"/></svg><span>5 s</span></button>
@@ -1987,6 +2017,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     btn.replaceWith(wrap);
   }
   function openSong(song) {
+    if (!$("ytPanel").hidden) ytClose();
     closeScore(); focusSong(song.id);
     stopSession(); currentSongId = song.id; currentFragId = null;
     $("urlInput").value = "https://youtu.be/" + song.videoId;
@@ -2687,6 +2718,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       .map((k) => `<span><svg class="${musClass()}" viewBox="0 0 26 22" aria-hidden="true">${icon[k][1]}</svg>${icon[k][0]}</span>`).join("");
   }
   function openScore(id) {
+    if (!$("ytPanel").hidden) ytClose();
     if (scoreRun) stopScore();
     if (running()) stopSession(true);
     if (songCounting || songPlaying) stopSong();
@@ -2948,6 +2980,105 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("tBack").onclick = () => seekBy(-5);
   $("tFwd").onclick = () => seekBy(5);
   $("tStop").onclick = () => { if (running()) stopSession(true); else stopSong(); };
+
+  // ---------- Buscador de vídeos de Jack Young (API de YouTube) ----------
+  // La clave solo funciona desde conquista-cada-compas.github.io y solo para la API de YouTube (restringida en Google Cloud).
+  const YT_KEY = "AIzaSyALKrt9jOTo8oG9Ze9LK3zFPPer-2XorwU";
+  const YT_UPLOADS = "UU32uUKaPCAC-cTXjPgcut0A";   // lista «todos los vídeos subidos» del canal @JackYoungDrums
+  const YT_CACHE = "ensayo-jackyoung-v1";
+  let ytVideos = null, ytLoading = null, ytError = false, ytSel = 0;
+  function ytReadCache() { try { return JSON.parse(localStorage.getItem(YT_CACHE)); } catch (e) { return null; } }
+  async function ytApi(path, params) {
+    const u = new URL("https://www.googleapis.com/youtube/v3/" + path);
+    Object.entries({ ...params, key: YT_KEY }).forEach(([k, v]) => u.searchParams.set(k, v));
+    const r = await fetch(u); const j = await r.json();
+    if (!r.ok) throw j;
+    return j;
+  }
+  // Descarga la lista (la primera vez entera; después solo lo nuevo, hasta encontrar un vídeo ya conocido)
+  async function ytFetch(cache) {
+    const old = (cache && cache.items) || [], known = new Set(old.map((v) => v.id)), fresh = [];
+    let page = "", stop = false;
+    do {
+      const j = await ytApi("playlistItems", { part: "snippet", playlistId: YT_UPLOADS, maxResults: 50, ...(page ? { pageToken: page } : {}) });
+      for (const it of j.items || []) {
+        const sn = it.snippet || {}, id = sn.resourceId && sn.resourceId.videoId;
+        if (!id) continue;
+        if (known.has(id)) { stop = true; break; }
+        if (/^(private|deleted) video$/i.test(sn.title || "")) continue;
+        const th = sn.thumbnails || {};
+        fresh.push({ id, t: sn.title, th: (th.medium || th.default || {}).url || "", d: (sn.publishedAt || "").slice(0, 10) });
+      }
+      page = j.nextPageToken;
+    } while (page && !stop);
+    const data = { items: [...fresh, ...old], at: Date.now() };
+    try { localStorage.setItem(YT_CACHE, JSON.stringify(data)); } catch (e) {}
+    return data;
+  }
+  function ytEnsure() {
+    const c = ytReadCache();
+    if (c && c.items && !ytVideos) ytVideos = c.items;
+    if (c && c.items && Date.now() - (c.at || 0) < 12 * 3600e3) return;   // al día: no se pregunta a YouTube
+    if (ytLoading) return;
+    ytError = false;
+    ytLoading = ytFetch(c).then((d) => { ytVideos = d.items; }).catch(() => { ytError = true; }).finally(() => { ytLoading = null; ytRender(); });
+  }
+  function ytRender() {
+    if ($("ytPanel").hidden) return;
+    const list = $("ytList"), st = $("ytStatus");
+    list.innerHTML = "";
+    if (!ytVideos) {
+      st.textContent = ytError
+        ? "No se ha podido cargar la lista de YouTube. Mira tu conexión o usa el enlace de abajo para buscar en YouTube."
+        : "Cargando la lista de vídeos de Jack Young… (solo tarda la primera vez)";
+      return;
+    }
+    const words = norm($("ytQuery").value).split(/\s+/).filter(Boolean);
+    const found = words.length ? ytVideos.filter((v) => { const t = norm(v.t); return words.every((w) => t.includes(w)); }) : ytVideos;
+    const shown = found.slice(0, words.length ? 120 : 60);
+    st.textContent = words.length
+      ? (found.length ? `${found.length} ${found.length === 1 ? "vídeo" : "vídeos"}` + (found.length > shown.length ? ` (se ven los ${shown.length} más nuevos; escribe algo más para afinar)` : "") : "Ningún vídeo coincide. Prueba con otra palabra (el nombre del grupo o de la canción).")
+      : `${ytVideos.length} vídeos de Jack Young. Escribe el nombre de una canción o de un grupo.`;
+    ytSel = Math.min(ytSel, Math.max(0, shown.length - 1));
+    shown.forEach((v, i) => {
+      const b = document.createElement("button");
+      b.type = "button"; b.className = "ytp-item" + (i === ytSel ? " sel" : ""); b.setAttribute("role", "option");
+      b.innerHTML = `<img alt="" loading="lazy"><span class="t"></span>`;
+      b.querySelector("img").src = v.th;
+      b.querySelector(".t").textContent = v.t;
+      const d = document.createElement("span"); d.className = "d";
+      d.textContent = v.d ? new Date(v.d).toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "";
+      b.querySelector(".t").appendChild(d);
+      b.onclick = () => ytPick(v);
+      list.appendChild(b);
+    });
+  }
+  function ytOpen() {
+    $("ytPanel").hidden = false; $("ytSearchBtn").setAttribute("aria-expanded", "true"); $("stage").classList.add("searching");
+    ytSel = 0; ytEnsure(); ytRender();
+    setTimeout(() => $("ytQuery").focus(), 0);
+  }
+  function ytClose() { $("ytPanel").hidden = true; $("ytSearchBtn").setAttribute("aria-expanded", "false"); $("stage").classList.remove("searching"); }
+  function ytPick(v) {
+    ytClose();
+    $("urlInput").value = "https://youtu.be/" + v.id;
+    $("loadForm").requestSubmit ? $("loadForm").requestSubmit() : $("loadForm").dispatchEvent(new Event("submit", { cancelable: true }));
+  }
+  $("ytSearchBtn").onclick = () => ($("ytPanel").hidden ? ytOpen() : ytClose());
+  $("ytClose").onclick = ytClose;
+  $("ytQuery").addEventListener("input", () => { ytSel = 0; ytRender(); });
+  $("ytQuery").addEventListener("keydown", (e) => {
+    const items = $("ytList").querySelectorAll(".ytp-item");
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); ytClose(); }
+    else if (e.key === "Enter") { e.preventDefault(); if (items[ytSel]) items[ytSel].click(); }   // sin enviar el formulario del enlace
+    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      const cols = Math.max(1, getComputedStyle($("ytList")).gridTemplateColumns.split(" ").length);
+      ytSel = Math.max(0, Math.min(items.length - 1, ytSel + (e.key === "ArrowDown" ? cols : -cols)));
+      items.forEach((b, i) => b.classList.toggle("sel", i === ytSel));
+      if (items[ytSel]) items[ytSel].scrollIntoView({ block: "nearest" });
+    }
+  });
 
   // ---------- Teclado ----------
   // Barra espaciadora (para ensayar solos, lejos del ordenador):
