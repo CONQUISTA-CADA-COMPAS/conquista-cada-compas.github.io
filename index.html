@@ -161,10 +161,14 @@ header.top.wide .h-right .drumwrap { flex: 0 0 auto; min-width: 160px; }
 .ytsearch { border: none; background: none; font: inherit; font-size: 15px; cursor: pointer; }
 /* Buscador de vídeos de Jack Young: ocupa la ventana del vídeo, con su propio scroll (la columna derecha no se mueve) */
 .ytpanel { position: absolute; inset: 0; z-index: 7; display: flex; flex-direction: column; gap: 10px; padding: 14px 16px;
-  background: var(--surface); border-radius: var(--r); overflow: hidden; }
+  background: var(--surface); border-radius: 0; overflow: hidden; }   /* la ventana ya recorta las esquinas: un solo redondeo, sin bordes oscuros */
 .ytp-head { display: flex; gap: 10px; align-items: center; }
 .ytp-title { font-family: var(--display); font-size: 18px; white-space: nowrap; }
-.ytp-head input { flex: 1; min-width: 0; font-size: 16px; padding: 9px 11px; }
+/* Buscando: recuadro y texto en magenta */
+.ytp-head input, .ytp-head input:focus { flex: 1; min-width: 0; font-size: 16px; padding: 9px 11px; border: 2px solid var(--done); border-radius: 8px; color: var(--done); caret-color: var(--done); font-weight: 700; outline: none; }
+.ytp-head input::placeholder { color: var(--done); opacity: .55; font-weight: 400; }
+/* sin el fondo negro del vídeo detrás, las esquinas redondeadas quedan limpias */
+.stage.searching { background: var(--surface); }
 .ytp-status { margin: 0; font-size: 13px; color: var(--muted); }
 .ytp-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 14px 12px;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-content: start; padding: 2px; }
