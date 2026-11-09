@@ -1150,7 +1150,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function saveSong(song) {
     song.saved = true; song.updated = Date.now();
     lib.songs = [song, ...lib.songs.filter((x) => x !== song)];
-    libTab = "saved"; openSongs.add(song.id);
+    libTab = "saved"; focusSong(song.id);
     $("libSearch").value = "";
     persist(); renderLibrary();
     const el = $("library").querySelector(`[data-song="${song.id}"]`);
@@ -1170,7 +1170,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const song = ensureSong();
     if (!song) toast("Elige arriba quién ensaya para que la canción quede en su lista.");
     else if (!isSaved(song)) { song.lastUsed = Date.now(); libTab = "others"; persist(); }
-    else { libTab = "saved"; openSongs.add(song.id); }
+    else { libTab = "saved"; focusSong(song.id); }
     renderLibrary();
   });
 
@@ -1265,7 +1265,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const existed = !!f;
     if (f) Object.assign(f, data); else { f = { id: uid(), ...data }; song.fragments.push(f); currentFragId = f.id; }
     $("fragName").value = f.name;
-    openSongs.add(song.id);
+    focusSong(song.id);
     persist(); renderLibrary();
     toast(existed ? `Cambios guardados en «${f.name}»` : (drummerId ? `Compases guardados para ${drummerName(drummerId)}` : "Compases guardados"));
   };
@@ -1742,6 +1742,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const openSongs = new Set();
   let libTab = "saved";
   document.querySelectorAll(".tab").forEach((t) => t.onclick = () => { libTab = t.dataset.tab; renderLibrary(); });
+  // Solo queda desplegado lo último que se abre: al abrir una canción (o un compás) se pliegan las demás
+  function focusSong(id) { openSongs.clear(); if (id) openSongs.add(id); fragCtlClosed = false; }
   const fragsClosed = new Set();   // canciones con la lista de compases plegada
   let fragCtlClosed = false;       // botones de ensayo del compás elegido plegados
   function renderLibrary() {
@@ -1821,7 +1823,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         if (videoId === song.videoId && currentSongId === song.id && !currentFragId && openSongs.has(song.id)) {
           openSongs.delete(song.id); renderLibrary(); return;
         }
-        openSongs.add(song.id); openSong(song);
+        focusSong(song.id); openSong(song);
       };
       if (isOpen) {
         const body = document.createElement("div"); body.className = "s-body";
@@ -1979,7 +1981,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     btn.replaceWith(wrap);
   }
   function openSong(song) {
-    closeScore();
+    closeScore(); focusSong(song.id);
     stopSession(); currentSongId = song.id; currentFragId = null;
     $("urlInput").value = "https://youtu.be/" + song.videoId;
     songPlaying = false; updateSongBtn();
@@ -1991,7 +1993,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function openFragment(song, f) {
     closeScore();
     stopSession();
-    currentSongId = song.id; currentFragId = f.id; openSongs.add(song.id);
+    currentSongId = song.id; currentFragId = f.id; focusSong(song.id);
     songPlaying = false; updateSongBtn();
     frag = { start: f.start, end: f.end };
     $("fragName").value = f.name;
@@ -2685,6 +2687,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!$("readyOverlay").hidden) $("readyCancel").click();
     hideDone();
     scoreOpen = id; delete scSelNow[id]; scLinesOpen = true;
+    openSongs.clear(); renderLibrary();   // al abrir una partitura se pliegan las canciones
     $("scoreView").hidden = false; $("stage").classList.add("scoring");
     placeLines(); renderScores(); renderSheet(); scOverlayBox();
     // en el móvil (o con la columna oculta) la ventana de ensayo está arriba: se sube hasta ella
@@ -3076,7 +3079,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const s0 = r.first;
       if (s0) {
         if (s0.drummer && s0.drummer !== drummerId) setDrummer(s0.drummer);
-        openSongs.add(s0.id);
+        focusSong(s0.id);
         s0.fragments.length ? openFragment(s0, s0.fragments[0]) : openSong(s0);
       }
       // enlace con un baterista sin canciones: se elige para empezar a guardarle canciones
