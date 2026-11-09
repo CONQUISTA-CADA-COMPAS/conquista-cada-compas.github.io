@@ -3042,7 +3042,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     ytSel = Math.min(ytSel, Math.max(0, shown.length - 1));
     shown.forEach((v, i) => {
       const b = document.createElement("button");
-      b.type = "button"; b.className = "ytp-item" + (i === ytSel ? " sel" : ""); b.setAttribute("role", "option");
+      b.type = "button"; b.className = "ytp-item"; b.setAttribute("role", "option");
       b.innerHTML = `<img alt="" loading="lazy"><span class="t"></span>`;
       b.querySelector("img").src = v.th;
       b.querySelector(".t").textContent = v.t;
@@ -3063,21 +3063,29 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     ytClose();
     $("urlInput").value = "https://youtu.be/" + v.id;
     $("loadForm").requestSubmit ? $("loadForm").requestSubmit() : $("loadForm").dispatchEvent(new Event("submit", { cancelable: true }));
+    // queda en «Otros ensayos» con su título de YouTube desde el primer momento
+    const song = mySongs().find((x) => x.videoId === v.id);
+    if (song && song.title === NO_TITLE) { setTitle(song, v.t); renderLibrary(); }
   }
   $("ytSearchBtn").onclick = () => ($("ytPanel").hidden ? ytOpen() : ytClose());
   $("ytClose").onclick = ytClose;
   $("ytQuery").addEventListener("input", () => { ytSel = 0; ytRender(); });
+  // Intro solo enseña los resultados (nunca pone un vídeo): se elige siempre pinchando (o con las flechas y luego Intro)
   $("ytQuery").addEventListener("keydown", (e) => {
-    const items = $("ytList").querySelectorAll(".ytp-item");
     if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); ytClose(); }
-    else if (e.key === "Enter") { e.preventDefault(); if (items[ytSel]) items[ytSel].click(); }   // sin enviar el formulario del enlace
-    else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
-      e.preventDefault();
-      const cols = Math.max(1, getComputedStyle($("ytList")).gridTemplateColumns.split(" ").length);
-      ytSel = Math.max(0, Math.min(items.length - 1, ytSel + (e.key === "ArrowDown" ? cols : -cols)));
-      items.forEach((b, i) => b.classList.toggle("sel", i === ytSel));
-      if (items[ytSel]) items[ytSel].scrollIntoView({ block: "nearest" });
-    }
+    else if (e.key === "Enter") { e.preventDefault(); e.target.blur(); }
+    else if (e.key === "ArrowDown") { const f = $("ytList").querySelector(".ytp-item"); if (f) { e.preventDefault(); f.focus(); } }
+  });
+  $("ytList").addEventListener("keydown", (e) => {
+    const items = [...$("ytList").querySelectorAll(".ytp-item")], i = items.indexOf(document.activeElement);
+    if (i < 0) return;
+    if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); ytClose(); return; }
+    const cols = Math.max(1, getComputedStyle($("ytList")).gridTemplateColumns.split(" ").length);
+    const step = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: cols, ArrowUp: -cols }[e.key];
+    if (!step) return;
+    e.preventDefault(); e.stopPropagation();
+    if (i + step < 0) return $("ytQuery").focus();
+    const n = items[Math.min(items.length - 1, i + step)]; n.focus(); n.scrollIntoView({ block: "nearest" });
   });
 
   // ---------- Teclado ----------
