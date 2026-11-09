@@ -669,7 +669,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <div class="stage" id="stage">
       <div id="player"></div>
       <div class="empty" id="emptyState">
-        <div class="cover-hint" id="coverHint">Añade un baterista y pega un enlace de YouTube arriba para empezar a ensayar</div>
         <div>
           <strong id="emptyTitle"></strong>
           <p id="emptyText"></p>
@@ -973,7 +972,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // ---------- YouTube ----------
   function showMsg(title, text) {
     $("emptyState").hidden = false; $("emptyTitle").textContent = title; $("emptyText").textContent = text;
-    $("coverHint").hidden = true;
+    if ($("coverHint")) $("coverHint").hidden = true;
   }
   if (location.protocol === "file:") {
     showMsg("Esta página está abierta como archivo",
