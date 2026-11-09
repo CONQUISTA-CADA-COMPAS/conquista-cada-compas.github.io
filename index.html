@@ -2429,9 +2429,20 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (location.protocol === "file:") return;
     if (!isFamily()) return;
     try {
-      const res = await fetch("canciones.json?v=" + Date.now(), { cache: "no-store" });
-      if (!res.ok) return;
-      const d = await res.json();
+      // Primero, directamente del repositorio (al día al instante tras «Sincronizar»); si falla, de la página publicada
+      // (que GitHub tarda unos minutos en actualizar)
+      let d = null;
+      try {
+        const k = getKey();
+        const r = await fetch(`https://api.github.com/repos/${REPO}/contents/canciones.json?ref=main&t=${Date.now()}`, {
+          cache: "no-store", headers: { Accept: "application/vnd.github.raw+json", ...(k ? { Authorization: "Bearer " + k } : {}) } });
+        if (r.ok) d = await r.json();
+      } catch (e) {}
+      if (!d) {
+        const res = await fetch("canciones.json?v=" + Date.now(), { cache: "no-store" });
+        if (!res.ok) return;
+        d = await res.json();
+      }
       if (!d || d.app !== "ensayo-en-bucle") return;
       const txt = describe(mergeLib(d));
       if (txt) toast(`Lista actualizada: ${txt}`);
