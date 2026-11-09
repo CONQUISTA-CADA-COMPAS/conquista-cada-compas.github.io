@@ -166,9 +166,19 @@ header.top.wide .h-right .drumwrap { flex: 0 0 auto; min-width: 160px; }
 .ytp-title { font-family: var(--display); font-size: 18px; white-space: nowrap; }
 /* Buscando: recuadro y texto en magenta */
 .ytp-head input, .ytp-head input:focus { flex: 1; min-width: 0; font-size: 16px; padding: 9px 11px; border: 2px solid var(--done); border-radius: 8px; color: var(--done); caret-color: var(--done); font-weight: 700; outline: none; }
+/* las dos X del buscador en magenta: la de borrar lo escrito (la pone el navegador, azul) y la de cerrar */
+.ytp-head input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; width: 16px; height: 16px; cursor: pointer;
+  background: var(--done); -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5l14 14M19 5L5 19' stroke='black' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 5l14 14M19 5L5 19' stroke='black' stroke-width='3.2' stroke-linecap='round'/%3E%3C/svg%3E") center / contain no-repeat; }
+#ytClose { color: var(--done); font-size: 26px; font-weight: 700; opacity: 1; padding: 2px 8px; }
+#ytClose:hover { background: var(--done); color: #fff; }
 .ytp-head input::placeholder { color: var(--done); opacity: .55; font-weight: 400; }
 /* sin el fondo negro del vídeo detrás, las esquinas redondeadas quedan limpias */
 .stage.searching { background: var(--surface); }
+/* Chrome a veces no redondea las esquinas del reproductor de YouTube (iframe): se recorta la ventana entera
+   y, mientras se busca, el reproductor se esconde (sigue cargado, no se pierde nada) */
+.stage { clip-path: inset(0 round var(--r)); }
+.stage.searching #player, .stage.searching iframe { visibility: hidden; }
 .ytp-status { margin: 0; font-size: 13px; color: var(--muted); }
 .ytp-list { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: grid; gap: 14px 12px;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); align-content: start; padding: 2px; }
