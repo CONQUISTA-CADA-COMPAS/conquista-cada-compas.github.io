@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-06T16:16:29.013Z",
+ "published": "2026-11-09T07:35:02.375Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -14,6 +14,16 @@
   }
  ],
  "songs": [
+  {
+   "id": "avijgi3z",
+   "videoId": "ZIWRDI0eSpA",
+   "title": "How to Play 🥁   Today   Smashing Pumpkins",
+   "drummer": "n4u5pzcx",
+   "updated": 1794209451645,
+   "saved": false,
+   "lastUsed": 1794209451646,
+   "fragments": []
+  },
   {
    "id": "72e3ch8q",
    "videoId": "5YtXSa8EohU",
