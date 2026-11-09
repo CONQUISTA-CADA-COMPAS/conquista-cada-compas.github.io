@@ -1321,7 +1321,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const song = ensureSong();
     if (!song) { toast("Elige arriba quién ensaya antes de guardar."); $("drummerBtn").focus(); return; }
     if (!isSaved(song)) { song.saved = true; libTab = "saved"; }   // guardar un fragmento también guarda la canción
-    const data = { name: $("fragName").value.trim() || `Compases ${fmt(frag.start, false)}`, start: frag.start, end: frag.end, updated: Date.now() };
+    // sin nombre: «Compases #N», con el siguiente número libre de esa canción
+    const nextNum = () => { let k = 1; while (song.fragments.some((x) => x.name === `Compases #${k}`)) k++; return k; };
+    const data = { name: $("fragName").value.trim() || `Compases #${nextNum()}`, start: frag.start, end: frag.end, updated: Date.now() };
     let f = song.fragments.find((x) => x.id === currentFragId);
     const existed = !!f;
     if (f) Object.assign(f, data); else { f = { id: uid(), ...data }; song.fragments.push(f); currentFragId = f.id; }
