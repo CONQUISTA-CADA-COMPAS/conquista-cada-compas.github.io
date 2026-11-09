@@ -1433,6 +1433,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     closeScore();
     stopSession(true);
     if (!$("readyOverlay").hidden) $("readyCancel").click();
+    // al ensayar la canción entera, el compás que estuviera abierto se pliega (deja de estar elegido)
+    if (currentFragId) { currentFragId = null; frag = { start: 0, end: 0 }; $("fragName").value = ""; updateFragUI(); renderLibrary(); }
     keepAwake(); seekPaused(0);
     readyKind = "song";
     askReady("Empezar ensayo de canción", () => startSong(true));
