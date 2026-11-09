@@ -1094,7 +1094,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     videoId = id;
     if (player) { player.cueVideoById({ videoId: id, startSeconds: t }); return; }
     player = new YT.Player("player", {
-      host: "https://www.youtube-nocookie.com",   // modo de privacidad mejorada de YouTube
+      // reproductor normal de YouTube (no «youtube-nocookie»): así reconoce la sesión y Gonzalo, con Premium, no ve anuncios
+      host: "https://www.youtube.com",
       videoId: id,
       // si el aparato permite nuestra pantalla completa, se quita la de YouTube (dejaría fuera la cuenta de clics)
       playerVars: { start: Math.floor(t), rel: 0, modestbranding: 1, playsinline: 1, fs: canFullscreen ? 0 : 1 },
