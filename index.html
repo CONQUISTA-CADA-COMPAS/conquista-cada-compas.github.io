@@ -906,6 +906,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const COUNT_BEATS = 3;      // clics de cuenta antes de cada vuelta
   const CLICK_BPM = 100;      // ritmo fijo de la cuenta (se ajusta a la velocidad elegida)
   const GAP_MS = 1000;        // pausa entre vueltas
+  const HOLD_MS = 1000;       // compás: tras la cuenta, 1 s con la imagen quieta para que vean dónde están
 
   // ---------- Estado ----------
   let player = null, playerReady = false;
@@ -1541,7 +1542,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       session.phase = "resume";
       countdown(3, `Repetición ${session.done + 1} de ${REPS}`, () => {
         if (!running() || session.phase !== "resume") return;
-        session.phase = "play"; cancelPrime(); applyRate(fragRate); player.playVideo(); renderBoard();
+        session.timer = setTimeout(() => {   // también aquí: 1 s con la imagen quieta antes de seguir
+          if (!running() || session.phase !== "resume") return;
+          session.phase = "play"; cancelPrime(); applyRate(fragRate); player.playVideo(); renderBoard();
+        }, HOLD_MS);
       });
     } else prepareRep();
     renderBoard();
@@ -1587,8 +1591,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           c.innerHTML = `<div>${i + 1}<small>Repetición ${session.done + 1} de ${REPS}</small></div>`;
         }, 50 + i * iv * 1000));
       }
-      // la música entra justo en el siguiente pulso
-      session.timer = setTimeout(startPlaying, 50 + beats * iv * 1000 - 120);
+      // al acabar la cuenta: se quita el aviso, 1 s con la imagen quieta y entonces empieza
+      session.timer = setTimeout(() => {
+        if (!session || session.phase !== "prep") return;
+        $("countin").hidden = true;
+        session.timer = setTimeout(startPlaying, HOLD_MS);
+      }, 50 + beats * iv * 1000);
     }, session.done === 0 ? 300 : GAP_MS);
   }
   function endRep() {
