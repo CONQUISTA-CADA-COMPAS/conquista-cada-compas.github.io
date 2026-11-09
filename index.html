@@ -630,6 +630,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 @media (max-width: 980px) { .stage.scoring { aspect-ratio: auto; height: 470px; max-height: 80svh; } }
 /* Pausa y barra de control sobre el vídeo */
 #songCtl .pausebtn, #fragCtl .pausebtn { flex: none; font-size: 14px; padding: 6px 10px; }
+/* Pausa / Seguir en magenta, como «Parar» */
+#songCtl .pausebtn, #fragCtl .pausebtn { background: var(--surface); border-color: var(--done); color: var(--done); }
+#songCtl .pausebtn:hover, #fragCtl .pausebtn:hover { background: var(--done-soft); border-color: var(--done); color: var(--done); }
 .transport { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 5; display: flex; gap: 6px; padding: 6px;
   background: rgba(6, 14, 24, .62); border-radius: 999px; opacity: .8; }
 .transport:hover, .transport:focus-within { opacity: 1; }
