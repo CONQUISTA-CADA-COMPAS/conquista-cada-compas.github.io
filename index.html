@@ -3166,6 +3166,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (st.height > 0 && stageBottom > top + 200) document.documentElement.style.setProperty("--aside-h", (stageBottom - top) + "px");
     else document.documentElement.style.removeProperty("--aside-h");
   }
+  // Reparte el hueco entre paneles para que «Comparte canciones y partituras» acabe justo a la altura del final del vídeo
+  // (si no cabe, separación normal de 12 px y la columna hace scroll como siempre)
+  function spaceAside() {
+    const a = $("libAside"); if (!a) return;
+    const narrow = window.matchMedia("(max-width: 980px)").matches || document.querySelector("main").classList.contains("wide");
+    if (narrow) { a.style.gap = ""; return; }
+    const panels = [];
+    for (const el of a.querySelectorAll(":scope > .panel")) { if (el.offsetHeight > 0) panels.push(el); if (el.id === "pubPanel") break; }
+    if (panels.length < 2 || panels[panels.length - 1].id !== "pubPanel") { a.style.gap = ""; return; }
+    const sum = panels.reduce((t, el) => t + el.getBoundingClientRect().height, 0);
+    const pad = parseFloat(getComputedStyle(a).paddingTop) + parseFloat(getComputedStyle(a).paddingBottom);
+    const g = (a.clientHeight - pad - sum) / (panels.length - 1);
+    a.style.gap = Math.max(12, Math.min(60, g)) + "px";
+  }
+  if (window.ResizeObserver) {
+    const ro = new ResizeObserver(() => spaceAside());
+    ["libAside", "libPanel", "fragPanel", "scorePanel", "pubPanel"].forEach((id) => { if ($(id)) ro.observe($(id)); });
+  }
   window.addEventListener("resize", sizeAside);
   function alignHeader() {
     sizeAside();
