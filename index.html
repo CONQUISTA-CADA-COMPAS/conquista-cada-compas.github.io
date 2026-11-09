@@ -423,7 +423,9 @@ body.dragging-song, body.dragging-song * { cursor: grabbing !important; user-sel
 .s-item.has-active .s-head .st { color: var(--accent-ink); }
 .s-head .sc { font-family: var(--mono); font-size: 12px; color: var(--muted); background: var(--surface-2); border-radius: 999px; padding: 1px 8px; }
 .s-body { display: flex; flex-direction: column; gap: 2px; padding: 0 0 10px 40px; }
-.f-row { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; border-radius: 6px; }
+.f-row { display: grid; grid-template-columns: 14px 22px minmax(0, 1fr) auto; align-items: center; border-radius: 6px; }
+.f-row .grip { padding: 6px 2px; }
+.f-row.dragging { opacity: .6; background: var(--accent-soft); }
 .f-chev { background: none; border: none; padding: 6px 0 6px 6px; color: var(--muted); font-size: 10px; text-align: left; }
 .f-chev .chev, .f-label .chev { display: inline-block; transition: transform .15s; }
 .f-row.open .f-chev .chev, .f-label.open .chev { transform: rotate(90deg); }
@@ -1386,7 +1388,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     else if (session || st === YT.PlayerState.ENDED) { songPlaying = false; songPaused = false; }
     // pausado desde el propio vídeo de YouTube: cuenta como pausa, no como final
     else if (!songStarting && st === YT.PlayerState.PAUSED && songPlaying) { songPlaying = false; songPaused = true; }
-    if (st === YT.PlayerState.PLAYING) {
+    if (window.YT && YT.PlayerState && st === YT.PlayerState.PLAYING) {
       songStarting = false;
       if (songPaused && !session) { songPaused = false; songPlaying = true; }   // seguido desde el propio vídeo
     }
@@ -1907,12 +1909,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           lab.onclick = () => { listOpen ? fragsClosed.add(song.id) : fragsClosed.delete(song.id); renderLibrary(); };
           body.appendChild(lab);
         }
+        // los compases van en su propia lista para poder ordenarlos arrastrando (asa ⋮⋮), como las canciones
+        const fl = document.createElement("div"); fl.className = "f-list";
         if (!fragsClosed.has(song.id)) song.fragments.forEach((f) => {
           const isCur = f.id === currentFragId && song.id === currentSongId;
           const ctlOpen = isCur && !fragCtlClosed;
           const row = document.createElement("div");
           row.className = "f-row" + (f.id === currentFragId ? " active" : "") + (ctlOpen ? " open" : "");
-          row.innerHTML = `<button class="f-chev" type="button" aria-label="Mostrar u ocultar «Empezar ensayo»" aria-expanded="${ctlOpen}"><span class="chev">▶</span></button><button class="f-name" type="button"></button><button class="iconbtn" type="button" title="Borrar" aria-label="Borrar">×</button>`;
+          row.dataset.frag = f.id;
+          row.innerHTML = `<span class="grip" tabindex="0" role="button" title="Arrastra para cambiar de posición (o usa las flechas ↑ ↓)" aria-label="Mover compás"><svg width="10" height="16" viewBox="0 0 10 16" aria-hidden="true"><g fill="currentColor"><circle cx="2.5" cy="3" r="1.5"/><circle cx="7.5" cy="3" r="1.5"/><circle cx="2.5" cy="8" r="1.5"/><circle cx="7.5" cy="8" r="1.5"/><circle cx="2.5" cy="13" r="1.5"/><circle cx="7.5" cy="13" r="1.5"/></g></svg></span><button class="f-chev" type="button" aria-label="Mostrar u ocultar «Empezar ensayo»" aria-expanded="${ctlOpen}"><span class="chev">▶</span></button><button class="f-name" type="button"></button><button class="iconbtn" type="button" title="Borrar" aria-label="Borrar">×</button>`;
           // desplegable del compás: abre (y elige) o pliega sus botones de ensayo
           row.querySelector(".f-chev").onclick = () => {
             if (isCur) { fragCtlClosed = !fragCtlClosed; renderLibrary(); }
@@ -1924,9 +1929,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           nb.onclick = () => { fragCtlClosed = false; openFragment(song, f); };
           const x = row.querySelector(".iconbtn");
           x.onclick = () => askDelete(x, () => { song.fragments = song.fragments.filter((y) => y !== f); tomb(f.id); if (currentFragId === f.id) currentFragId = null; persist(); renderLibrary(); });
-          body.appendChild(row);
-          if (ctlOpen) body.appendChild($("fragCtl"));   // Empezar ensayo + velocidad
+          fl.appendChild(row);
+          if (ctlOpen) fl.appendChild($("fragCtl"));   // Empezar ensayo + velocidad
         });
+        body.appendChild(fl);
+        if (song.fragments.length > 1) enableSongDrag(fl, (ids) => {
+          const byId = new Map(song.fragments.map((f) => [f.id, f]));
+          song.fragments = [...ids.map((id) => byId.get(id)).filter(Boolean), ...song.fragments.filter((f) => !ids.includes(f.id))];
+          song.updated = Date.now();   // el nuevo orden también viaja al sincronizar
+          persist(); renderLibrary();
+        }, ".f-row", "frag");
         const acts = document.createElement("div"); acts.className = "s-actions";
         // Orden: Cambiar nombre · Pasar a… · Compartir · papelera
         const ren = document.createElement("button"); ren.className = "iconbtn act"; ren.type = "button";
@@ -1968,17 +1980,20 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     lib.songs = lib.songs.map((s) => (set.has(s.id) ? ordered[k++] : s));
     persist(); renderLibrary();
   }
-  function enableSongDrag(box, apply = applySongOrder) {   // también sirve para las partituras
-    const order = () => [...box.querySelectorAll(".s-item")].map((x) => x.dataset.song);
+  function enableSongDrag(box, apply = applySongOrder, sel = ".s-item", key = "song") {   // también sirve para las partituras y los compases
+    const items = () => [...box.children].filter((x) => x.matches(sel));
+    const order = () => items().map((x) => x.dataset[key]);
     box.querySelectorAll(".grip").forEach((g) => {
-      const item = g.closest(".s-item");
+      const item = g.closest(sel);
+      if (!item || item.parentElement !== box) return;   // solo las asas de esta lista…
+      if (g.closest(".f-row, .s-item") !== item) return;   // …y no las de un compás dentro de una canción
       g.addEventListener("pointerdown", (e) => {
         if (e.button > 0) return;
         e.preventDefault();
         const before = order().join();
         item.classList.add("dragging"); document.body.classList.add("dragging-song");
         const move = (ev) => {
-          const others = [...box.querySelectorAll(".s-item")].filter((x) => x !== item);
+          const others = items().filter((x) => x !== item);
           const next = others.find((x) => { const r = x.getBoundingClientRect(); return ev.clientY < r.top + r.height / 2; });
           if (next) { if (item.nextElementSibling !== next) box.insertBefore(item, next); }
           else if (box.lastElementChild !== item) box.appendChild(item);
@@ -2002,11 +2017,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       g.addEventListener("keydown", (e) => {
         if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
         e.preventDefault();
-        const ids = order(), i = ids.indexOf(item.dataset.song), j = i + (e.key === "ArrowUp" ? -1 : 1);
+        const ids = order(), i = ids.indexOf(item.dataset[key]), j = i + (e.key === "ArrowUp" ? -1 : 1);
         if (j < 0 || j >= ids.length) return;
         [ids[i], ids[j]] = [ids[j], ids[i]];
         apply(ids);
-        const ng = box.querySelector(`[data-song="${item.dataset.song}"] .grip`); if (ng) ng.focus();
+        const ng = document.querySelector(`[data-${key}="${item.dataset[key]}"] .grip`); if (ng) ng.focus();
       });
     });
   }
@@ -2198,7 +2213,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         if (s.saved === false) { ex.saved = false; ex.lastUsed = s.lastUsed || 0; }   // canción del historial
         lib.songs.push(ex);
       }
-      else if ((s.updated || 0) > (ex.updated || 0)) { ex.title = s.title; ex.updated = s.updated; }   // gana el nombre más reciente
+      else if ((s.updated || 0) > (ex.updated || 0)) { ex.title = s.title; ex.updated = s.updated; ex._order = (s.fragments || []).map((f) => f.id); }   // gana el nombre (y el orden de compases) más reciente
       if (s.saved !== false && !isSaved(ex)) ex.saved = true;   // si en algún dispositivo se guardó, queda guardada
       if (s.lastUsed && (s.lastUsed > (ex.lastUsed || 0))) ex.lastUsed = s.lastUsed;
       if (!r.first) r.first = ex;
@@ -2212,6 +2227,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         }
         else if ((f.updated || 0) > (ef.updated || 0)) { Object.assign(ef, { name: f.name, start: f.start, end: f.end, updated: f.updated }); r.updated++; }
       });
+      // si la versión recibida es más nueva, sus compases quedan en su orden (los que solo están aquí, al final)
+      if (ex._order) {
+        const pos = (fr) => { const i = ex._order.findIndex((id) => knows(fr, id)); return i < 0 ? 1e9 : i; };
+        ex.fragments = ex.fragments.map((fr, k) => [fr, k]).sort((a, b) => pos(a[0]) - pos(b[0]) || a[1] - b[1]).map((x) => x[0]);
+        delete ex._order;
+      }
     });
     Object.entries(d.deleted || {}).forEach(([id, t]) => {
       if (id.startsWith("drummer:")) {
