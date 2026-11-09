@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-09T09:15:35.530Z",
+ "published": "2026-11-09T09:25:56.836Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -15,27 +15,7 @@
  ],
  "songs": [
   {
-   "id": "4b54ixpu",
-   "videoId": "SmrZpiJ_gHo",
-   "title": "🥁 Zombie - The Cranberries - Drums Playthrough",
-   "drummer": "n4u5pzcx",
-   "updated": 1794209829324,
-   "saved": false,
-   "lastUsed": 1794209829324,
-   "fragments": []
-  },
-  {
-   "id": "avijgi3z",
-   "videoId": "ZIWRDI0eSpA",
-   "title": "How to Play 🥁   Today   Smashing Pumpkins",
-   "drummer": "n4u5pzcx",
-   "updated": 1794209451645,
-   "saved": false,
-   "lastUsed": 1794209451646,
-   "fragments": []
-  },
-  {
-   "id": "72e3ch8q",
+   "id": "jtg6p3un",
    "videoId": "5YtXSa8EohU",
    "title": "🥁Teenagers   My Chemical Romance   JYDT   Grade 4",
    "drummer": "n4u5pzcx",
@@ -45,7 +25,7 @@
    "fragments": []
   },
   {
-   "id": "she1zcpv",
+   "id": "8r94uud9",
    "videoId": "FI4tahavfsg",
    "title": "All These Things That I've Done - The Killers (Grade 5)",
    "drummer": "n4u5pzcx",
@@ -75,7 +55,7 @@
    ]
   },
   {
-   "id": "w92t3a7x",
+   "id": "jv4pfnua",
    "videoId": "0_3Pla56rEY",
    "title": "For Reasons Unknown   The Killers   JYDT   Grade 3",
    "drummer": "9ar14mgy",
@@ -98,7 +78,7 @@
    ]
   },
   {
-   "id": "s2vikrp5",
+   "id": "33fkaqy0",
    "videoId": "0sZnzSgTaG4",
    "title": "When You Were Young - The Killers",
    "drummer": "n4u5pzcx",
@@ -114,11 +94,39 @@
    ]
   },
   {
-   "id": "e6je29dh",
+   "id": "3onryh4d",
    "videoId": "WYQYvnrMvDg",
    "title": "Jerk It Out - The Ceasars (Grade 3)",
    "drummer": "9ar14mgy",
    "updated": 1793897518636,
+   "fragments": []
+  },
+  {
+   "id": "p021fet5",
+   "videoId": "WYQYvnrMvDg",
+   "title": "Jerk It Out - The Ceasars (Grade 3)",
+   "drummer": "n4u5pzcx",
+   "updated": 1794162222407,
+   "fragments": []
+  },
+  {
+   "id": "ryquoo26",
+   "videoId": "SmrZpiJ_gHo",
+   "title": "🥁 Zombie - The Cranberries - Drums Playthrough",
+   "drummer": "n4u5pzcx",
+   "updated": 1794209829324,
+   "saved": false,
+   "lastUsed": 1794209829324,
+   "fragments": []
+  },
+  {
+   "id": "0c21tjev",
+   "videoId": "ZIWRDI0eSpA",
+   "title": "How to Play 🥁   Today   Smashing Pumpkins",
+   "drummer": "n4u5pzcx",
+   "updated": 1794209451645,
+   "saved": false,
+   "lastUsed": 1794209451646,
    "fragments": []
   }
  ],
