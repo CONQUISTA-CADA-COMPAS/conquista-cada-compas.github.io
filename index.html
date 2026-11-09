@@ -648,7 +648,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <h1>Conquista cada compás</h1>
   </div>
   <form class="load" id="loadForm">
-    <input type="url" id="urlInput" placeholder="Pega aquí el enlace del vídeo de YouTube" aria-label="Enlace de YouTube">
+    <input type="url" id="urlInput" placeholder="Pega aquí el enlace de un vídeo de YouTube o pulsa «Buscar» para elegir uno de Jack Young" aria-label="Enlace de YouTube">
     <button class="ytsearch" type="button" id="ytSearchBtn" title="Buscar entre los vídeos de Jack Young" aria-expanded="false" aria-controls="ytPanel"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Buscar</button>
   </form>
   <span class="logo logo-end" aria-hidden="true"></span>
@@ -3100,6 +3100,18 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (i + step < 0) return $("ytQuery").focus();
     const n = items[Math.min(items.length - 1, i + step)]; n.focus(); n.scrollIntoView({ block: "nearest" });
   });
+
+  // Frase del recuadro del enlace: la larga si cabe; si no, una más corta
+  function fitUrlHint() {
+    const inp = $("urlInput"), long = "Pega aquí el enlace de un vídeo de YouTube o pulsa «Buscar» para elegir uno de Jack Young";
+    const c = fitUrlHint.c || (fitUrlHint.c = document.createElement("canvas").getContext("2d"));
+    const cs = getComputedStyle(inp); c.font = `${cs.fontSize} ${cs.fontFamily}`;
+    const room = inp.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    inp.placeholder = [long, "Pega un enlace de YouTube o pulsa «Buscar»", "Enlace de YouTube o «Buscar»"].find((t) => c.measureText(t).width <= room) || "Enlace o «Buscar»";
+  }
+  if (window.ResizeObserver) new ResizeObserver(fitUrlHint).observe($("urlInput"));
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitUrlHint);
+  fitUrlHint();
 
   // ---------- Teclado ----------
   // Barra espaciadora (para ensayar solos, lejos del ordenador):
