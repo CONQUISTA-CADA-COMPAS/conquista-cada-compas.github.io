@@ -170,6 +170,8 @@ header.top.wide .h-right .drumwrap { flex: 0 0 auto; min-width: 160px; }
 .ytp-head input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; display: none; }
 .ytp-box { position: relative; flex: 1; min-width: 0; display: flex; }
 .ytp-box input { padding-right: 44px; }
+/* en el móvil: el título arriba y el recuadro debajo, a todo el ancho */
+@media (max-width: 600px) { .ytp-head { flex-wrap: wrap; gap: 8px; } .ytp-box { flex: 1 1 100%; } }
 #ytClose { position: absolute; right: 6px; top: 50%; transform: translateY(-50%); width: 32px; height: 32px; border: none; border-radius: 6px;
   background: none; color: var(--done); font-size: 24px; font-weight: 700; line-height: 1; cursor: pointer; display: grid; place-items: center; }
 #ytClose:hover { background: var(--done); color: #fff; }
@@ -3071,6 +3073,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function ytOpen() {
     $("ytPanel").hidden = false; $("ytSearchBtn").setAttribute("aria-expanded", "true"); $("stage").classList.add("searching");
+    // frase del recuadro: la larga si cabe; si no, una corta
+    $("ytQuery").placeholder = $("ytQuery").clientWidth >= 430 ? "Busca entre los vídeos de Jack Young (p. ej. Killers)" : "Busca una canción o un grupo";
     ytSel = 0; ytEnsure(); ytRender();
     setTimeout(() => $("ytQuery").focus(), 0);
   }
