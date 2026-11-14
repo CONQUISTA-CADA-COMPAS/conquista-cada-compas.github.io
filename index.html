@@ -1094,7 +1094,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     videoId = id;
     if (player) { player.cueVideoById({ videoId: id, startSeconds: t }); return; }
     player = new YT.Player("player", {
-      // reproductor normal de YouTube (no «youtube-nocookie»): así reconoce la sesión y Gonzalo, con Premium, no ve anuncios
+      // reproductor normal de YouTube (no «youtube-nocookie»): así reconoce la sesión Premium y no salen anuncios
       host: "https://www.youtube.com",
       videoId: id,
       // si el aparato permite nuestra pantalla completa, se quita la de YouTube (dejaría fuera la cuenta de clics)
@@ -2337,7 +2337,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const REPO = (() => {
     const owner = location.hostname.endsWith(".github.io") ? location.hostname.split(".")[0] : "CONQUISTA-CADA-COMPAS";
     // en https://nombre.github.io/ (sin carpeta) el repositorio se llama igual que la dirección
-    const repo = location.hostname.endsWith(".github.io") ? (location.pathname.split("/")[1] || location.hostname) : "conquista-cada-compas";
+    const repo = location.hostname.endsWith(".github.io") ? (location.pathname.split("/")[1] || location.hostname) : "conquista-cada-compas.github.io";
     return `${owner}/${repo}`;
   })();
   const getKey = () => { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } };
@@ -2377,7 +2377,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       }
       else if (cur.status !== 404) throw { msg: `GitHub no ha respondido bien (error ${cur.status}).` };
       const data = { app: "ensayo-en-bucle", published: new Date().toISOString(), ...cleanLib(lib, true) };
-      const body = { message: "Sincronizar canciones desde la app", content: b64utf8(JSON.stringify(data, null, 1)), branch: "main" };
+      // se firma como la app (no con el nombre y el correo de quien creó la llave: el repositorio es público)
+      const sign = { name: "Conquista cada compás", email: "app@conquista-cada-compas.github.io" };
+      const body = { message: "Sincronizar canciones desde la app", content: b64utf8(JSON.stringify(data, null, 1)), branch: "main", author: sign, committer: sign };
       if (sha) body.sha = sha;
       const res = await fetch(api, { method: "PUT", headers: { ...headers, "Content-Type": "application/json" }, body: JSON.stringify(body) });
       if (res.status === 401) throw { msg: "La llave no es válida o ha caducado. Crea una nueva en GitHub y vuelve a pegarla.", forget: true };
