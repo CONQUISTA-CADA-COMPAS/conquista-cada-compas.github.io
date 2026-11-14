@@ -4,7 +4,7 @@ Léelo entero antes de tocar nada. Resume lo decidido con Gonzalo (el usuario) e
 
 ## Con quién trabajas
 
-- **Gonzalo**, padre de **Dari** y **Gabi**, que estudian batería con su profesor **Pedro**.
+- **Gonzalo**, padre de **Dari** y **Gabi** (así se llaman sus perfiles de baterista), que estudian batería con su profesor **Pedro**.
 - **No sabe de música ni de programación.** Escríbele siempre en **español**, claro y sin jerga. Si usas un término musical (BPM, compás, tresillo…), explícalo.
 - **Paso a paso, de uno en uno.** Lo pidió así expresamente: no le des cinco pasos de golpe cuando tiene que hacer algo en GitHub u otra web. Un paso, espera su captura, el siguiente.
 - Suele mandar **capturas de pantalla**. Míralas con atención antes de responder.
@@ -26,7 +26,7 @@ Una página web (un solo archivo `index.html`, sin servidor ni librerías extern
 - **Guardar compases**: marcar inicio/final (−1 s, −0,2, +0,2, +1 s), escuchar y guardar. Con un compás elegido, «Guardar» modifica ese mismo.
 - **Bateristas**: menú «Baterista» arriba (junto a «Cargar canción»). Cada baterista tiene sus canciones. Lápiz para renombrar. No se recuerda el baterista elegido entre visitas (se elige cada vez).
 - **Comparte canciones y partituras** (así se llama el panel, lo eligió Gonzalo; **sin frase explicativa**, igual que «Sincronizar mis dispositivos». Solo sale texto cuando el baterista aún no tiene canciones: «X todavía no tiene canciones. Comparte este enlace por WhatsApp o correo: quien lo abra verá a X en la app, listo para guardar sus canciones.» Nada de nombrar al profesor ni a la familia): enlace `#c=…` (JSON en base64) por WhatsApp/correo. Si el baterista no tiene canciones, el botón es «Enviar a <nombre>» (caso de Pedro creando a sus alumnos). Al abrir un enlace solo se **añade y actualiza**, nunca se borra. Si llega un baterista con el mismo nombre que uno local, se pregunta «¿Es el mismo?» (unir o añadir como «Nombre (2)»); la respuesta se recuerda con `aka`. Compases con el mismo inicio y final (±0,05 s) se unen en uno.
-- **Sincronizar mis dispositivos**: sube `canciones.json` al repositorio con la API de GitHub usando una **llave** (token *fine-grained*, Resource owner = la organización, permiso Contents: Read and write) que se guarda solo en el navegador. Los dispositivos «de la familia» (con llave o que han abierto el enlace de dispositivos `#Dari-y-Gabi`) cargan esa lista al abrir. Aquí sí viajan los borrados (`deleted`). Al abrir, la lista se lee **directamente del repositorio** con la API de GitHub (al día al instante tras sincronizar) y, si falla, de la página publicada (que GitHub tarda unos minutos en actualizar).
+- **Sincronizar mis dispositivos**: sube `canciones.json` al repositorio con la API de GitHub usando una **llave** (token *fine-grained*, Resource owner = la organización, permiso Contents: Read and write) que se guarda solo en el navegador. Los dispositivos «de la familia» (los que tienen la llave; el antiguo enlace familiar se quitó) cargan esa lista al abrir. Aquí sí viajan los borrados (`deleted`). Al abrir, la lista se lee **directamente del repositorio** con la API de GitHub (al día al instante tras sincronizar) y, si falla, de la página publicada (que GitHub tarda unos minutos en actualizar).
 - Pantalla completa propia, portada (`portada.webp`) y el **reproductor normal de YouTube** (`www.youtube.com`, no `youtube-nocookie`: con «sin cookies» YouTube no reconocía la sesión Premium de Gonzalo y ponía anuncios). El vídeo incrustado usa siempre la **primera cuenta del navegador** (`authuser=0`); Gonzalo tiene como primera una cuenta sin Premium, así que usa la app en un **perfil de Chrome aparte («Batería») con solo su cuenta personal Premium**. Tipos de letra incrustados en el HTML (no se piden a Google).
 
 ### Diseño
@@ -40,7 +40,7 @@ Una página web (un solo archivo `index.html`, sin servidor ni librerías extern
 
 ## Dónde está publicada
 
-- **El repositorio es público** (GitHub Pages gratis lo exige): **nunca** escribas en él apellidos, correos, nombres de cuentas, teléfonos, direcciones ni nada personal (ni en archivos, ni en comentarios, ni en mensajes de commit). Solo nombres de pila. Las sincronizaciones de la app se firman como «Conquista cada compás», no con la cuenta de Gonzalo. En noviembre de 2026 se limpió todo el historial.
+- **El repositorio es público** (GitHub Pages gratis lo exige): **nunca** escribas en él apellidos, correos, nombres de cuentas, teléfonos, direcciones ni nada personal (ni en archivos, ni en comentarios, ni en mensajes de commit). Solo nombres de pila; los niños son «Dari» y «Gabi», nunca sus nombres completos. Las sincronizaciones de la app se firman como «Conquista cada compás», no con la cuenta de Gonzalo. En noviembre de 2026 se limpió todo el historial.
 
 - Repositorio: **`CONQUISTA-CADA-COMPAS/conquista-cada-compas.github.io`** (organización de GitHub; se movió desde un repositorio de su cuenta personal).
 - Dirección: **https://conquista-cada-compas.github.io/** (GitHub Pages desde `main`; tarda uno o dos minutos en actualizarse; Ctrl + F5 si no se ve).

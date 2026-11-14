@@ -831,7 +831,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <button class="helplink" type="button" id="keyHelpBtn">¿Cómo consigo la llave?</button>
       </form>
       <p class="note" id="pubStatus" hidden></p>
-      <button class="linkbtn" type="button" id="familyLinkBtn" hidden>Copiar enlace (para tus otros dispositivos)</button>
       <button class="linkbtn" type="button" id="keyForget" hidden>Quitar la llave de este dispositivo</button>
     </div>
   </aside>
@@ -2341,10 +2340,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     return `${owner}/${repo}`;
   })();
   const getKey = () => { try { return localStorage.getItem(KEY_STORE) || ""; } catch (e) { return ""; } };
-  // Dispositivos «de la familia»: los que tienen la llave o han abierto una vez el enlace familiar (#Dari-y-Gabi).
+  // Dispositivos «de la familia»: los que tienen la llave (o que la tuvieron o abrieron el antiguo enlace familiar).
   // Los demás (profesor, otros padres) no ven la lista sincronizada: solo lo suyo y lo que les compartan.
   const FAMILY_KEY = "ensayo-en-bucle-familia";
-  const FAMILY_HASH = "#Dari-y-Gabi";   // enlace familiar: https://conquista-cada-compas.github.io/#Dari-y-Gabi
   const isFamily = () => { try { return !!localStorage.getItem(FAMILY_KEY) || !!getKey(); } catch (e) { return false; } };
   const markFamily = () => { try { localStorage.setItem(FAMILY_KEY, "1"); } catch (e) {} };
 
@@ -2352,7 +2350,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function showPubStatus(t) { $("pubStatus").textContent = t; $("pubStatus").hidden = !t; }
   function refreshKeyUI() {
     $("keyForget").hidden = !getKey();
-    if ($("familyLinkBtn")) $("familyLinkBtn").hidden = !isFamily();
   }
   function b64utf8(str) { const bytes = new TextEncoder().encode(str); let bin = ""; bytes.forEach((b) => (bin += String.fromCharCode(b))); return btoa(bin); }
   async function publishToGitHub() {
@@ -2409,12 +2406,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   $("keyCancel").onclick = () => { $("keyForm").hidden = true; $("keyInput").value = ""; };
   $("keyForget").onclick = () => { setKey(""); refreshKeyUI(); showPubStatus("Llave quitada de este dispositivo."); };
   refreshKeyUI();
-  $("familyLinkBtn").onclick = () => {
-    const url = location.origin + location.pathname + FAMILY_HASH;
-    const ok = () => toast("Enlace copiado: ábrelo una vez en cada uno de tus dispositivos");
-    const fallback = () => { $("importBox").hidden = false; $("importText").value = url; $("importText").select(); toast("Selecciona el enlace del recuadro y cópialo"); };
-    if (navigator.clipboard) navigator.clipboard.writeText(url).then(ok, fallback); else fallback();
-  };
   // Ayuda de «Compartir canciones»
   const shareHelp = $("shareHelp");
   const openDlg = (d) => { if (d.showModal) d.showModal(); else d.setAttribute("open", ""); };
@@ -3306,12 +3297,6 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   renderDrummers(); renderBoard(); renderLibrary(); updateFragUI();
   loadPublished();
 
-  // Enlace familiar: este dispositivo pasa a recibir la lista sincronizada
-  if (decodeURIComponent(location.hash).toLowerCase() === FAMILY_HASH.toLowerCase()) {
-    markFamily();
-    try { history.replaceState(null, "", location.pathname); } catch (e) {}
-    loadPublished().then(() => toast("Dispositivo de la familia: ya verás las canciones sincronizadas"));
-  }
   // Abrir un enlace compartido
   const hm = location.hash.match(/^#c=([\w-]+)/);
   if (hm) (async () => {
