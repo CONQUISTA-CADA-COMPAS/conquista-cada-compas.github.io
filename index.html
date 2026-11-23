@@ -2472,6 +2472,26 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     { id: "ritmo-reto-grade-8", title: "Ritmo reto grade 8", sub: "Tresillos con notas fantasma · compases 24 y 25", bpm: 100, div: 3, plain: true, lines: [
       [{ up: "c.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "B....B...B.." }, { up: "x.xx.xx.xx.x", us: ".g..g.Sg..g.", low: "..B........B" }],
     ] },
+    { id: "biblia-5", title: "Biblia 5", sub: "Página 16 · ejercicios 12 a 16 · caja (arriba) y bombo (abajo) en 2/4, semicorcheas", bpm: 60, div: 4, beats: 2, ts: [2, 4], one: true, dbl: true, lines: (() => {
+      // Cada compás repite dos veces el mismo grupo. Ritmo del grupo (en semicorcheas): 12 = 16-8-16, 13 = 8-16-16, 14 = silencio + 3, 15 y 16 = 4 semicorcheas.
+      // Letras: S = caja (nota encima de la raya), B = bombo (nota debajo). Leído nota a nota de la hoja.
+      const SL = { 12: [0, 1, 3], 13: [0, 2, 3], 14: [1, 2, 3], 15: [0, 1, 2, 3], 16: [0, 1, 2, 3] };
+      const rows = [
+        [12, ["SSS", "BBB", "SSB", "SBS"]], [12, ["BSS", "BBS", "BSB", "SBB"]],
+        [13, ["SSS", "BBB", "SSB", "SBS"]], [13, ["BSS", "BBS", "BSB", "SBB"]],
+        [14, ["SSS", "BBB", "SSB", "SBS"]], [14, ["BSS", "BBS", "BSB", "SBB"]],
+        [15, ["SSSS", "BBBB", "SSBB", "BBSS"]], [15, ["SBSB", "BSBS", "SBBS", "BSSB"]],
+        [16, ["SSSB", "SSBS", "SBSS", "BSSS"]], [16, ["BBBS", "BBSB", "BSBB", "SBBB"]],
+      ];
+      return rows.map(([ex, pats], ri) => pats.map((pat, bi) => {
+        let us = "........", low = "........";
+        for (let beat = 0; beat < 2; beat++) SL[ex].forEach((q, k) => {
+          const i = beat * 4 + q, c = pat[k];
+          if (c === "S") us = us.slice(0, i) + "S" + us.slice(i + 1); else low = low.slice(0, i) + "B" + low.slice(i + 1);
+        });
+        return Object.assign({ us, low }, ri % 2 === 0 && bi === 0 ? { n: ex } : {});
+      }));
+    })() },
     { id: "biblia-3", title: "Biblia 3", sub: "Página 154 · 32 ejercicios de bombo en 2/4 (semicorcheas)", bpm: 60, div: 4, beats: 2, ts: [2, 4], lines: (() => {
       // Plato en corcheas, caja en el 2; el bombo cambia: tiempo 1 (P) + tiempo 2 (Q). «-» = silencio.
       const P = ["B...", "B.B.", "B..B", "B.BB", "BB-.", "BB.B"], Q = ["....", "..B.", ".B..", "...B", ".B.B", ".BB."];
@@ -2514,7 +2534,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const yCR = Y0 - SP, yHH = Y0 - SP * 0.5, ySN = Y0 + SP * 1.5, yBD = Y0 + SP * 3.5, TOP = Y0 - SP * 3.6, BOT = Y0 + SP * 7;
   // Ancho de cada tiempo según cómo se divide (corcheas o tresillos)
   const geo = (div, beats = 4) => { const SU = div === 3 ? 32 : div === 4 ? 22 : 30, BW = SU * div; return { div, beats, SU, BW, BAR: beats * BW, PAD: SU / 2 }; };
-  const geoS = (s) => geo(scDiv(s), (s && s.beats) || 4);
+  const geoS = (s) => Object.assign(geo(scDiv(s), (s && s.beats) || 4), { one: !!(s && s.one), dbl: !!(s && s.dbl) });
   const scDiv = (s) => (s && s.div) || 2;
   const svStaff = (x0, x1) => { let s = ""; for (let i = 0; i < 5; i++) s += `<line class="st" x1="${x0}" x2="${x1}" y1="${Y0 + i * SP}" y2="${Y0 + i * SP}" stroke-width="1.2"/>`; return s; };
   const svBar = (x, w = 1.4) => `<rect x="${x - w / 2}" y="${Y0}" width="${w}" height="${SP * 4}" fill="currentColor"/>`;
@@ -2580,7 +2600,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
           svg += svTup(xs(bx, p) - 8, xs(bx, p + div - 1) + 2, BOT + 9, true);
         }
       }
-      if (bi > 0) svg += bar.n ? svBar(bx - 2.5) + svBar(bx + 1.5) : svBar(bx);   // entre ejercicios, doble raya
+      if (bi > 0) svg += bar.n || g.dbl ? svBar(bx - 2.5) + svBar(bx + 1.5) : svBar(bx);   // entre ejercicios, doble raya
     });
     return { svg, notes };
   }
@@ -2594,14 +2614,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const div = g.div, end = p + div, xs = (q) => bx + g.PAD + q * g.SU, at = (str, q) => (str || "")[q] || ".";
     const voice = (isUp) => {
       const ons = [], rests = [];
+      const lowOn = (q) => at(bar.low, q) !== "." && at(bar.low, q) !== "-";
       for (let q = p; q < end; q++) {
-        if (isUp ? at(bar.up || bar.hh, q) !== "." || at(bar.us, q) !== "." : at(bar.low, q) !== "." && at(bar.low, q) !== "-") ons.push(q);
+        if (isUp ? at(bar.up || bar.hh, q) !== "." || at(bar.us, q) !== "." || (g.one && lowOn(q)) : lowOn(q)) ons.push(q);
         else if (!isUp && at(bar.low, q) === "-") rests.push(q);
       }
       const RDY = SP * 1.6;
       if (!ons.length) { if (!isUp) svg += `<g transform="translate(0 ${SP * 1.2})">${svQRest(xs(p) + g.SU)}</g>`; return; }
       const stops = [...ons, ...rests, end].sort((a, b) => a - b), dur = (q) => stops.find((x) => x > q) - q;
       if (!isUp && ons[0] > p) svg += svRestLen(xs(p), ons[0] - p, RDY);
+      if (isUp && g.one && ons[0] > p) svg += svRestLen(xs(p), ons[0] - p, 0);   // silencio al principio del tiempo
       if (!isUp) rests.forEach((q) => (svg += svRestLen(xs(q), dur(q), RDY)));
       const stems = [];
       ons.forEach((q) => {
@@ -2614,7 +2636,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
             notes.push({ t: tq(q), inst: cym === "o" ? "hho" : cym === "c" ? "cr" : cym === "r" ? "rd" : "hh", id: nid });
           }
           if (sn !== ".") { heads += svHead(cx, ySN, "S", sn === "g"); lowY = ySN; notes.push({ t: tq(q), inst: sn === "g" ? "G" : "S", id: nid }); }
-          sx = sn !== "." ? cx + 5.6 : cx + 4.3; dotY = ySN;
+          if (g.one && lowOn(q)) { const ch = at(bar.low, q), cy = ch === "S" ? ySN : yBD; heads += svHead(cx, cy, ch); lowY = Math.max(lowY, cy); notes.push({ t: tq(q), inst: ch, id: nid }); }
+          sx = sn !== "." || (g.one && lowOn(q)) ? cx + 5.6 : cx + 4.3; dotY = ySN;
           stem = `<rect x="${sx - 0.75}" y="${TOP}" width="1.5" height="${lowY - TOP}" fill="currentColor"/>`;
           if (ons.length === 1 && d < div) for (let f = 0; f < (d === 1 ? 2 : 1); f++) flag += `<path d="M${sx} ${TOP + f * 7}c1 6 9 7 9 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>`;
         } else {
@@ -2639,7 +2662,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         });
       }
     };
-    voice(true); voice(false);
+    voice(true); if (!g.one) voice(false);
     return svg;
   }
   const musClass = () => "mus" + (scOpt.colors ? " color" : "");
@@ -2647,7 +2670,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Panel «Mis partituras»
   function renderScores() {
     const box = $("scoreList"); box.innerHTML = "";
-    const pos = (s) => { const i = (scStore.order2 || []).indexOf(s.id); return i < 0 ? 1e6 + SCORES.indexOf(s) : i; };
+    const pos = (s) => { const i = (scStore.order2 || []).indexOf(s.id); return i < 0 ? -1e6 + SCORES.indexOf(s) : i; };   // una partitura nueva sale la primera
     const list = SCORES.filter(scVisible).sort((a, b) => pos(a) - pos(b));
     if (!list.length) box.innerHTML = `<p class="lib-empty">No hay partituras para ${drummerName(drummerId) || "este baterista"}.</p>`;
     list.forEach((s) => {
@@ -2853,25 +2876,42 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const f = audioCtx.createBiquadFilter(); f.type = type; f.frequency.value = freq;
     const g = scEnv(out, t, peak, dur); src.connect(f); f.connect(g); src.start(t); src.stop(t + dur + 0.05); return g;
   }
+  // Platos «metálicos»: seis ondas cuadradas desafinadas entre sí (como las cajas de ritmos clásicas), filtradas
+  const METAL = [205.3, 304.4, 369.6, 522.7, 540, 800];
+  function scMetal(out, t, dur, peak, bp, hp, mult = 1) {
+    const g = scEnv(out, t, peak, dur), band = audioCtx.createBiquadFilter(), high = audioCtx.createBiquadFilter();
+    band.type = "bandpass"; band.frequency.value = bp; band.Q.value = 0.8; high.type = "highpass"; high.frequency.value = hp;
+    band.connect(high); high.connect(g);
+    METAL.forEach((f) => { const o = audioCtx.createOscillator(); o.type = "square"; o.frequency.value = f * mult; o.connect(band); o.start(t); o.stop(t + dur + 0.05); });
+    return g;
+  }
+  // Cada pieza suena por separado: si caen dos a la vez (caja + charles, bombo + plato…) se oyen las dos
   function scDrum(out, inst, t) {
-    if (inst === "B") {
-      const o = audioCtx.createOscillator(); o.frequency.setValueAtTime(150, t); o.frequency.exponentialRampToValueAtTime(45, t + 0.13);
-      o.connect(scEnv(out, t, 1, 0.38)); o.start(t); o.stop(t + 0.4);
-    } else if (inst === "S" || inst === "G") {   // G = nota fantasma: la misma caja, muy flojito
-      const v = inst === "G" ? 0.22 : 1;
-      scNoiseHit(out, t, inst === "G" ? 0.1 : 0.19, "highpass", 1200, 0.55 * v);
-      const o = audioCtx.createOscillator(); o.type = "triangle"; o.frequency.value = 190; o.connect(scEnv(out, t, 0.45 * v, 0.1)); o.start(t); o.stop(t + 0.12);
-    } else if (inst === "rd") {   // plato ride: un «ping» con algo de brillo
-      scNoiseHit(out, t, 0.35, "bandpass", 6500, 0.22);
-      const o = audioCtx.createOscillator(); o.type = "sine"; o.frequency.value = 3100; o.connect(scEnv(out, t, 0.08, 0.25)); o.start(t); o.stop(t + 0.3);
-    } else if (inst === "cr") {
-      scNoiseHit(out, t, 1.4, "highpass", 4500, 0.4);
-      scNoiseHit(out, t, 0.5, "bandpass", 9000, 0.25);
-    } else {
+    if (inst === "B") {   // bombo: golpe grave que cae de tono + «clic» del mazo
+      const o = audioCtx.createOscillator(); o.type = "sine";
+      o.frequency.setValueAtTime(170, t); o.frequency.exponentialRampToValueAtTime(48, t + 0.11);
+      o.connect(scEnv(out, t, 1.1, 0.42)); o.start(t); o.stop(t + 0.45);
+      scNoiseHit(out, t, 0.018, "lowpass", 2500, 0.35);
+    } else if (inst === "S" || inst === "G") {   // caja: cuerpo del parche + bordonera; G = nota fantasma, muy flojita
+      const v = inst === "G" ? 0.2 : 1;
+      const o1 = audioCtx.createOscillator(), o2 = audioCtx.createOscillator(); o1.type = o2.type = "triangle";
+      o1.frequency.setValueAtTime(240, t); o1.frequency.exponentialRampToValueAtTime(180, t + 0.06); o2.frequency.value = 330;
+      o1.connect(scEnv(out, t, 0.55 * v, 0.11)); o2.connect(scEnv(out, t, 0.22 * v, 0.07));
+      o1.start(t); o2.start(t); o1.stop(t + 0.14); o2.stop(t + 0.1);
+      scNoiseHit(out, t, inst === "G" ? 0.09 : 0.2, "highpass", 1800, 0.62 * v);
+      scNoiseHit(out, t, 0.05, "bandpass", 4200, 0.3 * v);
+    } else if (inst === "rd") {   // ride: «ping» metálico que dura
+      scMetal(out, t, 0.9, 0.09, 4200, 2500, 1.6);
+      const o = audioCtx.createOscillator(); o.type = "sine"; o.frequency.value = 2650; o.connect(scEnv(out, t, 0.05, 0.6)); o.start(t); o.stop(t + 0.65);
+    } else if (inst === "cr") {   // crash: ruido brillante y largo
+      scNoiseHit(out, t, 1.6, "highpass", 4000, 0.4);
+      scMetal(out, t, 1.2, 0.12, 7000, 5000, 1.3);
+    } else {   // charles cerrado (corto) o abierto (largo; lo corta el siguiente golpe de charles)
       const r = scoreRun;
-      if (r.openHH) { r.openHH.gain.cancelScheduledValues(t); r.openHH.gain.setValueAtTime(0.2, t); r.openHH.gain.linearRampToValueAtTime(0.0001, t + 0.02); r.openHH = null; }
-      const g = scNoiseHit(out, t, inst === "hho" ? 0.5 : 0.055, "highpass", 7000, inst === "hho" ? 0.3 : 0.32);
-      if (inst === "hho") r.openHH = g;
+      if (r.openHH) { r.openHH.forEach((g) => { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.15, t); g.gain.linearRampToValueAtTime(0.0001, t + 0.02); }); r.openHH = null; }
+      const open = inst === "hho", dur = open ? 0.5 : 0.06;
+      const g1 = scMetal(out, t, dur, open ? 0.22 : 0.26, 10000, 7000), g2 = scNoiseHit(out, t, dur, "highpass", 8000, open ? 0.12 : 0.1);
+      if (open) r.openHH = [g1, g2];
     }
   }
   function scClick(out, t, level) {
@@ -2903,7 +2943,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const ctx = audio(); if (!ctx) return toast("Este navegador no puede hacer sonar el metrónomo.");
     keepAwake();
     $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
-    const div = scDiv(curScore()), e = 60 / scBpm(curScore()), out = ctx.createGain(); out.connect(ctx.destination);   // e = segundos por tiempo
+    const div = scDiv(curScore()), e = 60 / scBpm(curScore()), out = ctx.createGain();   // e = segundos por tiempo
+    const comp = ctx.createDynamicsCompressor();   // que dos golpes a la vez suenen claros, sin saturar
+    comp.threshold.value = -16; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15;
+    out.gain.value = 0.9; out.connect(comp); comp.connect(ctx.destination);
     scoreRun = Object.assign(st, { e, div, beats: (curScore().beats || 4), out, t0: ctx.currentTime + 0.15 + SC_LEAD * e, nextEv: 0, nextClick: -SC_LEAD * div, hi: 0, openHH: null });
     scoreRun.timer = setInterval(scSchedule, 25); scSchedule();
     scoreRun.raf = requestAnimationFrame(scFrame);
@@ -2926,7 +2969,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function scFrame() {
     const r = scoreRun; if (!r) return;
-    const T = (audioCtx.currentTime - r.t0) / r.e;
+    // lo que se oye llega un poco después de programarlo: la barra va acompasada con el sonido real
+    const lat = (audioCtx.outputLatency || 0) + (audioCtx.baseLatency || 0);
+    const T = (audioCtx.currentTime - lat - r.t0) / r.e;
     placeStrip(Math.min(T, r.total));
     const c = $("countin");
     if (T < 0) {
