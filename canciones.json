@@ -1,6 +1,6 @@
 {
  "app": "ensayo-en-bucle",
- "published": "2026-11-14T18:12:09.616Z",
+ "published": "2026-11-23T15:04:43.695Z",
  "drummers": [
   {
    "id": "n4u5pzcx",
@@ -15,17 +15,35 @@
  ],
  "songs": [
   {
-   "id": "il1dtil3",
-   "videoId": "jbHteJ1tbsM",
-   "title": "Never Gonna Give You Up   Rick Astley 🥁 Grade 1 Beginner Version",
-   "drummer": "9ar14mgy",
-   "updated": 1794240569700,
+   "id": "rp4lep1y",
+   "videoId": "J49XSwU404Q",
+   "title": "Can't Get Enough Trinity Grade 4 Drums",
+   "drummer": "n4u5pzcx",
+   "updated": 1795446060472,
    "saved": false,
-   "lastUsed": 1794240569702,
+   "lastUsed": 1795446060473,
    "fragments": []
   },
   {
-   "id": "jtg6p3un",
+   "id": "dnq07bti",
+   "videoId": "WYQYvnrMvDg",
+   "title": "🥁 How to Play - Jerk It Out   The Ceasars   JYDT   Grade 3",
+   "drummer": "n4u5pzcx",
+   "updated": 1794249759621,
+   "fragments": []
+  },
+  {
+   "id": "pabd659r",
+   "videoId": "ZIWRDI0eSpA",
+   "title": "How to Play 🥁   Today   Smashing Pumpkins",
+   "drummer": "n4u5pzcx",
+   "updated": 1794209451645,
+   "saved": false,
+   "lastUsed": 1794209451646,
+   "fragments": []
+  },
+  {
+   "id": "qrixsivv",
    "videoId": "5YtXSa8EohU",
    "title": "🥁Teenagers   My Chemical Romance   JYDT   Grade 4",
    "drummer": "n4u5pzcx",
@@ -35,7 +53,7 @@
    "fragments": []
   },
   {
-   "id": "8r94uud9",
+   "id": "uttk96uy",
    "videoId": "FI4tahavfsg",
    "title": "All These Things That I've Done - The Killers (Grade 5)",
    "drummer": "n4u5pzcx",
@@ -65,7 +83,7 @@
    ]
   },
   {
-   "id": "jv4pfnua",
+   "id": "70in0kne",
    "videoId": "0_3Pla56rEY",
    "title": "For Reasons Unknown   The Killers   JYDT   Grade 3",
    "drummer": "9ar14mgy",
@@ -88,7 +106,7 @@
    ]
   },
   {
-   "id": "33fkaqy0",
+   "id": "c4s289u1",
    "videoId": "0sZnzSgTaG4",
    "title": "When You Were Young - The Killers",
    "drummer": "n4u5pzcx",
@@ -125,7 +143,7 @@
    ]
   },
   {
-   "id": "3onryh4d",
+   "id": "mjsnixpf",
    "videoId": "WYQYvnrMvDg",
    "title": "Jerk It Out - The Ceasars (Grade 3)",
    "drummer": "9ar14mgy",
@@ -133,15 +151,7 @@
    "fragments": []
   },
   {
-   "id": "p021fet5",
-   "videoId": "WYQYvnrMvDg",
-   "title": "🥁 How to Play - Jerk It Out   The Ceasars   JYDT   Grade 3",
-   "drummer": "n4u5pzcx",
-   "updated": 1794249759621,
-   "fragments": []
-  },
-  {
-   "id": "ryquoo26",
+   "id": "6u0p5r3y",
    "videoId": "SmrZpiJ_gHo",
    "title": "🥁 Zombie - The Cranberries - Drums Playthrough",
    "drummer": "n4u5pzcx",
@@ -151,13 +161,13 @@
    "fragments": []
   },
   {
-   "id": "0c21tjev",
-   "videoId": "ZIWRDI0eSpA",
-   "title": "How to Play 🥁   Today   Smashing Pumpkins",
-   "drummer": "n4u5pzcx",
-   "updated": 1794209451645,
+   "id": "3wch81kf",
+   "videoId": "jbHteJ1tbsM",
+   "title": "Never Gonna Give You Up   Rick Astley 🥁 Grade 1 Beginner Version",
+   "drummer": "9ar14mgy",
+   "updated": 1794240569700,
    "saved": false,
-   "lastUsed": 1794209451646,
+   "lastUsed": 1794240569702,
    "fragments": []
   }
  ],
