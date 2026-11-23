@@ -633,8 +633,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 /* Pausa y barra de control sobre el vídeo */
 #songCtl .pausebtn, #fragCtl .pausebtn { flex: none; font-size: 14px; padding: 6px 10px; }
 /* Pausa / Seguir en magenta, como «Parar» */
-#songCtl .pausebtn, #fragCtl .pausebtn { background: var(--surface); border-color: var(--done); color: var(--done); }
-#songCtl .pausebtn:hover, #fragCtl .pausebtn:hover { background: var(--done-soft); border-color: var(--done); color: var(--done); }
+#songCtl .pausebtn, #fragCtl .pausebtn, .sv-ctl .pausebtn { background: var(--surface); border-color: var(--done); color: var(--done); }
+.sv-ctl .pausebtn { font-size: 15px; padding: 8px 16px; flex: none; }
+#songCtl .pausebtn:hover, #fragCtl .pausebtn:hover, .sv-ctl .pausebtn:hover { background: var(--done-soft); border-color: var(--done); color: var(--done); }
 .transport { position: absolute; left: 50%; bottom: 14px; transform: translateX(-50%); z-index: 5; display: flex; gap: 6px; padding: 6px;
   background: rgba(6, 14, 24, .62); border-radius: 999px; opacity: .8; }
 .transport:hover, .transport:focus-within { opacity: 1; }
@@ -688,6 +689,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <div class="sv-strip" id="svStrip"><div class="sv-play"></div><div class="sv-track" id="svTrack"></div></div>
         <div class="sv-ctl" id="scoreCtl">
           <button class="btn primary go" type="button" id="scoreGo">▶ Empezar ensayo</button>
+          <button class="btn go pausebtn" type="button" id="scorePause" hidden>❚❚ Pausa</button>
           <div class="sv-group"><span class="sv-cap">Velocidad</span>
             <div class="sc-bpm" title="Velocidad en golpes por minuto"><button type="button" id="scSlower" aria-label="Más despacio">−</button><input type="text" id="scBpmVal" inputmode="numeric" maxlength="3" value="70" aria-label="Velocidad en golpes por minuto" title="Escribe la velocidad y pulsa Intro"><button type="button" id="scFaster" aria-label="Más deprisa">+</button></div>
             <span class="sv-note">golpes por minuto</span>
@@ -1416,15 +1418,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     else if (songPlaying) player.pauseVideo();
     songPlaying = false; songStarting = false; songPaused = true; updateSongBtn();
   }
-  function resumeSong() {
-    songPaused = false; songCounting = true; updateSongBtn();
-    countdown(3, "Seguimos", () => {
-      songCounting = false; cancelPrime(); keepAwake();
-      songPlaying = true; songStarting = true;
-      setTimeout(() => { songStarting = false; updateSongBtn(); }, 4000);
-      applyRate(songRate); player.playVideo(); updateSongBtn();
-    });
+  function resumeSong() {   // sigue al instante, sin cuenta atrás (lo pidió Gonzalo)
+    songPaused = false; cancelPrime(); keepAwake();
+    songPlaying = true; songStarting = true;
+    setTimeout(() => { songStarting = false; updateSongBtn(); }, 4000);
+    applyRate(songRate); player.playVideo(); updateSongBtn();
   }
+
   $("songPause").onclick = () => (songPaused ? resumeSong() : pauseSong());
   $("songBtn").onclick = () => {
     hideDone();
@@ -1544,15 +1544,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function resumeFrag() {
     if (!running() || !session.paused) return;
     const was = session.paused; session.paused = null;
-    if (was === "play") {
-      session.phase = "resume";
-      countdown(3, `Repetición ${session.done + 1} de ${REPS}`, () => {
-        if (!running() || session.phase !== "resume") return;
-        session.timer = setTimeout(() => {   // también aquí: 1 s con la imagen quieta antes de seguir
-          if (!running() || session.phase !== "resume") return;
-          session.phase = "play"; cancelPrime(); applyRate(fragRate); player.playVideo(); renderBoard();
-        }, HOLD_MS);
-      });
+    if (was === "play") {   // sigue al instante desde donde se quedó, sin cuenta atrás
+      session.phase = "play"; cancelPrime(); applyRate(fragRate); player.playVideo();
     } else prepareRep();
     renderBoard();
   }
@@ -1730,7 +1723,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function setDrummer(id) {
     if (id === drummerId) return;
-    stopSession(true);
+    stopSession(true); stopSong();   // lo que sonara del otro baterista se para del todo
     drummerId = id;
     libTab = "saved";   // al cambiar de baterista se vuelve a «Canciones guardadas»
     currentSongId = null; currentFragId = null; frag = { start: 0, end: 0 }; $("fragName").value = ""; updateFragUI();
@@ -1812,7 +1805,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // ---------- Biblioteca ----------
   const openSongs = new Set();
   let libTab = "saved";
-  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => { libTab = t.dataset.tab; renderLibrary(); });
+  document.querySelectorAll(".tab").forEach((t) => t.onclick = () => {
+    if (t.dataset.tab === libTab) return;
+    stopSession(true); stopSong();   // cambiar de pestaña cancela lo que estuviera sonando
+    libTab = t.dataset.tab; renderLibrary();
+  });
   // Solo queda desplegado lo último que se abre: al abrir una canción (o un compás) se pliegan las demás
   function focusSong(id) { openSongs.clear(); if (id) openSongs.add(id); fragCtlClosed = false; }
   const fragsClosed = new Set();   // canciones con la lista de compases plegada
@@ -2069,7 +2066,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     closeScore(); focusSong(song.id);
     stopSession(); currentSongId = song.id; currentFragId = null;
     $("urlInput").value = "https://youtu.be/" + song.videoId;
-    songPlaying = false; updateSongBtn();
+    stopSong();
     frag = { start: 0, end: 0 }; $("fragName").value = ""; updateFragUI();
     if (videoId !== song.videoId) openVideo(song.videoId, 0);
     else if (playerReady) player.cueVideoById({ videoId: song.videoId, startSeconds: 0 });  // vuelve al fotograma 0, en pausa
@@ -2079,7 +2076,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     closeScore();
     stopSession();
     currentSongId = song.id; currentFragId = f.id; focusSong(song.id);
-    songPlaying = false; updateSongBtn();
+    stopSong();
     frag = { start: f.start, end: f.end };
     $("fragName").value = f.name;
     if (videoId !== song.videoId) openVideo(song.videoId, f.start);
@@ -2924,7 +2921,20 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const b = $("scoreGo"); if (!b) return;
     b.textContent = scoreRun ? "■ Parar ensayo" : "▶ Empezar ensayo";
     b.classList.toggle("stopping", !!scoreRun);
+    const pb = $("scorePause"); if (pb) { pb.hidden = !scoreRun; pb.textContent = scoreRun && scoreRun.paused ? "▶ Seguir" : "❚❚ Pausa"; }
   }
+  // Pausa de la partitura: se congela el reloj del sonido (y con él la tira); al seguir, continúa al instante
+  function pauseScore() {
+    const r = scoreRun; if (!r || r.paused) return;
+    r.paused = true; try { audioCtx.suspend(); } catch (e) {}
+    updateScoreBtn();
+  }
+  function resumeScore() {
+    const r = scoreRun; if (!r || !r.paused) return;
+    r.paused = false; try { audioCtx.resume(); } catch (e) {}
+    updateScoreBtn();
+  }
+  const toggleScorePause = () => (scoreRun && scoreRun.paused ? resumeScore() : pauseScore());
   function readyScore() {
     if (!curScore()) return;
     if (!scSel(curScore()).size) return toast("Marca al menos una línea para empezar el ensayo.");
@@ -2992,6 +3002,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function stopScore() {
     const r = scoreRun; if (!r) return;
+    if (r.paused) { r.paused = false; try { audioCtx.resume(); } catch (e) {} }
     clearInterval(r.timer); cancelAnimationFrame(r.raf);
     try { r.out.disconnect(); } catch (e) {}
     scoreRun = null;
@@ -3000,6 +3011,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     releaseAwake(); updateScoreBtn();
     if (curScore()) { scoreRest = buildStrip(); placeStrip(SC_REST); }
   }
+  $("scorePause").onclick = toggleScorePause;
   $("scoreGo").onclick = () => {
     hideDone();
     if (scoreRun) return stopScore();
@@ -3211,7 +3223,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // 1.ª pulsación: pantalla «Empezar ensayo…»; 2.ª: cuenta atrás de 5 y empieza. Si algo suena, lo para.
   function spaceBar() {
     if (readySpace) return readySpace();
-    if (scoreRun) return stopScore();
+    if (scoreRun) return toggleScorePause();
     if (scoreOpen) { hideDone(); return readyScore(); }
     if (running() || songCounting || songPlaying || songPaused) return togglePause();
     if (cancelCountdown()) return;
@@ -3222,7 +3234,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   document.addEventListener("keydown", (e) => {
     if (e.target.matches("input, textarea, select")) return;
-    if (e.code === "Space") { e.preventDefault(); spaceBar(); }
+    if (e.code === "Space") { e.preventDefault(); if (e.target.blur) e.target.blur(); spaceBar(); }
     if (e.key === "ArrowLeft" || e.key === "ArrowRight") { if (playerReady && !scoreOpen) { e.preventDefault(); seekBy(e.key === "ArrowLeft" ? -5 : 5); } }
     if (e.key === "Escape") {
       if ([...document.querySelectorAll(".speedmenu, .drummenu")].some((m) => !m.hidden)) { closeMenus(); }
@@ -3233,6 +3245,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       else cancelCountdown();
     }
   });
+
+  // un botón con el foco no debe «pulsarse» con la barra (eso lo haría el navegador al soltarla)
+  document.addEventListener("keyup", (e) => { if (e.code === "Space" && !e.target.matches("input, textarea, select")) e.preventDefault(); });
+  // Si se pincha en el vídeo de YouTube, el teclado se quedaría dentro del vídeo y la barra la recibiría YouTube:
+  // se recupera el teclado para la app (los botones del vídeo siguen funcionando)
+  window.addEventListener("blur", () => setTimeout(() => {
+    const a = document.activeElement;
+    if (a && a.tagName === "IFRAME") { a.blur(); window.focus(); }
+  }, 0));
 
   // ---------- Columna de canciones ----------
   function setWide(wide) {
