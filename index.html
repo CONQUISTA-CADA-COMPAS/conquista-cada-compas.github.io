@@ -2918,8 +2918,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     } else if (inst === "hf") {   // charles con el pie: «chic» corto y algo más apagado (también corta un charles abierto)
       const r = scoreRun;
       if (r.openHH) { r.openHH.forEach((g) => { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.15, t); g.gain.linearRampToValueAtTime(0.0001, t + 0.02); }); r.openHH = null; }
-      scMetal(out, t, 0.045, 0.3, 8000, 5500);
-      scNoiseHit(out, t, 0.03, "bandpass", 3500, 0.12);
+      // va por su propio canal, sin pasar por el compresor, para que la caja no lo tape
+      const dry = r.dry || out;
+      scMetal(dry, t, 0.08, 0.55, 9500, 6500);          // el «chic» metálico, más largo y más fuerte
+      scNoiseHit(dry, t, 0.06, "highpass", 9000, 0.22);   // el aire de los dos platos al cerrarse
+      scNoiseHit(dry, t, 0.025, "bandpass", 2800, 0.12);  // el golpecito del pedal
     } else {   // charles cerrado (corto) o abierto (largo; lo corta el siguiente golpe de charles)
       const r = scoreRun;
       if (r.openHH) { r.openHH.forEach((g) => { g.gain.cancelScheduledValues(t); g.gain.setValueAtTime(0.15, t); g.gain.linearRampToValueAtTime(0.0001, t + 0.02); }); r.openHH = null; }
@@ -2974,7 +2977,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const comp = ctx.createDynamicsCompressor();   // que dos golpes a la vez suenen claros, sin saturar
     comp.threshold.value = -16; comp.knee.value = 8; comp.ratio.value = 4; comp.attack.value = 0.003; comp.release.value = 0.15;
     out.gain.value = 0.9; out.connect(comp); comp.connect(ctx.destination);
-    scoreRun = Object.assign(st, { e, div, beats: (curScore().beats || 4), out, t0: ctx.currentTime + 0.15 + SC_LEAD * e, nextEv: 0, nextClick: -SC_LEAD * div, hi: 0, openHH: null });
+    const dry = ctx.createGain(); dry.gain.value = 0.9; dry.connect(ctx.destination);   // canal aparte para el charles con el pie
+    scoreRun = Object.assign(st, { e, div, beats: (curScore().beats || 4), out, dry, t0: ctx.currentTime + 0.15 + SC_LEAD * e, nextEv: 0, nextClick: -SC_LEAD * div, hi: 0, openHH: null });
     scoreRun.timer = setInterval(scSchedule, 25); scSchedule();
     scoreRun.raf = requestAnimationFrame(scFrame);
     updateScoreBtn();
@@ -3022,6 +3026,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (r.paused) { r.paused = false; try { audioCtx.resume(); } catch (e) {} }
     clearInterval(r.timer); cancelAnimationFrame(r.raf);
     try { r.out.disconnect(); } catch (e) {}
+    try { r.dry.disconnect(); } catch (e) {}
     scoreRun = null;
     if (!$("countin").querySelector(".donemsg")) $("countin").hidden = true;
     $("svRep").hidden = true;
