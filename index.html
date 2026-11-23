@@ -2462,6 +2462,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // ---------- Mis partituras ----------
   // Partituras pasadas a limpio en el chat, nota a nota, y comprobadas por Gonzalo.
+  // La más nueva va ARRIBA del todo en esta lista: así sale la primera en «Mis partituras».
   // Cada compás: 4 tiempos × div casillas (div 2 = corcheas, div 3 = tresillos).
   // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash, r = plato ride.  beats = tiempos por compás (4 si no se dice).  us (caja con plica arriba): S = caja, g = nota fantasma.
   // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
@@ -2667,7 +2668,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Panel «Mis partituras»
   function renderScores() {
     const box = $("scoreList"); box.innerHTML = "";
-    const pos = (s) => { const i = (scStore.order2 || []).indexOf(s.id); return i < 0 ? -1e6 + SCORES.indexOf(s) : i; };   // una partitura nueva sale la primera
+    // La última partitura que se añade (la primera de SCORES) va SIEMPRE la primera; las demás, en el orden guardado
+    const pos = (s) => { if (s === SCORES[0]) return -1e9; const i = (scStore.order2 || []).indexOf(s.id); return i < 0 ? -1e6 + SCORES.indexOf(s) : i; };
     const list = SCORES.filter(scVisible).sort((a, b) => pos(a) - pos(b));
     if (!list.length) box.innerHTML = `<p class="lib-empty">No hay partituras para ${drummerName(drummerId) || "este baterista"}.</p>`;
     list.forEach((s) => {
