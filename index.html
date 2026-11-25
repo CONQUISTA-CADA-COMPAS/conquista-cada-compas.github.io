@@ -279,6 +279,7 @@ main.wide > aside { display: none; }
 .readyplay svg { margin-left: 6px; }
 .readycancel { background: none; border: 1.5px solid rgba(255,255,255,.5); color: #fff; border-radius: 8px; padding: 6px 16px; font-weight: 700; font-size: 14px; }
 .countin .donemsg { font-size: clamp(30px, 4.5vw, 54px); text-align: center; padding: 0 16px; color: #ff0b5e; }
+.countin .doneacc { display: block; font-size: .62em; margin-top: 6px; }
 .countin small { display: block; font-size: 22px; font-family: var(--body); font-weight: 700; text-align: center; margin-top: 8px; color: #ff0b5e; }
 
 /* Línea de tiempo */
@@ -585,6 +586,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-head > div { flex: 1; min-width: 0; }
 .sv-head b { display: block; font-family: var(--display); font-size: clamp(16px, 2vw, 24px); line-height: 1.15; }
 .sv-head span.sv-sub { display: block; font-size: clamp(11px, 1.2vw, 14px); color: #5a6876; }
+.sv-acc { font-family: var(--display); font-weight: 800; font-size: clamp(15px, 1.8vw, 22px); color: #00a57a; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sv-acc.up { animation: accUp .4s ease-out; } .sv-acc.down { animation: accDown .4s ease-out; }
+@keyframes accUp { from { transform: scale(1.18); } } @keyframes accDown { from { color: #ff0b5e; transform: scale(1.12); } }
+.mus .n.ok .h { filter: drop-shadow(0 0 2px #00d49e) drop-shadow(0 0 3px #00d49e); }
+.mus .xm { fill: #ff0b5e; font: 800 18px var(--body); text-anchor: middle; dominant-baseline: central; }
 .sv-rep { font-family: var(--display); font-weight: 800; font-size: clamp(15px, 1.8vw, 22px); color: #ff0b5e; white-space: nowrap; }
 .sv-close { border: 1.5px solid #cfd7e0; background: #fff; color: #15202b; border-radius: 8px; width: 34px; height: 34px; font-size: 20px; line-height: 1; flex: none; }
 .sv-close:hover { border-color: #ff0b5e; color: #ff0b5e; }
@@ -715,7 +721,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       </div>
       <!-- Mis partituras: la partitura ocupa el sitio del vídeo (papel blanco) -->
       <div class="scoreview" id="scoreView" hidden>
-        <div class="sv-head"><div><b id="svTitle"></b><span class="sv-sub" id="svSub"></span></div><span class="sv-rep" id="svRep" hidden></span><button class="sv-close" type="button" id="svClose" title="Cerrar la partitura y volver al vídeo" aria-label="Cerrar la partitura">×</button></div>
+        <div class="sv-head"><div><b id="svTitle"></b><span class="sv-sub" id="svSub"></span></div><span class="sv-acc" id="svAcc" hidden></span><span class="sv-rep" id="svRep" hidden></span><button class="sv-close" type="button" id="svClose" title="Cerrar la partitura y volver al vídeo" aria-label="Cerrar la partitura">×</button></div>
         <div class="sv-strip" id="svStrip"><div class="sv-play"></div><div class="sv-track" id="svTrack"></div></div>
         <div class="sv-ctl" id="scoreCtl">
           <button class="btn primary go" type="button" id="scoreGo">▶ Empezar ensayo</button>
@@ -734,6 +740,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
             <label class="sc-check vid-hide"><input type="checkbox" id="scClick"> Metrónomo</label>
             <label class="sc-check vid-hide"><input type="checkbox" id="scSub"> Subdivisión</label>
             <label class="sc-check"><input type="checkbox" id="scColors"> Colores</label>
+            <label class="sc-check" id="scMidiLbl" title="Con la batería electrónica conectada por USB, la app comprueba cada golpe"><input type="checkbox" id="scMidi"> Nota con mi batería</label>
           </div>
         </div>
         <div class="sv-lines" id="svLines" hidden>
@@ -1680,10 +1687,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   // «¡Ensayo completado!» sobre el vídeo durante unos segundos
   let doneTimer = null;
-  function showDone() {
+  function showDone(acc) {
     const c = $("countin"); c.hidden = false;
-    c.innerHTML = `<div class="donemsg">¡Ensayo completado!<small>Pulsa «Empezar ensayo» para repetirlo</small></div>`;
-    clearTimeout(doneTimer); doneTimer = setTimeout(hideDone, 6000);
+    c.innerHTML = `<div class="donemsg">¡Ensayo completado!${acc ? `<b class="doneacc"></b>` : ""}<small>Pulsa «Empezar ensayo» para repetirlo</small></div>`;
+    if (acc) c.querySelector(".doneacc").textContent = acc;
+    clearTimeout(doneTimer); doneTimer = setTimeout(hideDone, acc ? 12000 : 6000);
   }
   function hideDone() { clearTimeout(doneTimer); if ($("countin").querySelector(".donemsg")) $("countin").hidden = true; }
   function recordPractice() {
@@ -2637,7 +2645,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   let scStore = {};
   try { scStore = JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch (e) {}
   scStore.sel = scStore.sel || {}; scStore.bpm = scStore.bpm || {};
-  const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false, vdrums: false }, scStore.opt || {});
+  const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false, vdrums: false, midi: false }, scStore.opt || {});
   scStore.rate = scStore.rate || {}; scStore.src = scStore.src || {}; scStore.blocked = scStore.blocked || {};
   const isVid = (s) => !!(s && s.video);
   function scSave() { scStore.opt = scOpt; try { localStorage.setItem(SCORE_KEY, JSON.stringify(scStore)); } catch (e) {} }
@@ -2962,7 +2970,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (songCounting || songPlaying) stopSong();
     if (!$("readyOverlay").hidden) $("readyCancel").click();
     hideDone();
-    scoreOpen = id; delete scSelNow[id]; scLinesOpen = true;
+    scoreOpen = id; delete scSelNow[id]; scLinesOpen = true; $("svAcc").hidden = true;
     openSongs.clear(); renderLibrary();   // al abrir una partitura se pliegan las canciones
     $("scoreView").hidden = false; $("stage").classList.add("scoring");
     const sv = curScore(), vid = isVid(sv);
@@ -3271,6 +3279,85 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const cancel = $("readyCancel").onclick;
     $("readyCancel").onclick = () => { cancel(); };
   }
+  // ---------- La nota con la batería electrónica ----------
+  // Cada nota de la tira espera su golpe: pieza correcta y a tiempo (±0,12 s) = acierto (halo verde); si pasa sin golpe
+  // o con otra pieza, fallo (× magenta). Los golpes que no tocan a ninguna nota cuentan como fallo. Charles abierto o
+  // cerrado da igual (cada batería lo manda a su manera) y el charles con el pie no cuenta (no manda golpe).
+  const EX_CLS = { B: "k", S: "s", G: "s", hh: "h", hho: "h", cr: "c", rd: "r", T1: "t1", T2: "t2", T3: "t3" };
+  const MIDI_CLS = { 35: "k", 36: "k", 37: "s", 38: "s", 40: "s", 22: "h", 26: "h", 42: "h", 46: "h", 49: "c", 55: "c", 57: "c", 52: "c",
+    51: "r", 59: "r", 53: "r", 48: "t1", 50: "t1", 45: "t2", 47: "t2", 43: "t3", 58: "t3", 41: "t3", 39: "t3" };
+  const EX_WIN = 0.12, EX_NEAR = 0.25;
+  function examStart(r) {
+    r.ex = null; $("svAcc").hidden = true;
+    if (!scOpt.midi || !midiAccess) return;
+    const ev = [], last = {};
+    r.events.forEach((e, i) => { const c = EX_CLS[e.inst]; if (c) ev.push({ t: e.t, c, el: r.els[i], st: 0, gp: 1e9, gn: 1e9 }); });
+    ev.forEach((e) => { const p = last[e.c]; if (p) { e.gp = p.gn = e.t - p.t; } last[e.c] = e; });
+    r.ex = { ev, good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h) };
+    midiListeners.add(r.ex.fn);
+    $("svAcc").hidden = false; examShow(r);
+  }
+  const exWin = (r, e) => Math.min(EX_WIN / r.exS, 0.45 * Math.min(e.gp, e.gn));   // en tiempos; nunca llega a la nota vecina
+  function exMark(e, ok) {
+    const el = e.el; if (!el) return;
+    if (ok) { if (!el.classList.contains("bad")) el.classList.add("ok"); return; }
+    el.classList.remove("ok"); if (el.classList.contains("bad")) return;
+    el.classList.add("bad");
+    try { const bb = el.getBBox(), x = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      x.setAttribute("class", "xm"); x.setAttribute("x", bb.x + bb.width / 2); x.setAttribute("y", BOT + 13); x.textContent = "×"; el.appendChild(x); } catch (err) {}
+  }
+  // Cada fotograma: dónde va la tira (T, en tiempos) y cuántos segundos dura un tiempo; las notas ya pasadas sin golpe, fallo
+  function examClock(r, T, spb) {
+    const x = r.ex; if (!x) return;
+    r.exT = T; r.exP = performance.now() / 1000; r.exS = spb;
+    let changed = false;
+    for (let i = x.next; i < x.ev.length; i++) {
+      const e = x.ev[i];
+      if (e.t > T) break;
+      if (e.st === 0 && e.t + exWin(r, e) < T) { e.st = 2; x.miss++; exMark(e, false); changed = true; }
+      if (i === x.next && e.st) x.next++;
+    }
+    if (changed) examShow(r);
+  }
+  function examHit(r, h) {
+    const x = r.ex; if (!x || r !== scoreRun || r.paused || r.frozen != null || r.exP == null || h.cc != null) return;
+    const c = MIDI_CLS[h.note]; if (!c) return;
+    const T = r.exT + (h.t - r.exP) / r.exS;
+    if (T < -0.5 || T > r.total + 0.5) return;   // durante la cuenta atrás no cuenta
+    let best = null, bd = 1e9;
+    for (let i = x.next; i < x.ev.length; i++) {
+      const e = x.ev[i]; if (e.t > T + EX_WIN / r.exS) break;
+      const d = Math.abs(e.t - T);
+      if (e.st === 0 && e.c === c && d <= exWin(r, e) && d < bd) { best = e; bd = d; }
+    }
+    if (best) { best.st = 1; x.good++; exMark(best, true); }
+    else {
+      // un golpe algo desplazado de una nota de esa pieza ya cuenta como fallo de esa nota: no se castiga dos veces
+      const near = x.ev.some((e) => e.c === c && Math.abs(e.t - T) < EX_NEAR / r.exS);
+      if (!near) x.extra++; else return;
+    }
+    examShow(r);
+  }
+  function examShow(r) {
+    const x = r.ex, n = x.good + x.miss + x.extra, el = $("svAcc");
+    if (!n) { el.textContent = "Acierto –"; return; }
+    const pct = Math.round((100 * x.good) / n);
+    el.textContent = `Acierto ${pct} %`;
+    if (x.pct >= 0 && pct !== x.pct) { el.classList.remove("up", "down"); void el.offsetWidth; el.classList.add(pct > x.pct ? "up" : "down"); }
+    x.pct = pct;
+  }
+  // Otra vuelta sobre las mismas notas (con la canción): se borran las marcas, la cuenta sigue
+  function examRewind(r) {
+    const x = r.ex; if (!x) return;
+    x.ev.forEach((e) => { e.st = 0; if (e.el) { e.el.classList.remove("ok", "bad"); const m = e.el.querySelector(".xm"); if (m) m.remove(); } });
+    x.next = 0; r.exP = null;   // hasta el siguiente fotograma no se sabe dónde va la tira
+  }
+  function examSummary() {
+    const r = scoreRun, x = r && r.ex; if (!x) return "";
+    const n = x.good + x.miss + x.extra; if (!n) return "";
+    return `Acierto: ${Math.round((100 * x.good) / n)} % · ${x.good} de ${x.good + x.miss} notas` + (x.extra ? ` · ${x.extra} ${x.extra === 1 ? "golpe" : "golpes"} de más` : "");
+  }
+  function examStop(r) { if (r && r.ex) midiListeners.delete(r.ex.fn); }
   function startScore(st) {
     const ctx = audio(); if (!ctx) return toast("Este navegador no puede hacer sonar el metrónomo.");
     keepAwake();
@@ -3281,6 +3368,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     out.gain.value = 0.9; out.connect(comp); comp.connect(ctx.destination);
     const dry = ctx.createGain(); dry.gain.value = 0.9; dry.connect(ctx.destination);   // canal aparte para el charles con el pie
     scoreRun = Object.assign(st, { e, div, beats: (curScore().beats || 4), out, dry, t0: ctx.currentTime + 0.15 + SC_LEAD * e, nextEv: 0, nextClick: -SC_LEAD * div, hi: 0, openHH: null });
+    examStart(scoreRun);
     scoreRun.timer = setInterval(scSchedule, 25); scSchedule();
     scoreRun.raf = requestAnimationFrame(scFrame);
     updateScoreBtn();
@@ -3306,6 +3394,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const lat = (audioCtx.outputLatency || 0) + (audioCtx.baseLatency || 0);
     const T = (audioCtx.currentTime - lat - r.t0) / r.e;
     placeStrip(Math.min(T, r.total));
+    examClock(r, T, r.e);
     const c = $("countin");
     if (T < 0) {
       const n = Math.min(5, Math.floor(T + SC_LEAD) + 1);
@@ -3320,7 +3409,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (el) { el.classList.add("now"); setTimeout(() => el.classList.remove("now"), Math.max(140, (r.e / r.div) * 600)); }
       r.hi++;
     }
-    if (T >= r.total + 0.5) { stopScore(); showDone(); return; }
+    if (T >= r.total + 0.5) { const sum = examSummary(); stopScore(); showDone(sum); return; }
     r.raf = requestAnimationFrame(scFrame);
   }
   function stopScore() {
@@ -3332,7 +3421,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       clearInterval(r.ytTimer); try { r.stream && r.stream.getTracks().forEach((t) => t.stop()); } catch (e) {}
     }
     else if (r.paused) { r.paused = false; try { audioCtx.resume(); } catch (e) {} }
-    clearInterval(r.timer); cancelAnimationFrame(r.raf);
+    clearInterval(r.timer); cancelAnimationFrame(r.raf); examStop(r);
     try { r.out.disconnect(); } catch (e) {}
     try { r.dry.disconnect(); } catch (e) {}
     scoreRun = null;
@@ -3396,6 +3485,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         if (s.sync) { c.innerHTML = `<div class="syncmsg">Elige la pestaña de YouTube<small>en la ventana que abre Chrome, y pulsa «Compartir»</small></div>`; ytWatch(scoreRun); }
         else c.innerHTML = `<div class="syncmsg">Pon la canción en YouTube<small>y pulsa la barra espaciadora (o «¡Ya!») justo cuando suene el primer golpe de batería</small></div>`;
       }
+      examStart(scoreRun);
       scoreRun.raf = requestAnimationFrame(vidFrame);
       updateScoreBtn();
       return;
@@ -3410,6 +3500,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (!scoreRun || !scoreRun.vid) return;
       if (playerReady && videoId === s.video && player.getDuration && player.getDuration() > 0) { clearInterval(scoreRun.wait); go(); }
     }, 100);
+    examStart(scoreRun);
     scoreRun.raf = requestAnimationFrame(vidFrame);
     updateScoreBtn();
   }
@@ -3438,6 +3529,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       }
     }
     placeStrip(Math.min(B, r.total));
+    if (playing) examClock(r, B, Math.max(0.05, (vidTime(r.s, r.startB + B + 1) - vidTime(r.s, r.startB + B)) / r.rate));
     const c = $("countin");
     if (B < 0) {
       const n = Math.ceil(-B - 0.001);
@@ -3460,11 +3552,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     }
     if (B >= r.total) {
       if (r.rep < r.reps) {   // otra vuelta: vuelve al principio con cuenta de 3
-        r.rep++; r.hi = 0; r.nextEv = 0; r.shown = 0; r.lead = 3;
+        r.rep++; r.hi = 0; r.nextEv = 0; r.shown = 0; r.lead = 3; examRewind(r);
         const back = Math.max(0, vidTime(r.s, r.startB) - 3 * r.beat);
         if (r.mode === "vid") { player.seekTo(back, true); r.lastCt = back; r.lastNow = now; }
         else { r.c0 = back; r.a0 = audioCtx.currentTime; }
-      } else { stopScore(); showDone(); }
+      } else { const sum = examSummary(); stopScore(); showDone(sum); }
     }
   }
   $("scRate").onchange = () => {
@@ -3519,6 +3611,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     clearTimeout(scTapReset); scTapReset = setTimeout(() => { scTaps = []; $("scTapHint").textContent = ""; }, 2000);
   };
   // Opciones
+  // Nota con la batería electrónica: al marcarla se conecta (Chrome pide permiso la primera vez)
+  if (!navigator.requestMIDIAccess) { $("scMidiLbl").hidden = true; scOpt.midi = false; }
+  $("scMidi").checked = scOpt.midi;
+  $("scMidi").onchange = async () => {
+    scOpt.midi = $("scMidi").checked; scSave();
+    if (scOpt.midi && !(await midiConnect())) { scOpt.midi = $("scMidi").checked = false; scSave(); toast($("midiStatus").textContent); return; }
+    if (scOpt.midi) toast(midiAccess.inputs.size ? "Batería conectada: cada golpe contará para la nota." : "Chrome no ve ninguna batería. Comprueba el cable USB y que el módulo esté encendido.");
+  };
   [["scDrums", "drums"], ["scClick", "click"], ["scSub", "sub"], ["scColors", "colors"]].forEach(([id, k]) => {
     $(id).checked = scOpt[k];
     $(id).onchange = () => {
@@ -3698,7 +3798,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if ((st & 0xf0) === 0xb0 && note === 4) { midiPedal = vel; midiPedalListeners.forEach((f) => f(vel)); return; }
     if ((st & 0xf0) === 0xb0) { midiListeners.forEach((f) => f({ cc: note, vel, name: `Control ${note}` })); return; }
     if ((st & 0xf0) !== 0x90 || !vel) return;   // solo golpes (nota que empieza, con fuerza)
-    const hit = { note, vel, pedal: midiPedal, t: performance.now() / 1000, name: MIDI_PADS[note] || `Pad ${note}` };
+    const hit = { note, vel, pedal: midiPedal, t: (e.timeStamp || performance.now()) / 1000, name: MIDI_PADS[note] || `Pad ${note}` };
     midiListeners.forEach((f) => f(hit));
   }
   function midiWire() { midiAccess.inputs.forEach((inp) => (inp.onmidimessage = midiHit)); }
