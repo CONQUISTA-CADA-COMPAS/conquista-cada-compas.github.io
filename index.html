@@ -612,6 +612,21 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .mus .h { transform-box: fill-box; transform-origin: center; transition: transform .12s ease-out, filter .12s; }
 .mus .n.now .h { transform: scale(1.4); filter: drop-shadow(0 0 3px #00d49e); }
 .scorepanel .lib { gap: 2px; margin-inline: -6px; padding-inline: 6px; }
+/* Capturar la partitura de un vídeo */
+.capopen { align-self: flex-start; font-size: 13px; }
+.capbox { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
+.capsteps { margin: 0; padding-left: 20px; font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
+.capsteps b { color: var(--fg); }
+.capbtns { gap: 6px; }
+.capstop, .capstop:hover { border-color: var(--done); color: var(--done); }
+.capstatus { margin: 0; font-size: 13px; font-variant-numeric: tabular-nums; }
+.capstatus:empty { display: none; }
+.cappreview { width: 100%; height: auto; border-radius: 6px; border: 1px solid var(--line); }
+.cappages { display: grid; gap: 6px; max-height: 260px; overflow-y: auto; }
+.cappages:empty { display: none; }
+.cappages figure { margin: 0; }
+.cappages img { width: 100%; display: block; border-radius: 4px; border: 1px solid var(--line); }
+.cappages figcaption { font-size: 11px; color: var(--muted); font-family: var(--mono); }
 .scorepanel .s-head { grid-template-columns: 16px minmax(0, 1fr); }
 .scorepanel .s-actions { margin: 2px 0 8px; padding-left: 40px; }
 /* Canción y partitura elegidas: fondo verde clarito */
@@ -807,6 +822,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <div class="panel scorepanel" id="scorePanel">
       <h2>Mis partituras</h2>
       <div class="lib" id="scoreList"></div>
+      <button class="linkbtn capopen" type="button" id="capOpen">📷 Capturar la partitura de un vídeo</button>
+      <div class="capbox" id="capBox" hidden>
+        <ol class="capsteps">
+          <li>Carga arriba el vídeo, con el enlace o con «Buscar».</li>
+          <li>Pulsa «Empezar captura». Chrome te pregunta qué compartir: elige <b>esta pestaña</b> y pulsa «Compartir».</li>
+          <li>El vídeo empieza solo desde el principio. Hasta que acabe, no pases el ratón por encima del vídeo ni cambies de pestaña.</li>
+          <li>Al terminar, pulsa «Descargar el archivo» y mándaselo a Claude por el chat.</li>
+        </ol>
+        <div class="row capbtns">
+          <button class="btn primary small" type="button" id="capStart">Empezar captura</button>
+          <button class="btn small capstop" type="button" id="capStop" hidden>■ Terminar</button>
+          <button class="btn small ghost" type="button" id="capClose">Cerrar</button>
+        </div>
+        <p class="note capstatus" id="capStatus" aria-live="polite"></p>
+        <canvas class="cappreview" id="capPreview" hidden></canvas>
+        <div class="cappages" id="capPages"></div>
+        <button class="btn primary small" type="button" id="capSave" hidden>Descargar el archivo</button>
+      </div>
     </div>
     <div class="panel" id="pubPanel">
       <h2>Comparte canciones y partituras</h2>
@@ -3240,6 +3273,169 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   if (window.ResizeObserver) new ResizeObserver(fitUrlHint).observe($("urlInput"));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitUrlHint);
   fitUrlHint();
+
+  // ---------- Capturar la partitura de un vídeo ----------
+  // Se comparte esta misma pestaña (con el vídeo de YouTube puesto en grande) y la app vigila la franja color crema
+  // de la partitura: guarda una imagen cada vez que cambia la página y apunta el segundo del vídeo en que la barra roja
+  // salta de compás y por dónde va el cursor verde. Todo se descarga en un archivo para que Claude la pase a limpio.
+  const cap = { on: false, stream: null, vid: null, timer: 0, band: null, pages: [], bars: [], cursor: [], last: null, pend: null, red: null, gx: -1, cv: null, best: 0 };
+  const capFmt = (t) => `${Math.floor(t / 60)}:${String(Math.floor(t % 60)).padStart(2, "0")}`;
+  const capTime = () => { try { return +player.getCurrentTime().toFixed(2); } catch (e) { return 0; } };
+  // Colores medidos en los vídeos (fondo crema, barra roja del compás, cursor verde de la nota)
+  const isCream = (r, g, b) => r > 195 && g > 185 && b > 140 && r - b > 10 && r - b < 80 && Math.abs(r - g) < 25;
+  const isRed = (r, g, b) => r > 170 && g < 95 && b < 95;
+  const isGreen = (r, g, b) => g > 140 && g - r > 40 && g - b > 40;
+  const isInk = (r, g, b) => Math.max(r, g, b) < 120 && Math.max(r, g, b) - Math.min(r, g, b) < 45;
+  // La franja de la partitura: el bloque más alto de filas casi todas color crema
+  function capFindBand(d, W, H) {
+    const rows = [];
+    for (let y = 0; y < H; y += 2) {
+      let n = 0, c = 0;
+      for (let x = 0; x < W; x += 4) { const i = (y * W + x) * 4; n++; if (isCream(d[i], d[i + 1], d[i + 2])) c++; }
+      rows.push([y, c / n]);
+    }
+    const runs = []; let cur = null, gap = 0;
+    rows.forEach(([y, f]) => {
+      if (f > 0.45) { if (!cur) cur = { y0: y, y1: y }; cur.y1 = y; gap = 0; }
+      else if (cur && ++gap > 14) { runs.push(cur); cur = null; gap = 0; }
+    });
+    if (cur) runs.push(cur);
+    const best = runs.sort((a, b) => (b.y1 - b.y0) - (a.y1 - a.y0))[0];
+    if (!best || best.y1 - best.y0 < H * 0.06) return null;
+    let x0 = W, x1 = 0;
+    for (let x = 0; x < W; x += 2) {
+      let n = 0, c = 0;
+      for (let y = best.y0; y <= best.y1; y += 3) { const i = (y * W + x) * 4; n++; if (isCream(d[i], d[i + 1], d[i + 2])) c++; }
+      if (c / n > 0.4) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
+    }
+    if (x1 - x0 < W * 0.3) return null;
+    return { x: x0, y: Math.max(0, best.y0 - 2), w: x1 - x0 + 1, h: Math.min(H, best.y1 + 4) - Math.max(0, best.y0 - 2) };
+  }
+  // Lo que hay en la franja ahora: huella de las notas negras, barra roja, cursor verde y cuánto crema se ve
+  function capRead(img) {
+    const { data: d, width: W, height: H } = img, GX = 160, GY = 32, sig = new Uint8Array(GX * GY);
+    let cream = 0, tot = 0, bestRun = null;
+    const gcol = new Uint16Array(W);
+    for (let y = 0; y < H; y++) {
+      let run = 0, rs = 0;
+      for (let x = 0; x < W; x++) {
+        const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
+        if ((x & 3) === 0 && (y & 1) === 0) { tot++; if (isCream(r, g, b)) cream++; }
+        if (isInk(r, g, b)) sig[Math.min(GY - 1, (y * GY / H) | 0) * GX + Math.min(GX - 1, (x * GX / W) | 0)] = 1;
+        if (isRed(r, g, b)) { if (!run) rs = x; run++; if (run >= Math.max(30, W * 0.02) && (!bestRun || run > bestRun.len)) bestRun = { len: run, x0: rs, x1: x }; } else run = 0;
+        if (isGreen(r, g, b)) gcol[x]++;
+      }
+    }
+    let gx = -1, gmax = 0;
+    for (let x = 0; x < W; x++) if (gcol[x] > gmax) { gmax = gcol[x]; gx = x; }
+    let ink = 0; for (let i = 0; i < sig.length; i++) ink += sig[i];
+    return { sig, ink, cream: cream / tot, red: bestRun && { x0: +(bestRun.x0 / W).toFixed(4), x1: +(bestRun.x1 / W).toFixed(4) }, gx: gmax >= Math.max(10, H * 0.12) ? +(gx / W).toFixed(4) : -1 };
+  }
+  // Cuánto se parecen dos huellas (0 = iguales, 1 = nada que ver)
+  function capDiff(a, b) {
+    let both = 0, one = 0;
+    for (let i = 0; i < a.length; i++) { if (a[i] || b[i]) { one++; if (a[i] && b[i]) both++; } }
+    return one ? 1 - both / one : 0;
+  }
+  function capCrop() {
+    const c = document.createElement("canvas"), b = cap.band; c.width = b.w; c.height = b.h;
+    c.getContext("2d").drawImage(cap.cv, b.x, b.y, b.w, b.h, 0, 0, b.w, b.h);
+    return c.toDataURL("image/png");
+  }
+  function capStatus(t) {
+    $("capStatus").textContent = !cap.band ? `Buscando la partitura en el vídeo… (${capFmt(t)})`
+      : `Páginas guardadas: ${cap.pages.length} · Compases: ${cap.bars.length} · Vídeo: ${capFmt(t)} / ${capFmt(player.getDuration ? player.getDuration() : 0)}`;
+  }
+  function capSample() {
+    const v = cap.vid; if (!v || !v.videoWidth) return;
+    const W = v.videoWidth, H = v.videoHeight, t = capTime();
+    if (cap.cv.width !== W || cap.cv.height !== H) { cap.cv.width = W; cap.cv.height = H; cap.band = null; }
+    const ctx = cap.cv.getContext("2d", { willReadFrequently: true });
+    ctx.drawImage(v, 0, 0, W, H);
+    if (!cap.band) {
+      cap.band = capFindBand(ctx.getImageData(0, 0, W, H).data, W, H);
+      capStatus(t); if (!cap.band) return;
+    }
+    const b = cap.band, r = capRead(ctx.getImageData(b.x, b.y, b.w, b.h));
+    // vista previa pequeña de la franja
+    const pv = $("capPreview"); pv.width = 480; pv.height = Math.round(480 * b.h / b.w);
+    pv.getContext("2d").drawImage(cap.cv, b.x, b.y, b.w, b.h, 0, 0, pv.width, pv.height);
+    pv.hidden = false;
+    if (r.ink < 40) { capStatus(t); return; }   // aún no hay notas (introducción, fundido…)
+    const page = cap.pages[cap.pages.length - 1];
+    if (!page) {
+      if (cap.last && capDiff(r.sig, cap.last.sig) < 0.08) { cap.pages.push({ t: cap.last.t, img: capCrop(), sig: r.sig, cream: r.cream }); }
+    } else if (capDiff(r.sig, page.sig) > 0.3) {
+      // página nueva: se guarda cuando deja de moverse (por si hay fundido entre páginas)
+      if (!cap.pend) cap.pend = t;
+      if (cap.last && capDiff(r.sig, cap.last.sig) < 0.08) { cap.pages.push({ t: cap.pend, img: capCrop(), sig: r.sig, cream: r.cream }); cap.pend = null; }
+    } else {
+      cap.pend = null;
+      // misma página: si ahora se ve más limpia (sin los mandos de YouTube encima), se cambia la imagen
+      if (r.cream > page.cream + 0.03) { page.img = capCrop(); page.cream = r.cream; }
+    }
+    cap.last = { sig: r.sig, t };
+    const pi = cap.pages.length;
+    if (r.red && (!cap.red || Math.abs(r.red.x0 - cap.red.x0) > 0.02)) { cap.bars.push({ t, page: pi, x0: r.red.x0, x1: r.red.x1 }); cap.red = r.red; }
+    if (r.gx >= 0 && Math.abs(r.gx - cap.gx) > 0.002) { cap.cursor.push({ t, page: pi, x: r.gx }); cap.gx = r.gx; }
+    capStatus(t);
+    try { if (player.getPlayerState() === YT.PlayerState.ENDED) capFinish(); } catch (e) {}
+  }
+  async function capStart() {
+    if (!playerReady || !videoId) return toast("Primero carga arriba el vídeo (con el enlace o con «Buscar»).");
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) return toast("La captura solo funciona en Chrome del ordenador.");
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false, preferCurrentTab: true, selfBrowserSurface: "include", surfaceSwitching: "exclude" });
+    } catch (e) { return toast("No se ha compartido la pestaña: la captura no ha empezado."); }
+    if (scoreOpen) closeScore();
+    if (running()) stopSession(true);
+    stopSong();
+    Object.assign(cap, { on: true, stream, band: null, pages: [], bars: [], cursor: [], last: null, pend: null, red: null, gx: -1, cv: document.createElement("canvas") });
+    cap.vid = document.createElement("video"); cap.vid.muted = true; cap.vid.playsInline = true; cap.vid.srcObject = stream;
+    try { await cap.vid.play(); } catch (e) {}
+    stream.getVideoTracks()[0].addEventListener("ended", () => cap.on && capFinish());
+    $("capStart").hidden = true; $("capStop").hidden = false; $("capSave").hidden = true; $("capPages").innerHTML = "";
+    $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
+    player.seekTo(0, true); applyRate(1); player.playVideo();
+    cap.timer = setInterval(capSample, 100);
+  }
+  function capFinish() {
+    if (!cap.on) return;
+    cap.on = false; clearInterval(cap.timer);
+    try { cap.stream.getTracks().forEach((tr) => tr.stop()); } catch (e) {}
+    try { player.pauseVideo(); } catch (e) {}
+    $("capStart").hidden = false; $("capStart").textContent = "Volver a capturar"; $("capStop").hidden = true;
+    $("capPreview").hidden = true;
+    $("capStatus").textContent = cap.pages.length
+      ? `Listo: ${cap.pages.length} páginas y ${cap.bars.length} compases. Descarga el archivo y mándaselo a Claude.`
+      : "No se ha encontrado ninguna página de partitura. Comprueba que el vídeo se veía grande y vuelve a probar.";
+    $("capPages").innerHTML = cap.pages.map((p, i) => `<figure><img src="${p.img}" alt="Página ${i + 1}"><figcaption>Página ${i + 1} · ${capFmt(p.t)}</figcaption></figure>`).join("");
+    $("capSave").hidden = !cap.pages.length;
+  }
+  function capSave() {
+    const vd = (player.getVideoData && player.getVideoData()) || {};
+    const pageAt = (t) => { let n = 1; cap.pages.forEach((p, i) => { if (p.t <= t + 0.05) n = i + 1; }); return n; };
+    const out = {
+      app: "Conquista cada compás", tipo: "captura de partitura", version: 1,
+      videoId, titulo: vd.title || "", duracion: player.getDuration ? +player.getDuration().toFixed(2) : 0,
+      franja: cap.band && { x: cap.band.x, y: cap.band.y, ancho: cap.band.w, alto: cap.band.h, fotogramaAncho: cap.cv.width, fotogramaAlto: cap.cv.height },
+      paginas: cap.pages.map((p, i) => ({ n: i + 1, t: p.t, img: p.img })),
+      // cada compás y cada posición del cursor, con la página (1, 2, 3…) que se veía en ese segundo
+      compases: cap.bars.map((x) => ({ ...x, page: pageAt(x.t) })), cursor: cap.cursor.map((x) => ({ ...x, page: pageAt(x.t) })),
+    };
+    const name = "partitura-" + ((vd.title || videoId).normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^\w]+/g, "-").replace(/^-|-$/g, "").toLowerCase().slice(0, 60) || "video") + ".json";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(out)], { type: "application/json" }));
+    a.download = name; document.body.append(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    toast("Archivo descargado. Mándaselo a Claude en el chat.");
+  }
+  $("capOpen").onclick = () => { $("capBox").hidden = !$("capBox").hidden; };
+  $("capClose").onclick = () => { if (cap.on) capFinish(); $("capBox").hidden = true; };
+  $("capStart").onclick = capStart;
+  $("capStop").onclick = capFinish;
+  $("capSave").onclick = capSave;
 
   // ---------- Teclado ----------
   // Barra espaciadora (para ensayar solos, lejos del ordenador):
