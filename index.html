@@ -2508,19 +2508,44 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash, r = plato ride.  beats = tiempos por compás (4 si no se dice).  us (caja con plica arriba): S = caja, g = nota fantasma.
   // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
   const SCORES = [
-    { id: "joker-and-the-thief", title: "Joker and the Thief", sub: "Wolfmother · con la canción sonando · compases 1 a 33 (primera prueba)", video: "0LQ77YdkQek", div: 3, plain: true, lines: (() => {
-      // Pasada a limpio de la captura del vídeo (canal Drumschool Vriesema). 4/4 en tresillos (cada tiempo en 3).
-      // up: x charles, o charles abierto, c crash, r ride · us (plica arriba): H tom alto, L tom bajo, F tom base · fl: f = flam · qt: desde ese tiempo, tresillos de negra
+    { id: "joker-and-the-thief", title: "Joker and the Thief", sub: "Wolfmother · con la canción sonando", video: "0LQ77YdkQek", div: 3, plain: true, lines: (() => {
+      // Pasada a limpio de la captura del vídeo (canal Drumschool Vriesema), compás a compás. 4/4 en tresillos (cada tiempo en 3).
+      // up: x charles, o charles abierto, c crash, r ride · us (plica arriba): S caja, H tom alto, L tom bajo, F tom base · fl: f = flam · low: B bombo · qt: tresillos de negra
       const R = {}, A = { up: "x.xxxxx.xxxx" }, O = { up: "o.xxxxx.xxxx" };
       const F = { us: "H.H.L.L.F.F.", fl: "f.f.f.f.f.f.", qt: 0 }, C = { up: "c..x..x..x..", low: "B..........." };
       const Q = { up: "x..x..x..x.." }, T = { up: "x..x.xx.xx.x" };
-      const b = [R, R, R, R, O, A, O, A, O, A, { up: "o.xxxxx.x.x.", qt: 2 }, F, C, F, C, F, C, F, C, F, C, F, C, F, C, T, Q, T, Q, T, C, C,
-        { up: "c..r..r..r..", low: "B..S..B..S.." }];
-      const cut = [[0, 5], [5, 9], [9, 14], [14, 19], [19, 23], [23, 28], [28, 33]];   // las mismas filas que se ven en el vídeo
-      return cut.map(([a, z]) => b.slice(a, z).map((x, i) => Object.assign({}, x, i === 0 ? { m: a + 1 } : {})));
+      const bb = (up, us, low, o) => Object.assign({ up, us, low }, o || {});
+      const C4 = bb("c..x..x..x..", "...S.....S..", "B.....B....."), CR4 = bb("c..r..r..r..", "...S.....S..", "B.....B.....");
+      const Q4 = bb("x..x..x..x..", "...S.....S..", "B.....B....."), Q4r = bb("r..r..r..r..", "...S.....S..", "B.....B.....");
+      const G1 = bb("x..x..x..x..", "...S.S..S..S", "B.....B..B.."), G1r = bb("r..r..r..r..", "...S.S..S..S", "B.....B..B.."), G1c = bb("c..x..x..x..", "...S.S..S..S", "B.....B..B..");
+      const G1b = bb("x..x..x.....", "...S.S..SSSS", "B.....B....."), G1br = bb("r..r..r.....", "...S.S..SSSS", "B.....B....."), G1er = bb("r..r..r.....", "...S.S..SS.S", "B.....B.....");
+      const RT = bb("r.r.r.r.r.r.", ".S.S.S.S.S.S", "B.B...B.B..."), RTc = bb("c.r.r.r.r.r.", ".S.S.S.S.S.S", "B.B...B.B...");
+      const F58 = bb("r.r.r.......", ".S.S.SSSHHFF", "B.B........."), F60 = bb("r...........", ".SSSSSHSSSSS", "B...........");
+      const F64 = bb("r.r.r.......", ".S.S.SSSSSHF", "B.B........."), F68 = bb("......c.....", "SSSSSS.SSSHF", "......B.....");
+      const F72 = bb("r.r.........", ".S.SSSHSSHFF", "B.B........."), F92 = bb("r..r........", "...S.SF.SFFF", "B...........");
+      const F104 = bb("r.r.r.r.....", ".S.S.S.SSSSS", "B.B...B....."), F116 = bb("r...........", ".SSSSSHHHHFF", "B...........");
+      const F136 = bb("r...........", ".SSSSSHSSLLF", "B..........."), F136c = bb("c...........", ".SSSSSHSSLLF", "B...........");
+      const FL = bb("............", "H.H.L.L.F.F.", "B..B..B..B..", { fl: "f.f.f.f.f.f." }), FLc = bb("c...........", "H.H.L.L.F.F.", "B..B..B..B..", { fl: "f.f.f.f.f.f." });
+      const CB = bb("c...........", "............", "B..B..B..B.."), CR = bb("c..r..r..r..", "............", "B...........");
+      const ST = bb("c...........", "............", "B..........."), Cs = bb("c.....x.....", "......S.....", "B...........");
+      const X = bb("x.....x.c...", "......S.....", "B.......B..."), To = { up: "x..x.ox.ox.o" }, To2 = { up: "x..x.ox.ox.." };
+      const b = [R, R, R, R, O, A, O, A, O, A, { up: "o.xxxxx.x.x.", qt: 2 }, F, C, F, C, F, C, F, C, F, C, F, C, F, C, T, Q, T, Q, T, C, C, CR4,   // 1-33
+        G1, Q4, G1b, C4, G1, Q4, G1, Q4, G1, C4, G1c, CR4, G1r, Q4r, G1br, C4, G1, C4, G1, C4, G1,   // 34-54
+        C, C, RTc, F58, RTc, F60, RTc, RT, RTc, F64, RTc, RT, RTc, F68, RTc, RT, RT, F72,   // 55-72
+        C, T, Q, T, CR4, G1r, Q4r, G1er, C4, G1, Q4, G1, Q4, G1, ST, ST,   // 73-88
+        CR4, G1r, Q4r, F92, CR4, G1r, Q4r, G1r, Q4r, G1r, CR, CR,   // 89-100
+        RTc, F64, RTc, F104, RTc, RT, RTc, F58, RTc, RT, RTc, F104, RTc, RT, RTc, F116,   // 101-116
+        CB, FL, CB, FL, CB, FL, CB, FL, CB, FL, CB, FL,   // 117-128
+        RTc, F104, RTc, F58, RTc, F136, RTc, F136, RTc, F58, RTc, F136,   // 129-140
+        Cs, X, Cs, X, Cs, X, Cs, X, Cs, X, Cs, X,   // 141-152
+        C, To, Q, To2, C, C, CR4, G1r, Q4r, G1br, C4, G1, Q4, G1, C4, G1,   // 153-168
+        C, C, C, C, F136c, FLc, ST, R];   // 169-176
+      // las mismas filas («páginas») que se ven en el vídeo: número del primer compás de cada una
+      const P = [1, 6, 10, 15, 20, 24, 29, 34, 38, 42, 46, 50, 55, 59, 63, 67, 71, 76, 80, 84, 88, 92, 96, 100, 104, 108, 112, 116, 120, 124, 128, 132, 136, 140, 144, 148, 152, 156, 160, 164, 168, 172, 176, 177];
+      return P.slice(0, -1).map((a, i) => b.slice(a - 1, P[i + 1] - 1).map((x, j) => Object.assign({}, x, j === 0 ? { m: a } : {})));
     })(),
-      // segundo del vídeo en que empieza cada compás (medido con la barra roja al capturar, suavizado)
-      bt: [0.12,1.7,3.34,4.97,6.58,8.18,9.8,11.4,13.0,14.6,16.25,17.9,19.55,21.17,22.85,24.5,26.19,27.83,29.46,31.13,32.82,34.46,36.1,37.72,39.36,40.99,42.57,44.13,45.69,47.25,48.82,50.36,51.9,53.45,55.0,56.56,58.1,59.62,61.15,62.66,64.19,65.7,67.25,68.79,70.33,71.86,73.42,74.95,76.49,78.01,79.53,81.09,82.66,84.22,85.79,87.35,88.92,90.48,91.99,93.52,95.02,96.53,98.05,99.55,101.05,102.57,104.06,105.6,107.12,108.65,110.18,111.7,113.24,114.79,116.32,117.85,119.39,120.9,122.43,123.93,125.46,126.94,128.47,129.97,131.54,133.07,134.62,136.16,137.73,139.26,140.82,142.32,143.87,145.39,146.93,148.47,150.05,151.58,153.15,154.68,156.26,157.77,159.32,160.83,162.37,163.87,165.42,166.93,168.49,169.99,171.53,173.05,174.59,176.09,177.6,179.1,180.66,182.2,183.8,185.39,187.02,188.63,190.27,191.89,193.52,195.35,197.18,198.98,200.79,202.59,204.41,206.21,207.76,209.33,210.91,212.48,214.05,215.62,217.17,218.77,220.37,222.0,223.6,225.23,226.86,228.5,230.13,231.76,233.39,235.03,236.65,238.27,239.9,241.52,243.11,244.68,246.27,247.84,249.4,250.93,252.46,254.0,255.55,257.07,258.6,260.13,261.67,263.22,264.75,266.29,267.83,269.39,270.93,272.49,274.04,275.6] },
+      // segundo del vídeo en que empieza cada compás (medido con la barra roja al capturar, suavizado; el 129 faltaba en la captura y está interpolado)
+      bt: [0.12,1.7,3.34,4.97,6.58,8.18,9.8,11.4,13.0,14.6,16.25,17.9,19.55,21.17,22.85,24.5,26.19,27.83,29.46,31.13,32.82,34.46,36.1,37.72,39.36,40.99,42.57,44.13,45.69,47.25,48.82,50.36,51.9,53.45,55.0,56.56,58.1,59.62,61.15,62.66,64.19,65.7,67.25,68.79,70.33,71.86,73.42,74.95,76.49,78.01,79.53,81.09,82.66,84.22,85.79,87.35,88.92,90.48,91.99,93.52,95.02,96.53,98.05,99.55,101.05,102.57,104.06,105.6,107.12,108.65,110.18,111.7,113.24,114.79,116.32,117.85,119.39,120.9,122.43,123.93,125.46,126.94,128.47,129.97,131.54,133.07,134.62,136.16,137.73,139.26,140.82,142.32,143.87,145.39,146.93,148.47,150.05,151.58,153.15,154.68,156.26,157.77,159.32,160.83,162.37,163.87,165.42,166.93,168.49,169.99,171.53,173.05,174.59,176.09,177.6,179.1,180.66,182.2,183.8,185.39,187.02,188.63,190.27,191.89,193.52,195.12,196.74,198.32,199.91,201.48,203.06,204.63,206.21,207.76,209.33,210.91,212.48,214.05,215.62,217.17,218.77,220.37,222.0,223.6,225.23,226.86,228.5,230.13,231.76,233.39,235.03,236.65,238.27,239.9,241.52,243.11,244.68,246.27,247.84,249.4,250.93,252.46,254.0,255.55,257.07,258.6,260.13,261.67,263.22,264.75,266.29,267.83,269.39,270.93,272.49,274.04,275.6] },
     { id: "biblia-5", title: "Biblia 5", sub: "Página 16 · ejercicios 12 a 16 · caja, bombo y charles en cada tiempo · 2/4, semicorcheas", bpm: 60, div: 4, beats: 2, ts: [2, 4], one: true, dbl: true, lines: (() => {
       // Cada compás repite dos veces el mismo grupo. Ritmo del grupo (en semicorcheas): 12 = 16-8-16, 13 = 8-16-16, 14 = silencio + 3, 15 y 16 = 4 semicorcheas.
       // Letras: S = caja (nota encima de la raya), B = bombo (nota debajo). Leído nota a nota de la hoja.
