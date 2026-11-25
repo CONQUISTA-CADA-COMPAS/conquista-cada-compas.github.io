@@ -3204,15 +3204,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (!bar) return;
       // Pausa en YouTube: el cursor verde deja de moverse (si no se ve el cursor, se espera a que falte el salto de compás)
       const barDur = r.lastBar ? (bt[r.lastBar] - bt[r.lastBar - 1]) / r.rate : 2;
-      if (rd.gx >= 0 && Math.abs(rd.gx - r.lastGx) > 0.002) {
-        r.lastGx = rd.gx; r.lastMove = now; r.seenCursor = (r.seenCursor || 0) + 1; r.moving = (r.moving || 0) + 1;
-        if (r.frozen != null) { r.c0 = r.frozen; r.a0 = now; r.off = 0; r.frozen = null; }
-      } else if (rd.gx >= 0 && now - r.lastMove > 0.3) r.moving = 0;
-      if (r.frozen == null && r.started && (r.seenCursor > 10 ? now - r.lastMove > 0.6 : now - r.lastJump > barDur * 1.6)) r.frozen = ytEst(r, now);
+      // (el cursor salta de nota en nota y se queda quieto en las largas: eso NO es una pausa)
+      if (rd.gx >= 0 && Math.abs(rd.gx - r.lastGx) > 0.002) { r.lastGx = rd.gx; r.lastMove = now; r.moving = (r.moving || 0) + 1; }
+      else if (rd.gx >= 0 && now - r.lastMove > 0.8) r.moving = 0;
+      // pausa de verdad: ni salta el compás ni se mueve el cursor en mucho rato
+      if (r.frozen == null && r.started && now - r.lastJump > barDur * 1.5 && now - r.lastMove > barDur) r.frozen = ytEst(r, now);
+      if (r.frozen != null && (now - r.lastMove < 0.1 || bar !== r.lastBar)) { r.c0 = r.frozen; r.a0 = now; r.off = 0; r.frozen = null; }
       const jumped = bar !== r.lastBar;
       if (jumped) {
         // velocidad de YouTube (1×, 0,75×…): de cuánto tarda en pasar de un compás al siguiente, muy poco a poco
-        if (bar === r.lastBar + 1 && r.lastJump && r.frozen == null) { const m = (bt[bar - 1] - bt[bar - 2]) / (now - r.lastJump); if (m > 0.4 && m < 1.3) r.rate = r.rate * 0.85 + m * 0.15; }
+        // (la velocidad no se retoca a cada compás: la tira corre a la velocidad elegida y solo se corrige la posición)
         r.lastBar = bar; r.lastJump = now;
         r.hi = r.events.findIndex((e) => e.t >= (bar - 1) * 4 - 0.01); if (r.hi < 0) r.hi = r.events.length;
         r.nextEv = r.hi;
@@ -3230,8 +3231,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       }
       const err = obs - ytEst(r, now);
       // Lo normal: un error pequeño se corrige muy poco a poco (sin que se note). Un error grande que dura (salto en YouTube) recoloca.
-      if (Math.abs(err) > 0.35) { if (++r.bad >= 10) { r.c0 = obs; r.a0 = now; r.off = 0; r.bad = 0; } }
-      else { r.bad = 0; r.off += err * 0.035; }
+      if (Math.abs(err) > 0.4) { if (++r.bad >= 12) { r.c0 = obs; r.a0 = now; r.off = 0; r.bad = 0; } }
+      else { r.bad = 0; if (Math.abs(err) > 0.06) r.off += (err - Math.sign(err) * 0.06) * 0.02; }   // por debajo de 6 centésimas no se toca: así no tiembla
     };
     if (vid.requestVideoFrameCallback) { const loop = (t, meta) => { if (scoreRun !== r) return; step(meta); vid.requestVideoFrameCallback(loop); }; vid.requestVideoFrameCallback(loop); }
     else r.ytTimer = setInterval(() => step(null), 50);
