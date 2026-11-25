@@ -3710,9 +3710,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (names.length) $("midiStatus").querySelector("b").textContent = names.join(", ");
   }
   const midiTest = (h) => {
-    const box = $("midiHits"), row = document.createElement("div");
-    row.className = "midihit new"; row.innerHTML = `<b></b><span>nota ${h.note} · fuerza ${h.vel}</span>`; row.querySelector("b").textContent = h.name;
-    box.prepend(row); while (box.children.length > 8) box.lastChild.remove();
+    // Una fila por pieza (en el orden en que se golpean), con cuántas veces y la fuerza del último golpe
+    const box = $("midiHits");
+    let row = box.querySelector(`[data-note="${h.note}"]`);
+    if (!row) { row = document.createElement("div"); row.dataset.note = h.note; row.dataset.n = 0; row.innerHTML = "<b></b><span></span>"; row.querySelector("b").textContent = h.name; box.append(row); }
+    row.dataset.n = +row.dataset.n + 1;
+    row.querySelector("span").textContent = `nota ${h.note} · ${row.dataset.n} ${row.dataset.n == 1 ? "golpe" : "golpes"} · fuerza ${h.vel}`;
+    row.className = "midihit"; void row.offsetWidth; row.className = "midihit new";
   };
   $("midiOpen").onclick = () => { $("midiBox").hidden = !$("midiBox").hidden; };
   $("midiClose").onclick = () => { $("midiBox").hidden = true; midiListeners.delete(midiTest); };
