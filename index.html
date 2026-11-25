@@ -845,7 +845,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       <button class="linkbtn capopen" type="button" id="midiOpen">🥁 Probar mi batería electrónica</button>
       <div class="capbox" id="midiBox" hidden>
         <p class="note midistatus" id="midiStatus">Con la batería conectada por USB, pulsa «Conectar» y Chrome te pedirá permiso.</p>
-        <div class="row capbtns"><button class="btn primary small" type="button" id="midiGo">Conectar</button><button class="btn small ghost" type="button" id="midiClose">Cerrar</button></div>
+        <div class="row capbtns"><button class="btn primary small" type="button" id="midiGo">Conectar</button><button class="btn small ghost" type="button" id="midiClear">Vaciar lista</button><button class="btn small ghost" type="button" id="midiClose">Cerrar</button></div>
+        <p class="note midipedal" id="midiPedal" hidden></p>
         <div class="midihits" id="midiHits"></div>
       </div>
       <button class="linkbtn capopen" type="button" id="capOpen">📷 Capturar la partitura de un vídeo</button>
@@ -3689,9 +3690,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     43: "Tom base", 58: "Tom base (aro)", 41: "Tom base 2", 39: "Tom base 2 (aro)", 49: "Crash", 55: "Crash (borde)", 57: "Crash 2", 52: "Crash 2 (borde)",
     51: "Ride", 59: "Ride (borde)", 53: "Campana del ride", 27: "Aux", 28: "Aux (aro)" };
   let midiAccess = null;
-  const midiListeners = new Set();   // quien quiera los golpes (la prueba, y más adelante el examen)
+  const midiListeners = new Set(), midiPedalListeners = new Set();
+  let midiPedal = -1;   // quien quiera los golpes (la prueba, y más adelante el examen)
   function midiHit(e) {
     const [st, note, vel] = e.data;
+    // El pedal del charles manda su posición aparte (control 4: 0 = suelto, 127 = pisado del todo)
+    if ((st & 0xf0) === 0xb0 && note === 4) { midiPedal = vel; midiPedalListeners.forEach((f) => f(vel)); return; }
     if ((st & 0xf0) !== 0x90 || !vel) return;   // solo golpes (nota que empieza, con fuerza)
     const hit = { note, vel, t: performance.now() / 1000, name: MIDI_PADS[note] || `Pad ${note}` };
     midiListeners.forEach((f) => f(hit));
@@ -3718,9 +3722,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     row.querySelector("span").textContent = `nota ${h.note} · ${row.dataset.n} ${row.dataset.n == 1 ? "golpe" : "golpes"} · fuerza ${h.vel}`;
     row.className = "midihit"; void row.offsetWidth; row.className = "midihit new";
   };
+  const midiPedalTest = (v) => {
+    const el = $("midiPedal"); el.hidden = false;
+    el.innerHTML = `Pedal del charles: <b></b> (posición ${v} de 127)`;
+    el.querySelector("b").textContent = v > 90 ? "pisado" : v > 20 ? "a medias" : "suelto";
+  };
+  $("midiClear").onclick = () => { $("midiHits").textContent = ""; };
   $("midiOpen").onclick = () => { $("midiBox").hidden = !$("midiBox").hidden; };
-  $("midiClose").onclick = () => { $("midiBox").hidden = true; midiListeners.delete(midiTest); };
-  $("midiGo").onclick = async () => { if (await midiConnect()) { midiListeners.add(midiTest); $("midiGo").textContent = "Conectada"; } };
+  $("midiClose").onclick = () => { $("midiBox").hidden = true; midiListeners.delete(midiTest); midiPedalListeners.delete(midiPedalTest); };
+  $("midiGo").onclick = async () => { if (await midiConnect()) { midiListeners.add(midiTest); midiPedalListeners.add(midiPedalTest); $("midiGo").textContent = "Conectada"; } };
 
   // ---------- Capturar la partitura de un vídeo ----------
   // Se comparte esta misma pestaña (con el vídeo de YouTube puesto en grande) y la app vigila la franja color crema
