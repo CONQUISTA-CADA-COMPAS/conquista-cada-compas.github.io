@@ -3795,12 +3795,58 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("capStatus").textContent = !cap.band ? `Buscando la partitura en el vídeo… (${capFmt(t)})`
       : `Páginas guardadas: ${cap.pages.length} · Compases: ${cap.bars.length} · Vídeo: ${capFmt(t)} / ${capFmt(player.getDuration ? player.getDuration() : 0)}`;
   }
+  // ---- Estilo Jack Young: un compás por línea, el que suena con fondo amarillo clarito y una rayita vertical ----
+  const isJyYellow = (r, g, b) => g > 236 && r > 228 && g - b > 22 && g - b < 60 && r - b > 14;
+  const isJyCursor = (r, g, b) => g > 165 && g < 232 && g - b > 12 && g - r > 4;
+  function jyFindBox(d, W, H) {
+    let y0 = -1, y1 = -1, x0 = W, x1 = 0, gap = 0;
+    for (let y = 0; y < H; y += 2) {
+      let run = 0, best = 0, bs = 0, rs = 0;
+      for (let x = 0; x < W; x += 3) { const i = (y * W + x) * 4; if (isJyYellow(d[i], d[i + 1], d[i + 2])) { if (!run) rs = x; run++; if (run > best) { best = run; bs = rs; } } else if (run && x - (rs + run * 3) > 30) run = 0; }
+      if (best * 3 > W * 0.2) { if (y0 < 0) y0 = y; y1 = y; gap = 0; x0 = Math.min(x0, bs); x1 = Math.max(x1, bs + best * 3); }
+      else if (y0 >= 0 && ++gap > 10) break;
+    }
+    if (y0 < 0 || y1 - y0 < Math.max(30, H * 0.06)) return null;
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 + 2 };
+  }
+  function capSampleJY(ctx, W, H, t) {
+    const box = jyFindBox(ctx.getImageData(0, 0, W, H).data, W, H);
+    if (!box) { capStatus(t); return; }
+    const img = ctx.getImageData(box.x, box.y, box.w, box.h), r = capRead(img);
+    // rayita vertical: la columna con más puntos del color del cursor
+    const d = img.data, cols = new Uint16Array(box.w);
+    for (let y = 0; y < box.h; y += 2) for (let x = 0; x < box.w; x++) { const i = (y * box.w + x) * 4; if (isJyCursor(d[i], d[i + 1], d[i + 2])) cols[x]++; }
+    let cx = -1, cm = 0; for (let x = 0; x < box.w; x++) if (cols[x] > cm) { cm = cols[x]; cx = x; }
+    const gx = cm > box.h * 0.25 ? +(cx / box.w).toFixed(4) : -1;
+    const last = cap.jy, moved = last && Math.abs(box.y - last.y) > box.h * 0.4, changed = last && capDiff(r.sig, last.sig) > 0.3;
+    if (!last || moved || changed) {
+      // compás nuevo (la franja ha bajado a la línea siguiente o la partitura ha subido): se guarda cuando deja de moverse
+      if (!cap.pend) cap.pend = { t, sig: r.sig };
+      else if (capDiff(r.sig, cap.pend.sig) < 0.08) {
+        const c = document.createElement("canvas"); c.width = box.w; c.height = box.h; c.getContext("2d").drawImage(cap.cv, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
+        cap.bars.push({ n: cap.bars.length + 1, t: cap.pend.t, img: c.toDataURL("image/png") });
+        cap.jy = { y: box.y, sig: r.sig }; cap.pend = null;
+      } else cap.pend.sig = r.sig;
+    } else cap.pend = null;
+    if (cap.bars.length && gx >= 0 && Math.abs(gx - cap.gx) > 0.002) { cap.cursor.push({ t, bar: cap.bars.length, x: gx }); cap.gx = gx; }
+    const pv = $("capPreview"); pv.width = 480; pv.height = Math.round(480 * box.h / box.w);
+    pv.getContext("2d").drawImage(cap.cv, box.x, box.y, box.w, box.h, 0, 0, pv.width, pv.height); pv.hidden = false;
+    $("capStatus").textContent = `Compases guardados: ${cap.bars.length} · Vídeo: ${capFmt(t)} / ${capFmt(player.getDuration ? player.getDuration() : 0)}`;
+    try { if (player.getPlayerState() === YT.PlayerState.ENDED) capFinish(); } catch (e) {}
+  }
   function capSample() {
     const v = cap.vid; if (!v || !v.videoWidth) return;
     const W = v.videoWidth, H = v.videoHeight, t = capTime();
     if (cap.cv.width !== W || cap.cv.height !== H) { cap.cv.width = W; cap.cv.height = H; cap.band = null; }
     const ctx = cap.cv.getContext("2d", { willReadFrequently: true });
     ctx.drawImage(v, 0, 0, W, H);
+    // ¿qué tipo de vídeo es? franja crema (barra roja) o estilo Jack Young (compás en amarillo)
+    if (cap.style === "jy") return capSampleJY(ctx, W, H, t);
+    if (!cap.style) {
+      const d = ctx.getImageData(0, 0, W, H).data;
+      if (jyFindBox(d, W, H)) { cap.style = "jy"; return capSampleJY(ctx, W, H, t); }
+      if (capFindBand(d, W, H)) cap.style = "band";
+    }
     if (!cap.band) {
       cap.band = capFindBand(ctx.getImageData(0, 0, W, H).data, W, H);
       capStatus(t); if (!cap.band) return;
@@ -3840,7 +3886,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (scoreOpen) closeScore();
     if (running()) stopSession(true);
     stopSong();
-    Object.assign(cap, { on: true, stream, band: null, pages: [], bars: [], cursor: [], last: null, pend: null, red: null, gx: -1, cv: document.createElement("canvas") });
+    Object.assign(cap, { on: true, stream, band: null, style: null, jy: null, pages: [], bars: [], cursor: [], last: null, pend: null, red: null, gx: -1, cv: document.createElement("canvas") });
     cap.vid = document.createElement("video"); cap.vid.muted = true; cap.vid.playsInline = true; cap.vid.srcObject = stream;
     try { await cap.vid.play(); } catch (e) {}
     stream.getVideoTracks()[0].addEventListener("ended", () => cap.on && capFinish());
@@ -3856,6 +3902,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     try { player.pauseVideo(); } catch (e) {}
     $("capStart").hidden = false; $("capStart").textContent = "Volver a capturar"; $("capStop").hidden = true;
     $("capPreview").hidden = true;
+    if (cap.style === "jy") {
+      $("capStatus").textContent = cap.bars.length ? `Listo: ${cap.bars.length} compases. Descarga el archivo y mándaselo a Claude.` : "No se ha encontrado la partitura. Comprueba que el vídeo se veía grande y vuelve a probar.";
+      $("capPages").innerHTML = cap.bars.slice(0, 12).map((b) => `<figure><img src="${b.img}" alt="Compás ${b.n}"><figcaption>Compás ${b.n} · ${capFmt(b.t)}</figcaption></figure>`).join("");
+      $("capSave").hidden = !cap.bars.length; return;
+    }
     $("capStatus").textContent = cap.pages.length
       ? `Listo: ${cap.pages.length} páginas y ${cap.bars.length} compases. Descarga el archivo y mándaselo a Claude.`
       : "No se ha encontrado ninguna página de partitura. Comprueba que el vídeo se veía grande y vuelve a probar.";
@@ -3865,7 +3916,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function capSave() {
     const vd = (player.getVideoData && player.getVideoData()) || {};
     const pageAt = (t) => { let n = 1; cap.pages.forEach((p, i) => { if (p.t <= t + 0.05) n = i + 1; }); return n; };
-    const out = {
+    const out = cap.style === "jy" ? {
+      app: "Conquista cada compás", tipo: "captura de partitura", estilo: "jack-young", version: 1,
+      videoId, titulo: vd.title || "", duracion: player.getDuration ? +player.getDuration().toFixed(2) : 0,
+      compases: cap.bars, cursor: cap.cursor,   // una imagen por compás (la línea en amarillo) y el segundo en que empieza
+    } : {
       app: "Conquista cada compás", tipo: "captura de partitura", version: 1,
       videoId, titulo: vd.title || "", duracion: player.getDuration ? +player.getDuration().toFixed(2) : 0,
       franja: cap.band && { x: cap.band.x, y: cap.band.y, ancho: cap.band.w, alto: cap.band.h, fotogramaAncho: cap.cv.width, fotogramaAlto: cap.cv.height },
