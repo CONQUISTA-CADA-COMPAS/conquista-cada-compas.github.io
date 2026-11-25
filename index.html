@@ -574,6 +574,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 /* Partitura con la canción sonando: velocidad en «×» como las canciones; sin metrónomo (manda la música) */
 .scoreview.vidmode #scBpmGrp, .scoreview.vidmode .vid-hide { display: none; }
 .sc-rate { padding: 4px 8px; font: 700 14px var(--mono); border-radius: 8px; }
+#scSrc { font: 700 13px var(--body); }
+.countin .syncmsg { font-size: clamp(22px, 3vw, 40px); text-align: center; padding: 0 16px; }
+.btn.syncbtn, .btn.syncbtn:hover { background: var(--done); border-color: var(--done); color: #fff; }
 .sv-legend { justify-self: center; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 16px; font-size: 13px; color: #5a6876; min-width: 0; }
 .sv-legend span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .sv-legend svg { width: 26px; height: 22px; flex: none; }
@@ -710,6 +713,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <div class="sv-ctl" id="scoreCtl">
           <button class="btn primary go" type="button" id="scoreGo">▶ Empezar ensayo</button>
           <button class="btn go pausebtn" type="button" id="scorePause" hidden>❚❚ Pausa</button>
+          <div class="sv-group" id="scSrcGrp" hidden><span class="sv-cap">Música</span>
+            <select id="scSrc" class="sc-rate" aria-label="De dónde sale la música"><option value="vid">La canción (vídeo)</option><option value="app">Solo la batería de la app</option><option value="yt">La canción en YouTube, en otra ventana</option></select>
+            <a class="btn small" id="scYt" target="_blank" rel="noopener" hidden>Abrir en YouTube ↗</a></div>
           <div class="sv-group" id="scRateGrp" hidden><span class="sv-cap">Velocidad</span>
             <select id="scRate" class="sc-rate" aria-label="Velocidad de la canción"><option value="1">1×</option><option value="0.95">0,95×</option><option value="0.9">0,9×</option><option value="0.85">0,85×</option><option value="0.8">0,8×</option><option value="0.75">0,75×</option><option value="0.7">0,7×</option></select></div>
           <div class="sv-group" id="scBpmGrp"><span class="sv-cap">Velocidad</span>
@@ -1159,6 +1165,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
             150: "El autor no permite ver este vídeo fuera de YouTube. Prueba con otro vídeo de la misma canción.",
             153: "YouTube necesita que la página esté en internet. Súbela a Netlify y abre el enlace que te dé.",
           }[e.data] || `YouTube no pudo cargar este vídeo (código ${e.data}).`;
+          // Partitura con la canción: si el vídeo no se puede ver fuera de YouTube, sigue con la batería de la app
+          const sv = typeof curScore === "function" && curScore();
+          if ((e.data === 101 || e.data === 150) && sv && sv.video && sv.video === videoId) return vidBlocked(sv);
           toast(m);
         },
       },
@@ -2508,7 +2517,23 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash, r = plato ride.  beats = tiempos por compás (4 si no se dice).  us (caja con plica arriba): S = caja, g = nota fantasma.
   // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
   const SCORES = [
-    { id: "joker-and-the-thief", title: "Joker and the Thief", sub: "Wolfmother · con la canción sonando", video: "0LQ77YdkQek", div: 3, plain: true, lines: (() => {
+    { id: "biblia-6", title: "Biblia 6", sub: "Ejercicios 28 a 32 · bombo en el primer tiempo; caja y bombo en el segundo · charles en cada tiempo · 2/4, semicorcheas", bpm: 60, div: 4, beats: 2, ts: [2, 4], one: true, dbl: true, lines: (() => {
+      // Leído nota a nota de la hoja (mismo libro que «Biblia 5»): encima de la raya = caja, debajo = bombo.
+      // 1.er tiempo: solo bombo, un ritmo por ejercicio (en semicorcheas 0-3). 2.º tiempo: la 1.ª nota es caja y las demás bombo.
+      const T1 = { 28: [0, 2], 29: [0, 3], 30: [1, 2], 31: [1, 3], 32: [2, 3] };
+      const T2 = [[0], [0, 1], [0, 2], [0, 3], [0, 1, 2], [0, 1, 3], [0, 2, 3], [0, 1, 2, 3]];   // fila 1: compases 1-4 · fila 2: compases 5-8
+      const set = (str, i, c) => str.slice(0, i) + c + str.slice(i + 1);
+      const lines = [];
+      for (let ex = 28; ex <= 32; ex++) for (let row = 0; row < 2; row++) lines.push(T2.slice(row * 4, row * 4 + 4).map((t2, bi) => {
+        let us = "........", low = "........";
+        T1[ex].forEach((q) => (low = set(low, q, "B")));
+        t2.forEach((q, k) => (k === 0 ? (us = set(us, 4 + q, "S")) : (low = set(low, 4 + q, "B"))));
+        // como pidió Pedro en «Biblia 5»: charles (con la mano) en cada negra, donde suena el clic fuerte del metrónomo
+        return Object.assign({ up: "x...x...", us, low }, row === 0 && bi === 0 ? { n: ex } : {});
+      }));
+      return lines;
+    })() },
+    { id: "joker-and-the-thief", title: "Joker and the Thief", sub: "Wolfmother · 176 compases", video: "0LQ77YdkQek", div: 3, plain: true, lines: (() => {
       // Pasada a limpio de la captura del vídeo (canal Drumschool Vriesema), compás a compás. 4/4 en tresillos (cada tiempo en 3).
       // up: x charles, o charles abierto, c crash, r ride · us (plica arriba): S caja, H tom alto, L tom bajo, F tom base · fl: f = flam · low: B bombo · qt: tresillos de negra
       const R = {}, A = { up: "x.xxxxx.xxxx" }, O = { up: "o.xxxxx.xxxx" };
@@ -2589,13 +2614,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
     ] },
   ];
-  const SC_LATEST = "joker-and-the-thief";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
+  const SC_LATEST = "biblia-6";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
   const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5, SC_REST = -0.6;   // cuenta de 5 tiempos; en reposo, la 1.ª nota junto a la barra
   let scStore = {};
   try { scStore = JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch (e) {}
   scStore.sel = scStore.sel || {}; scStore.bpm = scStore.bpm || {};
   const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false, vdrums: false }, scStore.opt || {});
-  scStore.rate = scStore.rate || {};
+  scStore.rate = scStore.rate || {}; scStore.src = scStore.src || {}; scStore.blocked = scStore.blocked || {};
   const isVid = (s) => !!(s && s.video);
   function scSave() { scStore.opt = scOpt; try { localStorage.setItem(SCORE_KEY, JSON.stringify(scStore)); } catch (e) {} }
   const scSelNow = {};   // líneas marcadas (no se recuerdan: al abrir, la partitura entera)
@@ -2926,6 +2951,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("scoreView").classList.toggle("vidmode", vid); $("scRateGrp").hidden = !vid;
     $("scDrums").checked = vid ? scOpt.vdrums : scOpt.drums;
     if (vid) $("scRate").value = String(scStore.rate[sv.id] || 1);
+    $("scSrcGrp").hidden = !vid; if (vid) setSrcUI(sv);
     placeLines(); renderScores(); renderSheet(); scOverlayBox();
     // en el móvil (o con la columna oculta) la ventana de ensayo está arriba: se sube hasta ella
     if (window.matchMedia("(max-width: 980px)").matches || document.querySelector("main").classList.contains("wide")) $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -3075,22 +3101,27 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const b = $("scoreGo"); if (!b) return;
     b.textContent = scoreRun ? "■ Parar ensayo" : "▶ Empezar ensayo";
     b.classList.toggle("stopping", !!scoreRun);
-    const pb = $("scorePause"); if (pb) { pb.hidden = !scoreRun; pb.textContent = scoreRun && scoreRun.paused ? "▶ Seguir" : "❚❚ Pausa"; }
+    const pb = $("scorePause"); if (pb) { pb.hidden = !scoreRun; pb.textContent = scoreRun && scoreRun.waitSync ? "¡Ya! (primer golpe)" : scoreRun && scoreRun.paused ? "▶ Seguir" : "❚❚ Pausa"; pb.classList.toggle("syncbtn", !!(scoreRun && scoreRun.waitSync)); }
   }
   // Pausa de la partitura: se congela el reloj del sonido (y con él la tira); al seguir, continúa al instante
   function pauseScore() {
     const r = scoreRun; if (!r || r.paused) return;
     r.paused = true;
-    if (r.vid) { try { player.pauseVideo(); } catch (e) {} } else try { audioCtx.suspend(); } catch (e) {}
+    if (r.vid && r.mode === "vid") { try { player.pauseVideo(); } catch (e) {} } else try { audioCtx.suspend(); } catch (e) {}
     updateScoreBtn();
   }
   function resumeScore() {
     const r = scoreRun; if (!r || !r.paused) return;
     r.paused = false;
-    if (r.vid) { try { r.lastNow = performance.now(); player.playVideo(); } catch (e) {} } else try { audioCtx.resume(); } catch (e) {}
+    if (r.vid && r.mode === "vid") { try { r.lastNow = performance.now(); player.playVideo(); } catch (e) {} } else try { audioCtx.resume(); } catch (e) {}
     updateScoreBtn();
   }
-  const toggleScorePause = () => (scoreRun && scoreRun.paused ? resumeScore() : pauseScore());
+  function syncNow() {   // «¡Ya!»: suena el primer golpe en YouTube
+    const r = scoreRun; if (!r || !r.waitSync) return;
+    r.waitSync = false; r.c0 = r.syncAt; r.a0 = audioCtx.currentTime; r.started = true;
+    $("countin").hidden = true; updateScoreBtn();
+  }
+  const toggleScorePause = () => (scoreRun && scoreRun.waitSync ? syncNow() : scoreRun && scoreRun.paused ? resumeScore() : pauseScore());
   function readyScore() {
     if (!curScore()) return;
     if (!scSel(curScore()).size) return toast("Marca al menos una línea para empezar el ensayo.");
@@ -3159,7 +3190,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function stopScore() {
     const r = scoreRun; if (!r) return;
-    if (r.vid) { clearInterval(r.wait); try { player.pauseVideo(); } catch (e) {} }
+    if (r.vid && r.mode === "vid") { clearInterval(r.wait); try { player.pauseVideo(); } catch (e) {} }
+    else if (r.vid) { if (r.paused) { r.paused = false; try { audioCtx.resume(); } catch (e) {} } try { r.dry.disconnect(); } catch (e) {} }
     else if (r.paused) { r.paused = false; try { audioCtx.resume(); } catch (e) {} }
     clearInterval(r.timer); cancelAnimationFrame(r.raf);
     try { r.out.disconnect(); } catch (e) {}
@@ -3182,6 +3214,25 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const bt = s.bt, i = Math.max(0, Math.min(bt.length - 2, Math.floor(B / 4)));
     return bt[i] + (B / 4 - i) * (bt[i + 1] - bt[i]);
   };
+  const vidSrc = (s) => scStore.src[s.id] || (scStore.blocked[s.video] ? "app" : "vid");
+  function setSrcUI(s) {
+    const v = vidSrc(s); $("scSrc").value = v;
+    $("scYt").hidden = v !== "yt"; $("scYt").href = "https://www.youtube.com/watch?v=" + s.video;
+    $("scoreView").classList.toggle("ytmode", v === "yt");
+  }
+  $("scSrc").onchange = () => {
+    const s = curScore(); if (!s) return;
+    if (scoreRun) stopScore();
+    scStore.src[s.id] = $("scSrc").value; scSave(); setSrcUI(s); renderSheet();
+    if ($("scSrc").value === "yt") toast("Abre la canción en YouTube, pulsa «Empezar ensayo» aquí y, cuando suene el primer golpe de batería, pulsa la barra espaciadora.");
+  };
+  function vidBlocked(s) {
+    scStore.blocked[s.video] = Date.now(); if (scStore.src[s.id] === "vid") delete scStore.src[s.id]; scSave(); setSrcUI(s);
+    const r = scoreRun, again = r && r.vid && r.mode === "vid";
+    if (again) { stopScore(); }
+    toast("YouTube ya no deja ver este vídeo fuera de YouTube. Sigue con la batería de la app (o elige «La canción en YouTube, en otra ventana»).");
+    if (again) setTimeout(() => readyScore(), 300);
+  }
   function startVid(st) {
     const s = curScore(), ctx = audio(); keepAwake();
     $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -3189,8 +3240,26 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const secStart = vidTime(s, startB), beat = vidTime(s, startB + 1) - secStart;
     const lead = Math.min(5, Math.floor((secStart - 0.05) / beat));   // cuenta de hasta 5 con la propia música
     const out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
-    scoreRun = Object.assign(st, { vid: true, s, rate, reps: st.whole ? 1 : SC_REPS, rep: 1, startB, beat, lead, out, dry: out, hi: 0, nextEv: 0, shown: 0, started: false, lastCt: 0, lastNow: 0, openHH: null });
+    const mode = vidSrc(s);
+    scoreRun = Object.assign(st, { vid: true, mode, s, rate, reps: st.whole ? 1 : SC_REPS, rep: 1, startB, beat, lead, out, dry: out, hi: 0, nextEv: 0, shown: 0, started: false, lastCt: 0, lastNow: 0, openHH: null });
     const seekAt = Math.max(0, secStart - Math.max(lead, 0) * beat);
+    // Sin vídeo: la partitura va con su propio reloj (el del sonido), con los mismos segundos de cada compás que la canción
+    if (mode !== "vid") {
+      const comp = ctx.createDynamicsCompressor(); comp.threshold.value = -16; comp.ratio.value = 4;
+      out.disconnect(); out.connect(comp); comp.connect(ctx.destination);
+      const dry = ctx.createGain(); dry.gain.value = 0.9; dry.connect(ctx.destination); scoreRun.dry = dry;
+      if (mode === "app") { scoreRun.c0 = seekAt; scoreRun.a0 = ctx.currentTime + 0.1; scoreRun.started = true; }
+      else {   // con YouTube en otra ventana: espera a que pulse la barra cuando suene el primer golpe
+        scoreRun.reps = 1; scoreRun.startB = 0; scoreRun.waitSync = true;
+        const first = st.events.length ? st.events[0].t : 0; scoreRun.syncAt = vidTime(s, first);
+        if (!st.whole) toast("Con YouTube en otra ventana se ensaya la canción entera, de principio a fin.");
+        const c = $("countin"); c.hidden = false;
+        c.innerHTML = `<div class="syncmsg">Pon la canción en YouTube<small>y pulsa la barra espaciadora (o «¡Ya!») justo cuando suene el primer golpe de batería</small></div>`;
+      }
+      scoreRun.raf = requestAnimationFrame(vidFrame);
+      updateScoreBtn();
+      return;
+    }
     const go = () => {
       const r = scoreRun; if (!r || !r.vid) return;
       player.seekTo(seekAt, true); try { player.setPlaybackRate(rate); } catch (e) {}
@@ -3208,11 +3277,20 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const r = scoreRun; if (!r || !r.vid) return;
     r.raf = requestAnimationFrame(vidFrame);
     if (!r.started || r.paused) return;
-    // YouTube da el segundo a saltitos: entre medias se calcula con el reloj, para que la tira se mueva suave
-    const now = performance.now(), ct = player.getCurrentTime(), playing = player.getPlayerState() === YT.PlayerState.PLAYING;
-    if (Math.abs(ct - r.lastCt) > 0.001) { r.lastCt = ct; r.lastNow = now; }
-    const est = playing ? r.lastCt + Math.min(0.5, (now - r.lastNow) / 1000) * r.rate : r.lastCt;
-    const B = vidBeat(r.s, est) - r.startB;
+    const now = performance.now();
+    let est, playing, B;
+    if (r.mode === "vid") {
+      // YouTube da el segundo a saltitos: entre medias se calcula con el reloj, para que la tira se mueva suave
+      const ct = player.getCurrentTime(); playing = player.getPlayerState() === YT.PlayerState.PLAYING;
+      if (Math.abs(ct - r.lastCt) > 0.001) { r.lastCt = ct; r.lastNow = now; }
+      est = playing ? r.lastCt + Math.min(0.5, (now - r.lastNow) / 1000) * r.rate : r.lastCt;
+      B = vidBeat(r.s, est) - r.startB;
+    } else {
+      // reloj propio: el del sonido (se para solo al pausar); lo que se ve se retrasa lo que tarda en oírse
+      playing = true; est = r.c0 + (audioCtx.currentTime - r.a0) * r.rate;
+      const lat = (audioCtx.outputLatency || 0) + (audioCtx.baseLatency || 0);
+      B = vidBeat(r.s, est - lat * r.rate) - r.startB;
+    }
     placeStrip(Math.min(B, r.total));
     const c = $("countin");
     if (B < 0) {
@@ -3231,21 +3309,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     // Batería de la app (opcional) encima de la canción: cada golpe se programa al segundo exacto del vídeo
     while (r.nextEv < r.events.length && vidTime(r.s, r.startB + r.events[r.nextEv].t) <= est + 0.15 * r.rate) {
       const ev = r.events[r.nextEv], tv = vidTime(r.s, r.startB + ev.t);
-      if (scOpt.vdrums && playing && tv >= est - 0.02 && audioCtx) { const at = audioCtx.currentTime + (tv - est) / r.rate; scDrum(r.out, ev.inst, at); if (ev.flam) scFlam(r.out, ev.inst, at); }
+      if ((r.mode === "app" || scOpt.vdrums) && playing && tv >= est - 0.02 && audioCtx) { const at = audioCtx.currentTime + (tv - est) / r.rate; scDrum(r.out, ev.inst, at); if (ev.flam) scFlam(r.out, ev.inst, at); }
       r.nextEv++;
     }
     if (B >= r.total) {
       if (r.rep < r.reps) {   // otra vuelta: vuelve al principio con cuenta de 3
         r.rep++; r.hi = 0; r.nextEv = 0; r.shown = 0; r.lead = 3;
         const back = Math.max(0, vidTime(r.s, r.startB) - 3 * r.beat);
-        player.seekTo(back, true); r.lastCt = back; r.lastNow = now;
+        if (r.mode === "vid") { player.seekTo(back, true); r.lastCt = back; r.lastNow = now; }
+        else { r.c0 = back; r.a0 = audioCtx.currentTime; }
       } else { stopScore(); showDone(); }
     }
   }
   $("scRate").onchange = () => {
     const s = curScore(); if (!s) return;
     scStore.rate[s.id] = +$("scRate").value; scSave();
-    if (scoreRun && scoreRun.vid) { scoreRun.rate = +$("scRate").value; try { player.setPlaybackRate(scoreRun.rate); } catch (e) {} }
+    const r = scoreRun;
+    if (r && r.vid && r.mode === "vid") { r.rate = +$("scRate").value; try { player.setPlaybackRate(r.rate); } catch (e) {} }
+    else if (r && r.vid && r.started) { const est = r.c0 + (audioCtx.currentTime - r.a0) * r.rate; r.c0 = est; r.a0 = audioCtx.currentTime; r.rate = +$("scRate").value; }
   };
   $("scorePause").onclick = toggleScorePause;
   $("scoreGo").onclick = () => {
