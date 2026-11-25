@@ -3103,7 +3103,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const b = $("scoreGo"); if (!b) return;
     b.textContent = scoreRun ? "■ Parar ensayo" : "▶ Empezar ensayo";
     b.classList.toggle("stopping", !!scoreRun);
-    const pb = $("scorePause"); if (pb) { pb.hidden = !scoreRun; pb.textContent = scoreRun && scoreRun.waitSync ? "¡Ya! (primer golpe)" : scoreRun && scoreRun.paused ? "▶ Seguir" : "❚❚ Pausa"; pb.classList.toggle("syncbtn", !!(scoreRun && scoreRun.waitSync)); }
+    const pb = $("scorePause"); if (pb) { pb.hidden = !scoreRun; if (scoreRun && scoreRun.waitSync && scoreRun.stream) pb.hidden = true;
+      pb.textContent = scoreRun && scoreRun.waitSync ? "¡Ya! (primer golpe)" : scoreRun && scoreRun.paused ? "▶ Seguir" : "❚❚ Pausa"; pb.classList.toggle("syncbtn", !!(scoreRun && scoreRun.waitSync)); }
   }
   // Pausa de la partitura: se congela el reloj del sonido (y con él la tira); al seguir, continúa al instante
   function pauseScore() {
@@ -3124,6 +3125,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Huella más gruesa (40×8): así da igual que el vídeo se vea más grande o más pequeño que al capturarlo
   function ytPool(sig) { const o = new Uint8Array(40 * 8); for (let y = 0; y < 32; y++) for (let x = 0; x < 160; x++) if (sig[y * 160 + x]) o[(y >> 2) * 40 + (x >> 2)] = 1; return o; }
   function ytSig(b64) { const raw = atob(b64), out = new Uint8Array(raw.length * 8); for (let i = 0; i < raw.length; i++) for (let k = 0; k < 8; k++) out[i * 8 + k] = (raw.charCodeAt(i) >> (7 - k)) & 1; return out; }
+  const ytEst = (r, now) => Math.min(r.c0 + (now - r.a0) * r.rate + (r.corr || 0) * Math.min(1, (now - r.a0) / 1.0), r.cap);
   async function ytWatch(r) {
     let stream;
     try { stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: 15 }, audio: false, selfBrowserSurface: "exclude", surfaceSwitching: "include", preferCurrentTab: false }); }
@@ -3139,7 +3141,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     try { await vid.play(); } catch (e) {}
     const cv = document.createElement("canvas"), bt = r.s.bt;
     Object.assign(r, { stream, ytBand: null, lastBar: 0, lastJump: 0, lastGx: -1, lastMove: 0, lastRed: null });
-    $("countin").innerHTML = `<div class="syncmsg">Pon la canción en YouTube<small>la partitura se pondrá sola en su sitio en cuanto empiece</small></div>`;
+    updateScoreBtn();
+    $("countin").innerHTML = `<div class="syncmsg">No tienes que pulsar nada<small>en cuanto la canción suene en YouTube, la partitura se pondrá sola en su sitio</small></div>`;
     stream.getVideoTracks()[0].addEventListener("ended", () => { if (scoreRun === r) { toast("Se ha dejado de compartir la pestaña de YouTube."); stopScore(); } });
     r.ytTimer = setInterval(() => {
       if (scoreRun !== r || !vid.videoWidth) return;
@@ -3147,7 +3150,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (cv.width !== W || cv.height !== H) { cv.width = W; cv.height = H; r.ytBand = null; }
       const ctx = cv.getContext("2d", { willReadFrequently: true }); ctx.drawImage(vid, 0, 0, W, H);
       if (!r.ytBand) { r.ytBand = capFindBand(ctx.getImageData(0, 0, W, H).data, W, H); if (!r.ytBand) return; }
-      const b = r.ytBand, rd = capRead(ctx.getImageData(b.x, b.y, b.w, b.h)), now = audioCtx.currentTime;
+      const b = r.ytBand, rd = capRead(ctx.getImageData(b.x, b.y, b.w, b.h)), now = performance.now() / 1000;
       if (rd.ink < 40 || !rd.red) { if (r.ytBand && rd.cream < 0.3) r.ytBand = null; return; }   // sin partitura a la vista (o la franja se ha movido)
       const moved = !r.lastRed || Math.abs(rd.red.x0 - r.lastRed) > 0.03;
       let bar = r.lastBar;
@@ -3168,19 +3171,24 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       }
       if (!bar) return;
       // ¿se mueve el cursor verde? si lleva un rato quieto, el vídeo está en pausa
-      if (rd.gx >= 0 && Math.abs(rd.gx - r.lastGx) > 0.001) { r.lastGx = rd.gx; r.lastMove = now; if (r.frozen != null) { r.c0 = r.frozen; r.a0 = now; r.frozen = null; } }
-      else if (r.frozen == null && r.started && now - r.lastMove > 0.6) r.frozen = Math.min(r.c0 + (now - r.a0) * r.rate, r.cap);
+      // Pausa en YouTube: el cursor verde deja de moverse (si no se ve el cursor, se espera a que falte el salto de compás)
+      const barDur = r.lastBar ? (bt[r.lastBar] - bt[r.lastBar - 1]) / r.rate : 2;
+      if (rd.gx >= 0 && Math.abs(rd.gx - r.lastGx) > 0.002) { r.lastGx = rd.gx; r.lastMove = now; r.seenCursor = (r.seenCursor || 0) + 1; if (r.frozen != null) { r.c0 = r.frozen; r.a0 = now; r.corr = 0; r.frozen = null; } }
+      else if (r.frozen == null && r.started && (r.seenCursor > 10 ? now - r.lastMove > 0.8 : now - r.lastJump > barDur * 1.6)) r.frozen = ytEst(r, now);
       if (bar !== r.lastBar) {
         // la velocidad real sale de cuánto ha tardado en pasar de un compás al siguiente (vale también a 0,75×…)
         if (bar === r.lastBar + 1 && r.lastJump) { const m = (bt[bar - 1] - bt[bar - 2]) / (now - r.lastJump); if (m > 0.4 && m < 1.3) r.rate = r.rate * 0.6 + m * 0.4; }
-        r.lastBar = bar; r.lastJump = now; r.lastMove = now;
-        r.c0 = bt[bar - 1] + 0.05; r.a0 = now; r.frozen = null;
+        const target = bt[bar - 1] + 0.05, cur = r.started && r.frozen == null ? ytEst(r, now) : null;
+        r.lastBar = bar; r.lastJump = now; r.lastMove = now; r.frozen = null;
+        // si ya iba bien encaminada, se corrige poco a poco (medio segundo) para que la tira no dé saltos
+        if (cur != null && Math.abs(target - cur) < 0.6) { r.c0 = cur; r.a0 = now; r.corr = target - cur; }
+        else { r.c0 = target; r.a0 = now; r.corr = 0; }
         r.cap = (bt[bar] || bt[bar - 1] + 2) + 0.3;   // sin el siguiente salto no se adelanta más de la cuenta
         if (!r.started) { r.started = true; r.waitSync = false; r.live = true; $("countin").hidden = true; updateScoreBtn(); }
         r.hi = r.events.findIndex((e) => e.t >= (bar - 1) * 4 - 0.01); if (r.hi < 0) r.hi = r.events.length;
         r.nextEv = r.hi;
       }
-    }, 80);
+    }, 50);
   }
   function syncNow() {   // «¡Ya!»: suena el primer golpe en YouTube
     const r = scoreRun; if (!r || !r.waitSync) return;
@@ -3359,7 +3367,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     } else {
       if (r.live) {   // siguiendo la pestaña de YouTube: el compás lo da la barra roja del vídeo
         playing = r.frozen == null;
-        est = playing ? Math.min(r.c0 + (audioCtx.currentTime - r.a0) * r.rate, r.cap) : r.frozen;
+        est = playing ? ytEst(r, performance.now() / 1000) : r.frozen;   // reloj normal: no hay sonido propio que seguir
         B = vidBeat(r.s, est) - r.startB;
       } else {
         // reloj propio: el del sonido (se para solo al pausar); lo que se ve se retrasa lo que tarda en oírse
@@ -3628,11 +3636,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const isInk = (r, g, b) => Math.max(r, g, b) < 120 && Math.max(r, g, b) - Math.min(r, g, b) < 45;
   // La franja de la partitura: el bloque más alto de filas casi todas color crema
   function capFindBand(d, W, H) {
+    // en cada fila, el tramo seguido más largo de color crema (el vídeo puede ocupar solo una parte de la pantalla)
     const rows = [];
     for (let y = 0; y < H; y += 2) {
-      let n = 0, c = 0;
-      for (let x = 0; x < W; x += 4) { const i = (y * W + x) * 4; n++; if (isCream(d[i], d[i + 1], d[i + 2])) c++; }
-      rows.push([y, c / n]);
+      let run = 0, best = 0, gap = 0;
+      for (let x = 0; x < W; x += 4) {
+        const i = (y * W + x) * 4;
+        if (isCream(d[i], d[i + 1], d[i + 2])) { run += 1 + gap; gap = 0; if (run > best) best = run; }
+        else if (run && ++gap > 6) { run = 0; gap = 0; }   // admite notas y rayas por medio
+      }
+      rows.push([y, best * 4 / (W * 0.6)]);
     }
     const runs = []; let cur = null, gap = 0;
     rows.forEach(([y, f]) => {
@@ -3641,14 +3654,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     });
     if (cur) runs.push(cur);
     const best = runs.sort((a, b) => (b.y1 - b.y0) - (a.y1 - a.y0))[0];
-    if (!best || best.y1 - best.y0 < H * 0.06) return null;
+    if (!best || best.y1 - best.y0 < Math.max(24, H * 0.03)) return null;
     let x0 = W, x1 = 0;
     for (let x = 0; x < W; x += 2) {
       let n = 0, c = 0;
       for (let y = best.y0; y <= best.y1; y += 3) { const i = (y * W + x) * 4; n++; if (isCream(d[i], d[i + 1], d[i + 2])) c++; }
       if (c / n > 0.4) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); }
     }
-    if (x1 - x0 < W * 0.3) return null;
+    if (x1 - x0 < W * 0.2) return null;
     return { x: x0, y: Math.max(0, best.y0 - 2), w: x1 - x0 + 1, h: Math.min(H, best.y1 + 4) - Math.max(0, best.y0 - 2) };
   }
   // Lo que hay en la franja ahora: huella de las notas negras, barra roja, cursor verde y cuánto crema se ve
@@ -3661,7 +3674,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       for (let x = 0; x < W; x++) {
         const i = (y * W + x) * 4, r = d[i], g = d[i + 1], b = d[i + 2];
         if ((x & 3) === 0 && (y & 1) === 0) { tot++; if (isCream(r, g, b)) cream++; }
-        if (isInk(r, g, b)) sig[Math.min(GY - 1, (y * GY / H) | 0) * GX + Math.min(GX - 1, (x * GX / W) | 0)] = 1;
+        if (Math.max(r, g, b) < 175 && Math.max(r, g, b) - Math.min(r, g, b) < 45) sig[Math.min(GY - 1, (y * GY / H) | 0) * GX + Math.min(GX - 1, (x * GX / W) | 0)] = 1;
         if (isRed(r, g, b)) { if (!run) rs = x; run++; if (run >= Math.max(30, W * 0.02) && (!bestRun || run > bestRun.len)) bestRun = { len: run, x0: rs, x1: x }; } else run = 0;
         if (isGreen(r, g, b)) gcol[x]++;
       }
