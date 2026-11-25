@@ -3696,8 +3696,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const [st, note, vel] = e.data;
     // El pedal del charles manda su posición aparte (control 4: 0 = suelto, 127 = pisado del todo)
     if ((st & 0xf0) === 0xb0 && note === 4) { midiPedal = vel; midiPedalListeners.forEach((f) => f(vel)); return; }
+    if ((st & 0xf0) === 0xb0) { midiListeners.forEach((f) => f({ cc: note, vel, name: `Control ${note}` })); return; }
     if ((st & 0xf0) !== 0x90 || !vel) return;   // solo golpes (nota que empieza, con fuerza)
-    const hit = { note, vel, t: performance.now() / 1000, name: MIDI_PADS[note] || `Pad ${note}` };
+    const hit = { note, vel, pedal: midiPedal, t: performance.now() / 1000, name: MIDI_PADS[note] || `Pad ${note}` };
     midiListeners.forEach((f) => f(hit));
   }
   function midiWire() { midiAccess.inputs.forEach((inp) => (inp.onmidimessage = midiHit)); }
@@ -3716,10 +3717,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const midiTest = (h) => {
     // Una fila por pieza (en el orden en que se golpean), con cuántas veces y la fuerza del último golpe
     const box = $("midiHits");
-    let row = box.querySelector(`[data-note="${h.note}"]`);
-    if (!row) { row = document.createElement("div"); row.dataset.note = h.note; row.dataset.n = 0; row.innerHTML = "<b></b><span></span>"; row.querySelector("b").textContent = h.name; box.append(row); }
+    // En el charles, se apunta también cómo estaba el pedal al golpear (pisado o suelto)
+    const hh = [22, 26, 42, 44, 46].includes(h.note) && h.pedal >= 0, ped = !hh ? "" : h.pedal > 90 ? "pisado" : h.pedal > 20 ? "a medias" : "suelto";
+    const key = h.cc != null ? "cc" + h.cc : h.note + ped;
+    let row = box.querySelector(`[data-note="${key}"]`);
+    if (!row) { row = document.createElement("div"); row.dataset.note = key; row.dataset.n = 0; row.innerHTML = "<b></b><span></span>"; row.querySelector("b").textContent = h.name + (ped ? ` · pedal ${ped}` : ""); box.append(row); }
     row.dataset.n = +row.dataset.n + 1;
-    row.querySelector("span").textContent = `nota ${h.note} · ${row.dataset.n} ${row.dataset.n == 1 ? "golpe" : "golpes"} · fuerza ${h.vel}`;
+    row.querySelector("span").textContent = `${h.cc != null ? "control" : "nota"} ${h.cc != null ? h.cc : h.note} · ${row.dataset.n} ${row.dataset.n == 1 ? "golpe" : "golpes"} · fuerza ${h.vel}`;
     row.className = "midihit"; void row.offsetWidth; row.className = "midihit new";
   };
   const midiPedalTest = (v) => {
