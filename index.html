@@ -622,6 +622,13 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .scorepanel .lib { gap: 2px; margin-inline: -6px; padding-inline: 6px; }
 /* Capturar la partitura de un vídeo */
 .capopen { align-self: flex-start; font-size: 13px; }
+.midistatus { margin: 0; font-size: 13px; }
+.midihits { display: flex; flex-direction: column; gap: 4px; font-size: 14px; }
+.midihits:empty { display: none; }
+.midihit { display: flex; justify-content: space-between; gap: 8px; padding: 4px 8px; border-radius: 6px; background: var(--surface-2); }
+.midihit b { font-weight: 800; }
+.midihit span { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.midihit.new { animation: scFlash .5s ease-out; }
 .capbox { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
 .capsteps { margin: 0; padding-left: 20px; font-size: 13px; color: var(--muted); display: grid; gap: 4px; }
 .capsteps b { color: var(--fg); }
@@ -835,6 +842,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     <div class="panel scorepanel" id="scorePanel">
       <h2>Mis partituras</h2>
       <div class="lib" id="scoreList"></div>
+      <button class="linkbtn capopen" type="button" id="midiOpen">🥁 Probar mi batería electrónica</button>
+      <div class="capbox" id="midiBox" hidden>
+        <p class="note midistatus" id="midiStatus">Con la batería conectada por USB, pulsa «Conectar» y Chrome te pedirá permiso.</p>
+        <div class="row capbtns"><button class="btn primary small" type="button" id="midiGo">Conectar</button><button class="btn small ghost" type="button" id="midiClose">Cerrar</button></div>
+        <div class="midihits" id="midiHits"></div>
+      </div>
       <button class="linkbtn capopen" type="button" id="capOpen">📷 Capturar la partitura de un vídeo</button>
       <div class="capbox" id="capBox" hidden>
         <ol class="capsteps">
@@ -3668,6 +3681,42 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   if (window.ResizeObserver) new ResizeObserver(fitUrlHint).observe($("urlInput"));
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fitUrlHint);
   fitUrlHint();
+
+  // ---------- Batería electrónica por USB (MIDI) ----------
+  // Cada golpe llega como una «nota» MIDI: el número dice el pad (mapa estándar de batería) y la fuerza, cómo de fuerte.
+  const MIDI_PADS = { 35: "Bombo", 36: "Bombo", 37: "Caja (aro, cross stick)", 38: "Caja", 40: "Caja (aro)", 42: "Charles cerrado", 22: "Charles cerrado (borde)",
+    44: "Charles con el pie", 46: "Charles abierto", 26: "Charles abierto (borde)", 48: "Tom alto", 50: "Tom alto (aro)", 45: "Tom medio", 47: "Tom medio (aro)",
+    43: "Tom base", 58: "Tom base (aro)", 41: "Tom base 2", 39: "Tom base 2 (aro)", 49: "Crash", 55: "Crash (borde)", 57: "Crash 2", 52: "Crash 2 (borde)",
+    51: "Ride", 59: "Ride (borde)", 53: "Campana del ride", 27: "Aux", 28: "Aux (aro)" };
+  let midiAccess = null;
+  const midiListeners = new Set();   // quien quiera los golpes (la prueba, y más adelante el examen)
+  function midiHit(e) {
+    const [st, note, vel] = e.data;
+    if ((st & 0xf0) !== 0x90 || !vel) return;   // solo golpes (nota que empieza, con fuerza)
+    const hit = { note, vel, t: performance.now() / 1000, name: MIDI_PADS[note] || `Pad ${note}` };
+    midiListeners.forEach((f) => f(hit));
+  }
+  function midiWire() { midiAccess.inputs.forEach((inp) => (inp.onmidimessage = midiHit)); }
+  async function midiConnect() {
+    if (!navigator.requestMIDIAccess) { $("midiStatus").textContent = "Este navegador no puede leer la batería. Usa Chrome en el ordenador."; return false; }
+    try { midiAccess = midiAccess || (await navigator.requestMIDIAccess()); }
+    catch (e) { $("midiStatus").textContent = "Chrome no ha dado permiso para leer la batería. Vuelve a pulsar «Conectar» y elige «Permitir»."; return false; }
+    midiWire(); midiAccess.onstatechange = () => { midiWire(); midiShowInputs(); };
+    midiShowInputs(); return true;
+  }
+  function midiShowInputs() {
+    const names = [...midiAccess.inputs.values()].map((i) => i.name);
+    $("midiStatus").innerHTML = names.length ? `Conectada: <b></b>. Golpea cada pad y mira qué pieza sale.` : "Chrome no ve ninguna batería. Comprueba el cable USB y que el módulo esté encendido.";
+    if (names.length) $("midiStatus").querySelector("b").textContent = names.join(", ");
+  }
+  const midiTest = (h) => {
+    const box = $("midiHits"), row = document.createElement("div");
+    row.className = "midihit new"; row.innerHTML = `<b></b><span>nota ${h.note} · fuerza ${h.vel}</span>`; row.querySelector("b").textContent = h.name;
+    box.prepend(row); while (box.children.length > 8) box.lastChild.remove();
+  };
+  $("midiOpen").onclick = () => { $("midiBox").hidden = !$("midiBox").hidden; };
+  $("midiClose").onclick = () => { $("midiBox").hidden = true; midiListeners.delete(midiTest); };
+  $("midiGo").onclick = async () => { if (await midiConnect()) { midiListeners.add(midiTest); $("midiGo").textContent = "Conectada"; } };
 
   // ---------- Capturar la partitura de un vídeo ----------
   // Se comparte esta misma pestaña (con el vídeo de YouTube puesto en grande) y la app vigila la franja color crema
