@@ -590,6 +590,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-acc.up { animation: accUp .4s ease-out; } .sv-acc.down { animation: accDown .4s ease-out; }
 @keyframes accUp { from { transform: scale(1.18); } } @keyframes accDown { from { color: #ff0b5e; transform: scale(1.12); } }
 .mus .n.ok .h { filter: drop-shadow(0 0 2px #00d49e) drop-shadow(0 0 3px #00d49e); }
+.mus .cm { fill: #00b386; font: 800 15px var(--body); text-anchor: middle; dominant-baseline: central; }
 .mus .xm { fill: #ff0b5e; font: 800 18px var(--body); text-anchor: middle; dominant-baseline: central; }
 .sv-rep { font-family: var(--display); font-weight: 800; font-size: clamp(15px, 1.8vw, 22px); color: #ff0b5e; white-space: nowrap; }
 .sv-close { border: 1.5px solid #cfd7e0; background: #fff; color: #15202b; border-radius: 8px; width: 34px; height: 34px; font-size: 20px; line-height: 1; flex: none; }
@@ -3293,18 +3294,27 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const ev = [], last = {};
     r.events.forEach((e, i) => { const c = EX_CLS[e.inst]; if (c) ev.push({ t: e.t, c, el: r.els[i], st: 0, gp: 1e9, gn: 1e9 }); });
     ev.forEach((e) => { const p = last[e.c]; if (p) { e.gp = p.gn = e.t - p.t; } last[e.c] = e; });
-    r.ex = { ev, good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h) };
+    r.ex = { ev, cols: new Map(), good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h) };
     midiListeners.add(r.ex.fn);
     $("svAcc").hidden = false; examShow(r);
   }
   const exWin = (r, e) => Math.min(EX_WIN / r.exS, 0.45 * Math.min(e.gp, e.gn));   // en tiempos; nunca llega a la nota vecina
-  function exMark(e, ok) {
+  // Debajo de cada golpe (una columna, aunque suenen varias piezas a la vez): ✓ verde si todo se ha tocado bien,
+  // × magenta si falla alguna. La nota acertada además se queda con un halo verde.
+  function exMark(x, e, ok) {
     const el = e.el; if (!el) return;
-    if (ok) { if (!el.classList.contains("bad")) el.classList.add("ok"); return; }
-    el.classList.remove("ok"); if (el.classList.contains("bad")) return;
-    el.classList.add("bad");
-    try { const bb = el.getBBox(), x = document.createElementNS("http://www.w3.org/2000/svg", "text");
-      x.setAttribute("class", "xm"); x.setAttribute("x", bb.x + bb.width / 2); x.setAttribute("y", BOT + 13); x.textContent = "×"; el.appendChild(x); } catch (err) {}
+    if (ok) { if (!el.classList.contains("bad")) el.classList.add("ok"); }
+    else { el.classList.remove("ok"); el.classList.add("bad"); }
+    let bb; try { bb = el.getBBox(); } catch (err) { return; }
+    const cx = bb.x + bb.width / 2, key = Math.round(e.t * 48);
+    let col = x.cols.get(key);
+    if (!col) {
+      const t = document.createElementNS("http://www.w3.org/2000/svg", "text");
+      t.setAttribute("x", cx); t.setAttribute("y", BOT + 13); el.parentNode.appendChild(t);
+      col = { t, bad: false }; x.cols.set(key, col);
+    }
+    if (!ok) col.bad = true;
+    col.t.setAttribute("class", col.bad ? "xm" : "cm"); col.t.textContent = col.bad ? "×" : "✓";
   }
   // Cada fotograma: dónde va la tira (T, en tiempos) y cuántos segundos dura un tiempo; las notas ya pasadas sin golpe, fallo
   function examClock(r, T, spb) {
@@ -3314,7 +3324,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     for (let i = x.next; i < x.ev.length; i++) {
       const e = x.ev[i];
       if (e.t > T) break;
-      if (e.st === 0 && e.t + exWin(r, e) < T) { e.st = 2; x.miss++; exMark(e, false); changed = true; }
+      if (e.st === 0 && e.t + exWin(r, e) < T) { e.st = 2; x.miss++; exMark(x, e, false); changed = true; }
       if (i === x.next && e.st) x.next++;
     }
     if (changed) examShow(r);
@@ -3330,7 +3340,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const d = Math.abs(e.t - T);
       if (e.st === 0 && e.c === c && d <= exWin(r, e) && d < bd) { best = e; bd = d; }
     }
-    if (best) { best.st = 1; x.good++; exMark(best, true); }
+    if (best) { best.st = 1; x.good++; exMark(x, best, true); }
     else {
       // un golpe algo desplazado de una nota de esa pieza ya cuenta como fallo de esa nota: no se castiga dos veces
       const near = x.ev.some((e) => e.c === c && Math.abs(e.t - T) < EX_NEAR / r.exS);
@@ -3349,7 +3359,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Otra vuelta sobre las mismas notas (con la canción): se borran las marcas, la cuenta sigue
   function examRewind(r) {
     const x = r.ex; if (!x) return;
-    x.ev.forEach((e) => { e.st = 0; if (e.el) { e.el.classList.remove("ok", "bad"); const m = e.el.querySelector(".xm"); if (m) m.remove(); } });
+    x.ev.forEach((e) => { e.st = 0; if (e.el) e.el.classList.remove("ok", "bad"); });
+    x.cols.forEach((c) => c.t.remove()); x.cols.clear();
     x.next = 0; r.exP = null;   // hasta el siguiente fotograma no se sabe dónde va la tira
   }
   function examSummary() {
