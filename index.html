@@ -571,6 +571,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-linehead .sv-info { justify-self: end; text-align: right; }
 @media (max-width: 900px) { .sv-linehead { display: flex; flex-wrap: wrap; justify-content: space-between; } }
 .sv-all { font-weight: 800; font-size: 15px; }
+/* Partitura con la canción sonando: velocidad en «×» como las canciones; sin metrónomo (manda la música) */
+.scoreview.vidmode #scBpmGrp, .scoreview.vidmode .vid-hide { display: none; }
+.sc-rate { padding: 4px 8px; font: 700 14px var(--mono); border-radius: 8px; }
 .sv-legend { justify-self: center; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 4px 16px; font-size: 13px; color: #5a6876; min-width: 0; }
 .sv-legend span { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; }
 .sv-legend svg { width: 26px; height: 22px; flex: none; }
@@ -595,8 +598,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 .sv-track { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
 .sv-play { position: absolute; top: 2%; bottom: 2%; left: 28%; width: 3px; margin-left: -1.5px; background: #ff0b5e; border-radius: 2px; z-index: 2; box-shadow: 0 0 0 4px rgba(255, 11, 94, .15); }
 /* Notas: siempre sobre papel blanco */
-.mus { --c-hh: #15202b; --c-sn: #15202b; --c-k: #15202b; --c-cr: #15202b; --ol: transparent; }
-.mus.color { --c-hh: #f2b400; --c-sn: #e3262f; --c-k: #15202b; --c-cr: #1fa463; --ol: #15202b; }
+.mus { --c-hh: #15202b; --c-sn: #15202b; --c-k: #15202b; --c-cr: #15202b; --c-t1: #15202b; --c-t2: #15202b; --c-t3: #15202b; --ol: transparent; }
+.mus.color { --c-hh: #f2b400; --c-sn: #e3262f; --c-k: #15202b; --c-cr: #1fa463; --c-t1: #f2b400; --c-t2: #2f7de1; --c-t3: #1fa463; --ol: #15202b; }
+.mus .tm1 { fill: var(--c-t1); } .mus .tm2 { fill: var(--c-t2); } .mus .tm3 { fill: var(--c-t3); }
+.mus .bnum { font: italic 600 13px Georgia, "Times New Roman", serif; fill: #5a6876; }
 .mus .cr { stroke: var(--c-cr); }
 .mus .exn { font: 700 11px var(--body); fill: #5a6876; }
 .mus .tup { font: italic 700 12px Georgia, "Times New Roman", serif; fill: currentColor; text-anchor: middle; }
@@ -705,14 +710,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         <div class="sv-ctl" id="scoreCtl">
           <button class="btn primary go" type="button" id="scoreGo">▶ Empezar ensayo</button>
           <button class="btn go pausebtn" type="button" id="scorePause" hidden>❚❚ Pausa</button>
-          <div class="sv-group"><span class="sv-cap">Velocidad</span>
+          <div class="sv-group" id="scRateGrp" hidden><span class="sv-cap">Velocidad</span>
+            <select id="scRate" class="sc-rate" aria-label="Velocidad de la canción"><option value="1">1×</option><option value="0.95">0,95×</option><option value="0.9">0,9×</option><option value="0.85">0,85×</option><option value="0.8">0,8×</option><option value="0.75">0,75×</option><option value="0.7">0,7×</option></select></div>
+          <div class="sv-group" id="scBpmGrp"><span class="sv-cap">Velocidad</span>
             <div class="sc-bpm" title="Velocidad en golpes por minuto"><button type="button" id="scSlower" aria-label="Más despacio">−</button><input type="text" id="scBpmVal" inputmode="numeric" maxlength="3" value="70" aria-label="Velocidad en golpes por minuto" title="Escribe la velocidad y pulsa Intro"><button type="button" id="scFaster" aria-label="Más deprisa">+</button></div>
             <span class="sv-note">golpes por minuto</span>
             <button class="btn small" type="button" id="scTap" title="Pulsa varias veces al ritmo para poner la velocidad">Tap</button><span class="sv-note" id="scTapHint" aria-live="polite"></span></div>
           <div class="sv-group">
             <label class="sc-check"><input type="checkbox" id="scDrums"> Sonido de batería</label>
-            <label class="sc-check"><input type="checkbox" id="scClick"> Metrónomo</label>
-            <label class="sc-check"><input type="checkbox" id="scSub"> Subdivisión</label>
+            <label class="sc-check vid-hide"><input type="checkbox" id="scClick"> Metrónomo</label>
+            <label class="sc-check vid-hide"><input type="checkbox" id="scSub"> Subdivisión</label>
             <label class="sc-check"><input type="checkbox" id="scColors"> Colores</label>
           </div>
         </div>
@@ -1114,8 +1121,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     return true;
   }
 
+  let vidKeep = false;   // la partitura «con la canción» carga su vídeo sin cerrarse
   function openVideo(id, t = 0) {
-    closeScore();
+    if (!vidKeep) closeScore();
     if (!window.YT || !YT.Player) {
       pendingLoad = { id, t };
       showMsg("Cargando YouTube…", "Un momento.");
@@ -2500,6 +2508,19 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash, r = plato ride.  beats = tiempos por compás (4 si no se dice).  us (caja con plica arriba): S = caja, g = nota fantasma.
   // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
   const SCORES = [
+    { id: "joker-and-the-thief", title: "Joker and the Thief", sub: "Wolfmother · con la canción sonando · compases 1 a 33 (primera prueba)", video: "0LQ77YdkQek", div: 3, plain: true, lines: (() => {
+      // Pasada a limpio de la captura del vídeo (canal Drumschool Vriesema). 4/4 en tresillos (cada tiempo en 3).
+      // up: x charles, o charles abierto, c crash, r ride · us (plica arriba): H tom alto, L tom bajo, F tom base · fl: f = flam · qt: desde ese tiempo, tresillos de negra
+      const R = {}, A = { up: "x.xxxxx.xxxx" }, O = { up: "o.xxxxx.xxxx" };
+      const F = { us: "H.H.L.L.F.F.", fl: "f.f.f.f.f.f.", qt: 0 }, C = { up: "c..x..x..x..", low: "B..........." };
+      const Q = { up: "x..x..x..x.." }, T = { up: "x..x.xx.xx.x" };
+      const b = [R, R, R, R, O, A, O, A, O, A, { up: "o.xxxxx.x.x.", qt: 2 }, F, C, F, C, F, C, F, C, F, C, F, C, F, C, T, Q, T, Q, T, C, C,
+        { up: "c..r..r..r..", low: "B..S..B..S.." }];
+      const cut = [[0, 5], [5, 9], [9, 14], [14, 19], [19, 23], [23, 28], [28, 33]];   // las mismas filas que se ven en el vídeo
+      return cut.map(([a, z]) => b.slice(a, z).map((x, i) => Object.assign({}, x, i === 0 ? { m: a + 1 } : {})));
+    })(),
+      // segundo del vídeo en que empieza cada compás (medido con la barra roja al capturar, suavizado)
+      bt: [0.12,1.7,3.34,4.97,6.58,8.18,9.8,11.4,13.0,14.6,16.25,17.9,19.55,21.17,22.85,24.5,26.19,27.83,29.46,31.13,32.82,34.46,36.1,37.72,39.36,40.99,42.57,44.13,45.69,47.25,48.82,50.36,51.9,53.45,55.0,56.56,58.1,59.62,61.15,62.66,64.19,65.7,67.25,68.79,70.33,71.86,73.42,74.95,76.49,78.01,79.53,81.09,82.66,84.22,85.79,87.35,88.92,90.48,91.99,93.52,95.02,96.53,98.05,99.55,101.05,102.57,104.06,105.6,107.12,108.65,110.18,111.7,113.24,114.79,116.32,117.85,119.39,120.9,122.43,123.93,125.46,126.94,128.47,129.97,131.54,133.07,134.62,136.16,137.73,139.26,140.82,142.32,143.87,145.39,146.93,148.47,150.05,151.58,153.15,154.68,156.26,157.77,159.32,160.83,162.37,163.87,165.42,166.93,168.49,169.99,171.53,173.05,174.59,176.09,177.6,179.1,180.66,182.2,183.8,185.39,187.02,188.63,190.27,191.89,193.52,195.35,197.18,198.98,200.79,202.59,204.41,206.21,207.76,209.33,210.91,212.48,214.05,215.62,217.17,218.77,220.37,222.0,223.6,225.23,226.86,228.5,230.13,231.76,233.39,235.03,236.65,238.27,239.9,241.52,243.11,244.68,246.27,247.84,249.4,250.93,252.46,254.0,255.55,257.07,258.6,260.13,261.67,263.22,264.75,266.29,267.83,269.39,270.93,272.49,274.04,275.6] },
     { id: "biblia-5", title: "Biblia 5", sub: "Página 16 · ejercicios 12 a 16 · caja, bombo y charles en cada tiempo · 2/4, semicorcheas", bpm: 60, div: 4, beats: 2, ts: [2, 4], one: true, dbl: true, lines: (() => {
       // Cada compás repite dos veces el mismo grupo. Ritmo del grupo (en semicorcheas): 12 = 16-8-16, 13 = 8-16-16, 14 = silencio + 3, 15 y 16 = 4 semicorcheas.
       // Letras: S = caja (nota encima de la raya), B = bombo (nota debajo). Leído nota a nota de la hoja.
@@ -2543,12 +2564,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
     ] },
   ];
-  const SC_LATEST = "biblia-5";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
+  const SC_LATEST = "joker-and-the-thief";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
   const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5, SC_REST = -0.6;   // cuenta de 5 tiempos; en reposo, la 1.ª nota junto a la barra
   let scStore = {};
   try { scStore = JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch (e) {}
   scStore.sel = scStore.sel || {}; scStore.bpm = scStore.bpm || {};
-  const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false }, scStore.opt || {});
+  const scOpt = Object.assign({ drums: true, click: true, sub: true, colors: false, vdrums: false }, scStore.opt || {});
+  scStore.rate = scStore.rate || {};
+  const isVid = (s) => !!(s && s.video);
   function scSave() { scStore.opt = scOpt; try { localStorage.setItem(SCORE_KEY, JSON.stringify(scStore)); } catch (e) {} }
   const scSelNow = {};   // líneas marcadas (no se recuerdan: al abrir, la partitura entera)
   const scSel = (s) => new Set(scSelNow[s.id] || s.lines.map((_, i) => i));   // al abrir: la partitura entera
@@ -2579,11 +2602,16 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     return `${ledger}<g class="h"><path d="${d}" class="ol" stroke-width="4" stroke-linecap="round"/><path d="${d}" class="${k}" stroke-width="2.2" stroke-linecap="round"/>${c}</g>`;
   }
   // Nota de caja (S) o bombo (K); ghost = nota fantasma, entre paréntesis
-  const svHead = (cx, cy, ch, ghost) => `<g class="h"><ellipse cx="${cx}" cy="${cy}" rx="6.4" ry="4.9" transform="rotate(-20 ${cx} ${cy})" class="${ch === "S" ? "sn" : "k"}"/><text class="let" x="${cx}" y="${cy + 0.3}">${ch === "S" ? "S" : "K"}</text>${ghost ? `<path d="M${cx - 9} ${cy - 6}q-3.5 6 0 12M${cx + 9} ${cy - 6}q3.5 6 0 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>` : ""}</g>`;
+  const svHead = (cx, cy, ch, ghost) => `<g class="h"><ellipse cx="${cx}" cy="${cy}" rx="6.4" ry="4.9" transform="rotate(-20 ${cx} ${cy})" class="${ch === "S" ? "sn" : ch === "B" ? "k" : "tm tm" + ch}"/><text class="let" x="${cx}" y="${cy + 0.3}">${ch === "S" ? "S" : ch === "B" ? "K" : ch}</text>${ghost ? `<path d="M${cx - 9} ${cy - 6}q-3.5 6 0 12M${cx + 9} ${cy - 6}q3.5 6 0 12" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>` : ""}</g>`;
   // Corchete de tresillo con su «3» (arriba o abajo)
   const svTup = (x1, x2, y, below) => { const m = (x1 + x2) / 2, d = below ? -4 : 4; return `<path d="M${x1} ${y + d}V${y}H${m - 7}M${m + 7} ${y}H${x2}V${y + d}" fill="none" stroke="currentColor" stroke-width="1.1"/><text class="tup" x="${m}" y="${y + 4}">3</text>`; };
   const svQRest = (cx) => { const y = Y0 + SP * 0.6; return `<path d="M${cx - 2} ${y}l5 6.5-4.5 5.5 5 6.5c-4-2.2-7.5 0-4 5" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linejoin="round" stroke-linecap="round"/>`; };
   const svERest = (cx) => { const y = Y0 + SP * 1.4; return `<circle cx="${cx - 2.5}" cy="${y}" r="2.6" fill="currentColor"/><path d="M${cx - 2.5} ${y + 2}c2.5 1 4.5 0 6-2.6l-4.2 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`; };
+  // Voz de arriba (plica arriba) además de los platos: caja, nota fantasma y toms (posición del mapa de Drumeo)
+  const US = { S: { y: Y0 + SP * 1.5, inst: "S", h: "S" }, g: { y: Y0 + SP * 1.5, inst: "G", h: "S", ghost: true },
+    H: { y: Y0 + SP * 0.5, inst: "T1", h: "1" }, L: { y: Y0 + SP * 2, inst: "T2", h: "2" }, F: { y: Y0 + SP * 2.5, inst: "T3", h: "3" } };
+  // Flam: notita pequeña tachada justo antes, unida con una ligadura
+  const svGrace = (cx, y) => { const gx = cx - 12; return `<g class="h"><ellipse cx="${gx}" cy="${y + 1}" rx="3.9" ry="2.9" transform="rotate(-20 ${gx} ${y + 1})" fill="currentColor"/><rect x="${gx + 3}" y="${y - 15}" width="1" height="16" fill="currentColor"/><path d="M${gx} ${y - 6}l7 -6" stroke="currentColor" stroke-width="1"/><path d="M${gx - 2} ${y + 6}q${(cx - gx) / 2 + 2} 6 ${cx - gx + 2} 0" fill="none" stroke="currentColor" stroke-width="1"/></g>`; };
   // Compases a partir de x0; t0 = tiempo (en pulsos) en que empiezan. Devuelve el SVG y las notas con su momento.
   function svBars(barList, x0, t0, id, g) {
     let svg = "", notes = [], k = 0;
@@ -2592,24 +2620,37 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     barList.forEach((bar, bi) => {
       const bx = x0 + bi * g.BAR, up = bar.up || bar.hh || "", us = bar.us || "", low = bar.low || "";
       const at = (str, q) => str[q] || ".", tq = (q) => t0 + bi * g.beats + q / div;
+      // Una nota con la plica hacia arriba (plato y/o caja/tom); flag = corchea suelta con banderita
+      const upNote = (bx, q, flag) => {
+        const cx = xs(bx, q), nid = `${id}n${k++}`, cym = at(up, q), sn = at(us, q), fl = at(bar.fl || "", q) === "f";
+        let heads = "", lowY = TOP + 6;
+        if (cym !== ".") {
+          const y = cym === "c" ? yCR : cym === "r" ? Y0 : yHH; heads += svX(cx, y, cym === "o", cym === "c"); lowY = Math.max(lowY, y - (cym === "o" ? 6 : 1));
+          notes.push({ t: tq(q), inst: cym === "o" ? "hho" : cym === "c" ? "cr" : cym === "r" ? "rd" : "hh", id: nid });
+        }
+        if (sn !== ".") { const u = US[sn] || US.S; heads += (fl ? svGrace(cx, u.y) : "") + svHead(cx, u.y, u.h, u.ghost); lowY = Math.max(lowY, u.y); notes.push({ t: tq(q), inst: u.inst, id: nid, flam: fl }); }
+        const sx = sn !== "." ? cx + 5.6 : cx + 4.3;
+        svg += `<g class="n" id="${nid}"><rect x="${sx - 0.75}" y="${TOP}" width="1.5" height="${lowY - TOP}" fill="currentColor"/>${heads}${flag ? `<path d="M${sx} ${TOP}c1 6 9 7 9 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>` : ""}</g>`;
+        return sx;
+      };
       if (bar.n) svg += `<text class="exn" x="${bx + 4}" y="${TOP - 13}">${bar.n}.</text>`;
+      if (bar.m) svg += `<text class="bnum" x="${bx + 3}" y="${TOP - 14}">${bar.m}</text>`;
+      if (!/[^.]/.test(up + us + low)) svg += `<rect x="${bx + g.BAR / 2 - 7}" y="${Y0 + SP}" width="14" height="5" fill="currentColor"/>`;   // compás de silencio
       for (let beat = 0; beat < g.beats; beat++) {
+        // Tresillos de negra (3 notas en 2 tiempos): cada nota con su plica, sin barra, y el «3» con su corchete
+        if (bar.qt != null && beat >= bar.qt) {
+          if (beat === bar.qt) for (let b2 = beat; b2 < g.beats; b2 += 2) {
+            const xsq = [];
+            for (let q = b2 * div; q < Math.min(g.beats, b2 + 2) * div; q++) if (at(up, q) !== "." || at(us, q) !== ".") xsq.push(upNote(bx, q, false));
+            if (xsq.length) svg += svTup(xsq[0] - 4, xsq[xsq.length - 1] + 4, TOP - 10);
+          }
+          continue;
+        }
         if (div === 4) { svg += svGenBeat(bar, bx, beat * div, g, tq, id, kk, notes); continue; }
         const p = beat * div, slots = Array.from({ length: div }, (_, j) => p + j);
         // Voz de arriba: platos y caja con la plica hacia arriba
         const ups = slots.filter((q) => at(up, q) !== "." || at(us, q) !== "."), stems = [];
-        ups.forEach((q) => {
-          const cx = xs(bx, q), nid = `${id}n${k++}`, cym = at(up, q), sn = at(us, q);
-          let heads = "", lowY = TOP + 6;
-          if (cym !== ".") {
-            const y = cym === "c" ? yCR : cym === "r" ? Y0 : yHH; heads += svX(cx, y, cym === "o", cym === "c"); lowY = Math.max(lowY, y - (cym === "o" ? 6 : 1));
-            notes.push({ t: tq(q), inst: cym === "o" ? "hho" : cym === "c" ? "cr" : cym === "r" ? "rd" : "hh", id: nid });
-          }
-          if (sn !== ".") { heads += svHead(cx, ySN, "S", sn === "g"); lowY = ySN; notes.push({ t: tq(q), inst: sn === "g" ? "G" : "S", id: nid }); }
-          const sx = sn !== "." ? cx + 5.6 : cx + 4.3;
-          stems.push(sx);
-          svg += `<g class="n" id="${nid}"><rect x="${sx - 0.75}" y="${TOP}" width="1.5" height="${lowY - TOP}" fill="currentColor"/>${heads}${ups.length === 1 ? `<path d="M${sx} ${TOP}c1 6 9 7 9 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>` : ""}</g>`;
-        });
+        ups.forEach((q) => stems.push(upNote(bx, q, ups.length === 1 && (q !== p || div !== 3))));   // sola en el tiempo y en tresillos: negra, sin banderita
         if (stems.length > 1) svg += `<rect x="${stems[0] - 0.75}" y="${TOP}" width="${stems[stems.length - 1] - stems[0] + 1.5}" height="4.2" fill="currentColor"/>`;
         if (div === 3 && stems.length > 1) svg += svTup(stems[0] - 4, stems[stems.length - 1] + 4, TOP - 10);
         // Voz de abajo: bombo (y caja) con la plica hacia abajo
@@ -2797,7 +2838,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     sh.innerHTML = "";
     const list = [...sel].sort((a, b) => a - b).map((i) => i + 1);
     $("scAll").checked = sel.size === s.lines.length;
-    $("scInfo").textContent = list.length ? `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas` : "Marca al menos una línea para ensayar";
+    $("scInfo").textContent = !list.length ? "Marca al menos una línea para ensayar"
+      : isVid(s) ? (sel.size === s.lines.length ? "Se ensaya: la canción entera, con la música" : `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list[0]}${list.length > 1 ? " a " + list[list.length - 1] : ""} · ${SC_REPS} veces, con la música`)
+      : `Se ensaya: línea${list.length > 1 ? "s" : ""} ${list.join(", ")} · ${SC_REPS} veces seguidas`;
     $("scBpmVal").value = scBpm(s);
     scLegend(s);
     const G = geoS(s);
@@ -2824,7 +2867,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     s.lines.flat().forEach((b) => {
       const up = b.up || b.hh || "", us = b.us || "", low = b.low || "";
       [...up].forEach((c) => c !== "." && used.add(c === "x" ? "hh" : c === "o" ? "hho" : c === "r" ? "rd" : "cr"));
-      [...us].forEach((c) => c !== "." && used.add(c === "g" ? "G" : "S"));
+      [...us].forEach((c) => c !== "." && used.add({ g: "G", H: "T1", L: "T2", F: "T3" }[c] || "S"));
+      if (/f/.test(b.fl || "")) used.add("FL");
       [...low].forEach((c) => c !== "." && used.add(c));
       [...(b.hf || "")].forEach((c) => c !== "." && used.add("hf"));
     });
@@ -2837,8 +2881,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       S: ["Caja", svHead(13, 11, "S")],
       G: ["Nota fantasma (muy flojito)", svHead(13, 11, "S", true)],
       B: ["Bombo", svHead(13, 11, "B")],
+      T1: ["Tom alto", svHead(13, 11, "1")], T2: ["Tom bajo", svHead(13, 11, "2")], T3: ["Tom base", svHead(13, 11, "3")],
+      FL: ["Flam (golpe flojito justo antes)", svGrace(19, 11) + svHead(19, 11, "S")],
     };
-    $("scLegend").innerHTML = ["cr", "rd", "hh", "hho", "S", "G", "B", "hf"].filter((k) => used.has(k))
+    $("scLegend").innerHTML = ["cr", "rd", "hh", "hho", "S", "G", "T1", "T2", "T3", "B", "hf", "FL"].filter((k) => used.has(k))
       .map((k) => `<span><svg class="${musClass()}" viewBox="0 0 26 22" aria-hidden="true">${icon[k][1]}</svg>${icon[k][0]}</span>`).join("");
   }
   function openScore(id) {
@@ -2851,6 +2897,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     scoreOpen = id; delete scSelNow[id]; scLinesOpen = true;
     openSongs.clear(); renderLibrary();   // al abrir una partitura se pliegan las canciones
     $("scoreView").hidden = false; $("stage").classList.add("scoring");
+    const sv = curScore(), vid = isVid(sv);
+    $("scoreView").classList.toggle("vidmode", vid); $("scRateGrp").hidden = !vid;
+    $("scDrums").checked = vid ? scOpt.vdrums : scOpt.drums;
+    if (vid) $("scRate").value = String(scStore.rate[sv.id] || 1);
     placeLines(); renderScores(); renderSheet(); scOverlayBox();
     // en el móvil (o con la columna oculta) la ventana de ensayo está arriba: se sube hasta ella
     if (window.matchMedia("(max-width: 980px)").matches || document.querySelector("main").classList.contains("wide")) $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2888,7 +2938,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
 
   // La tira: las líneas elegidas, una tras otra, 10 veces
   function buildStrip() {
-    const s = curScore(), lines = [...scSel(s)].sort((a, b) => a - b), G = geoS(s);
+    const s0 = curScore(); if (isVid(s0)) return buildVidStrip(s0);
+    const s = s0, lines = [...scSel(s)].sort((a, b) => a - b), G = geoS(s);
     let svg = "", lbl = "", x = 0, t = 0, cycle = 0, events = [];
     lines.forEach((li) => (cycle += s.lines[li].length * G.beats));
     for (let r = 0; r < SC_REPS; r++) lines.forEach((li, j) => {
@@ -2901,6 +2952,22 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     $("svTrack").innerHTML = `<svg class="${musClass()}" width="${x + 40}" height="${SVH + 18}" viewBox="0 0 ${x + 40} ${SVH + 18}">${lbl}<g transform="translate(0 16)">${svg}</g></svg>`;
     events.sort((a, b) => a.t - b.t);
     return { events, els: events.map((e) => document.getElementById(e.id)), total: t, cycle };
+  }
+  // Con la canción: las líneas elegidas una sola vez y seguidas (de la primera a la última), como suenan en el vídeo
+  function buildVidStrip(s) {
+    const sel = [...scSel(s)].sort((a, b) => a - b), G = geoS(s), lo = sel[0], hi = sel[sel.length - 1];
+    let svg = "", lbl = "", x = 0, t = 0, events = [], bar0 = 0;
+    for (let li = 0; li < lo; li++) bar0 += s.lines[li].length;
+    for (let li = lo; li <= hi; li++) {
+      const b = svBars(s.lines[li], x, t, `v${li}`, G), w = s.lines[li].length * G.BAR;
+      lbl += `<text class="lbl" x="${x + 6}" y="12">Línea ${li + 1}</text>`;
+      svg += svStaff(x, x + w) + svBar(x, li === lo ? 1.4 : 2.6) + b.svg;
+      events.push(...b.notes); x += w; t += s.lines[li].length * G.beats;
+    }
+    svg += svBar(x - 6) + svBar(x, 3.6);
+    $("svTrack").innerHTML = `<svg class="${musClass()}" width="${x + 40}" height="${SVH + 18}" viewBox="0 0 ${x + 40} ${SVH + 18}">${lbl}<g transform="translate(0 16)">${svg}</g></svg>`;
+    events.sort((a, b) => a.t - b.t);
+    return { events, els: events.map((e) => document.getElementById(e.id)), total: t, cycle: t, bar0, whole: sel.length === s.lines.length };
   }
   function placeStrip(T) {
     const box = $("svStrip"), w = box.clientWidth, h = box.clientHeight;
@@ -2942,6 +3009,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       o1.start(t); o2.start(t); o1.stop(t + 0.14); o2.stop(t + 0.1);
       scNoiseHit(out, t, inst === "G" ? 0.09 : 0.2, "highpass", 1800, 0.62 * v);
       scNoiseHit(out, t, 0.05, "bandpass", 4200, 0.3 * v);
+    } else if (inst === "T1" || inst === "T2" || inst === "T3") {   // toms: parche que cae de tono (alto, bajo y base)
+      const [f0, f1, d] = { T1: [260, 175, 0.32], T2: [170, 112, 0.4], T3: [118, 76, 0.5] }[inst];
+      const o = audioCtx.createOscillator(); o.type = "sine";
+      o.frequency.setValueAtTime(f0, t); o.frequency.exponentialRampToValueAtTime(f1, t + d * 0.6);
+      o.connect(scEnv(out, t, 0.95, d)); o.start(t); o.stop(t + d + 0.05);
+      scNoiseHit(out, t, 0.035, "bandpass", 1500, 0.25);
     } else if (inst === "rd") {   // ride: «ping» metálico que dura
       scMetal(out, t, 0.9, 0.09, 4200, 2500, 1.6);
       const o = audioCtx.createOscillator(); o.type = "sine"; o.frequency.value = 2650; o.connect(scEnv(out, t, 0.05, 0.6)); o.start(t); o.stop(t + 0.65);
@@ -2965,6 +3038,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (open) r.openHH = [g1, g2];
     }
   }
+  // Flam: el mismo golpe, flojito, un pelín antes del fuerte
+  function scFlam(out, inst, t) { const g = audioCtx.createGain(); g.gain.value = 0.32; g.connect(out); scDrum(g, inst, t - 0.035); }
   function scClick(out, t, level) {
     const o = audioCtx.createOscillator(); o.type = "square"; o.frequency.value = [1100, 1500, 2000][level];
     o.connect(scEnv(out, t, [0.06, 0.15, 0.24][level], 0.03)); o.start(t); o.stop(t + 0.05);
@@ -2980,12 +3055,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // Pausa de la partitura: se congela el reloj del sonido (y con él la tira); al seguir, continúa al instante
   function pauseScore() {
     const r = scoreRun; if (!r || r.paused) return;
-    r.paused = true; try { audioCtx.suspend(); } catch (e) {}
+    r.paused = true;
+    if (r.vid) { try { player.pauseVideo(); } catch (e) {} } else try { audioCtx.suspend(); } catch (e) {}
     updateScoreBtn();
   }
   function resumeScore() {
     const r = scoreRun; if (!r || !r.paused) return;
-    r.paused = false; try { audioCtx.resume(); } catch (e) {}
+    r.paused = false;
+    if (r.vid) { try { r.lastNow = performance.now(); player.playVideo(); } catch (e) {} } else try { audioCtx.resume(); } catch (e) {}
     updateScoreBtn();
   }
   const toggleScorePause = () => (scoreRun && scoreRun.paused ? resumeScore() : pauseScore());
@@ -2997,9 +3074,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (!$("readyOverlay").hidden) $("readyCancel").click();
     hideDone();
     scoreRun = null;
-    const st = buildStrip(); placeStrip(-SC_LEAD);
+    const st = buildStrip(); placeStrip(isVid(curScore()) ? SC_REST : -SC_LEAD);
     readyKind = "score";
-    askReady("Empezar ensayo de partitura", () => startScore(st));
+    askReady(isVid(curScore()) ? "Empezar ensayo con la canción" : "Empezar ensayo de partitura", () => (isVid(curScore()) ? startVid(st) : startScore(st)));
     const cancel = $("readyCancel").onclick;
     $("readyCancel").onclick = () => { cancel(); };
   }
@@ -3028,7 +3105,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       r.nextClick++;
     }
     while (r.nextEv < r.events.length && r.t0 + r.events[r.nextEv].t * r.e < horizon) {
-      if (scOpt.drums) scDrum(r.out, r.events[r.nextEv].inst, r.t0 + r.events[r.nextEv].t * r.e);
+      if (scOpt.drums) { const ev = r.events[r.nextEv], at = r.t0 + ev.t * r.e; scDrum(r.out, ev.inst, at); if (ev.flam) scFlam(r.out, ev.inst, at); }
       r.nextEv++;
     }
   }
@@ -3057,7 +3134,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function stopScore() {
     const r = scoreRun; if (!r) return;
-    if (r.paused) { r.paused = false; try { audioCtx.resume(); } catch (e) {} }
+    if (r.vid) { clearInterval(r.wait); try { player.pauseVideo(); } catch (e) {} }
+    else if (r.paused) { r.paused = false; try { audioCtx.resume(); } catch (e) {} }
     clearInterval(r.timer); cancelAnimationFrame(r.raf);
     try { r.out.disconnect(); } catch (e) {}
     try { r.dry.disconnect(); } catch (e) {}
@@ -3067,6 +3145,83 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     releaseAwake(); updateScoreBtn();
     if (curScore()) { scoreRest = buildStrip(); placeStrip(SC_REST); }
   }
+  // ---------- Partitura con la canción sonando de fondo ----------
+  // La posición de la tira sale del segundo por el que va el vídeo: cada compás empieza justo cuando empieza en la canción
+  // (s.bt = segundo de inicio de cada compás, medido con la barra roja al capturar). Funciona igual a 0,8× o 0,7×.
+  const vidBeat = (s, t) => {   // tiempos (negras) desde el principio de la canción en el segundo t
+    const bt = s.bt; let i = 0;
+    while (i < bt.length - 2 && bt[i + 1] <= t) i++;
+    return i * 4 + 4 * (t - bt[i]) / (bt[i + 1] - bt[i]);
+  };
+  const vidTime = (s, B) => {   // segundo del vídeo en que cae el tiempo B
+    const bt = s.bt, i = Math.max(0, Math.min(bt.length - 2, Math.floor(B / 4)));
+    return bt[i] + (B / 4 - i) * (bt[i + 1] - bt[i]);
+  };
+  function startVid(st) {
+    const s = curScore(), ctx = audio(); keepAwake();
+    $("stage").scrollIntoView({ behavior: "smooth", block: "start" });
+    const rate = scStore.rate[s.id] || 1, startB = st.bar0 * 4;
+    const secStart = vidTime(s, startB), beat = vidTime(s, startB + 1) - secStart;
+    const lead = Math.min(5, Math.floor((secStart - 0.05) / beat));   // cuenta de hasta 5 con la propia música
+    const out = ctx.createGain(); out.gain.value = 0.9; out.connect(ctx.destination);
+    scoreRun = Object.assign(st, { vid: true, s, rate, reps: st.whole ? 1 : SC_REPS, rep: 1, startB, beat, lead, out, dry: out, hi: 0, nextEv: 0, shown: 0, started: false, lastCt: 0, lastNow: 0, openHH: null });
+    const seekAt = Math.max(0, secStart - Math.max(lead, 0) * beat);
+    const go = () => {
+      const r = scoreRun; if (!r || !r.vid) return;
+      player.seekTo(seekAt, true); try { player.setPlaybackRate(rate); } catch (e) {}
+      player.playVideo(); r.lastCt = seekAt; r.lastNow = performance.now(); r.started = true;
+    };
+    if (videoId !== s.video || !playerReady) { vidKeep = true; openVideo(s.video, seekAt); vidKeep = false; }
+    scoreRun.wait = setInterval(() => {
+      if (!scoreRun || !scoreRun.vid) return;
+      if (playerReady && videoId === s.video && player.getDuration && player.getDuration() > 0) { clearInterval(scoreRun.wait); go(); }
+    }, 100);
+    scoreRun.raf = requestAnimationFrame(vidFrame);
+    updateScoreBtn();
+  }
+  function vidFrame() {
+    const r = scoreRun; if (!r || !r.vid) return;
+    r.raf = requestAnimationFrame(vidFrame);
+    if (!r.started || r.paused) return;
+    // YouTube da el segundo a saltitos: entre medias se calcula con el reloj, para que la tira se mueva suave
+    const now = performance.now(), ct = player.getCurrentTime(), playing = player.getPlayerState() === YT.PlayerState.PLAYING;
+    if (Math.abs(ct - r.lastCt) > 0.001) { r.lastCt = ct; r.lastNow = now; }
+    const est = playing ? r.lastCt + Math.min(0.5, (now - r.lastNow) / 1000) * r.rate : r.lastCt;
+    const B = vidBeat(r.s, est) - r.startB;
+    placeStrip(Math.min(B, r.total));
+    const c = $("countin");
+    if (B < 0) {
+      const n = Math.ceil(-B - 0.001);
+      if (n >= 1 && n <= 5 && r.shown !== n) { r.shown = n; c.hidden = false; c.innerHTML = `<div>${n}<small>${r.rep > 1 ? `Repetición ${r.rep} de ${r.reps}` : "Empieza la canción"}</small></div>`; if (audioCtx) scClick(r.out, audioCtx.currentTime, n === r.lead ? 2 : 1); }
+    } else {
+      if (r.shown) { r.shown = 0; c.hidden = true; }
+      $("svRep").hidden = false;
+      $("svRep").textContent = r.reps > 1 ? `Repetición ${r.rep} de ${r.reps}` : `Compás ${Math.floor((r.startB + B) / 4) + 1}`;
+    }
+    while (r.hi < r.events.length && r.events[r.hi].t <= B) {
+      const el = r.els[r.hi];
+      if (el) { el.classList.add("now"); setTimeout(() => el.classList.remove("now"), 160); }
+      r.hi++;
+    }
+    // Batería de la app (opcional) encima de la canción: cada golpe se programa al segundo exacto del vídeo
+    while (r.nextEv < r.events.length && vidTime(r.s, r.startB + r.events[r.nextEv].t) <= est + 0.15 * r.rate) {
+      const ev = r.events[r.nextEv], tv = vidTime(r.s, r.startB + ev.t);
+      if (scOpt.vdrums && playing && tv >= est - 0.02 && audioCtx) { const at = audioCtx.currentTime + (tv - est) / r.rate; scDrum(r.out, ev.inst, at); if (ev.flam) scFlam(r.out, ev.inst, at); }
+      r.nextEv++;
+    }
+    if (B >= r.total) {
+      if (r.rep < r.reps) {   // otra vuelta: vuelve al principio con cuenta de 3
+        r.rep++; r.hi = 0; r.nextEv = 0; r.shown = 0; r.lead = 3;
+        const back = Math.max(0, vidTime(r.s, r.startB) - 3 * r.beat);
+        player.seekTo(back, true); r.lastCt = back; r.lastNow = now;
+      } else { stopScore(); showDone(); }
+    }
+  }
+  $("scRate").onchange = () => {
+    const s = curScore(); if (!s) return;
+    scStore.rate[s.id] = +$("scRate").value; scSave();
+    if (scoreRun && scoreRun.vid) { scoreRun.rate = +$("scRate").value; try { player.setPlaybackRate(scoreRun.rate); } catch (e) {} }
+  };
   $("scorePause").onclick = toggleScorePause;
   $("scoreGo").onclick = () => {
     hideDone();
@@ -3115,7 +3270,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   [["scDrums", "drums"], ["scClick", "click"], ["scSub", "sub"], ["scColors", "colors"]].forEach(([id, k]) => {
     $(id).checked = scOpt[k];
     $(id).onchange = () => {
-      scOpt[k] = $(id).checked; scSave();
+      // con la canción sonando, el sonido de batería de la app va aparte (apagado de serie: ya suena la batería real)
+      if (k === "drums" && isVid(curScore())) scOpt.vdrums = $(id).checked; else scOpt[k] = $(id).checked;
+      scSave();
       if (k === "colors") document.querySelectorAll("#scoreView svg").forEach((g) => g.classList.toggle("color", scOpt.colors));
     };
   });
