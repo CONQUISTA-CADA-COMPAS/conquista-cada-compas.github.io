@@ -3945,9 +3945,12 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const x = Math.max(0, Math.round(b.left * k)), y = Math.max(0, Math.round(b.top * k));
     return { x, y, w: Math.min(W - x, Math.round(b.width * k)), h: Math.min(H - y, Math.round(b.height * k)) };
   }
-  function jySig(R) {   // huella: la imagen en gris, en pequeño (64 × 36)
+  // huella: solo la partitura (la parte izquierda, hasta donde llega la franja amarilla; el vídeo del batería de la
+  // derecha nunca está quieto), en gris y en pequeño (64 × 36)
+  function jySig(R) {
     const c = cap.sc || (cap.sc = document.createElement("canvas")); c.width = 64; c.height = 36;
-    const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(cap.cv, R.x, R.y, R.w, R.h, 0, 0, 64, 36);
+    const w = Math.round(R.w * (cap.jyR || 0.62)), top = Math.round(R.h * 0.04);
+    const g = c.getContext("2d", { willReadFrequently: true }); g.drawImage(cap.cv, R.x, R.y + top, w, R.h - top, 0, 0, 64, 36);
     const d = g.getImageData(0, 0, 64, 36).data, sg = new Uint8Array(64 * 36);
     for (let i = 0; i < sg.length; i++) sg[i] = (d[i * 4] + d[i * 4 + 1] + d[i * 4 + 2]) / 3;
     return sg;
@@ -3962,6 +3965,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       for (let y = box.y; y < box.y + box.h; y += 2) for (let x = 0; x < box.w; x++) { const i = (y * R.w + box.x + x) * 4; if (isJyCursor(d[i], d[i + 1], d[i + 2])) cols[x]++; }
       let cx = -1, cm = 0; for (let x = 0; x < box.w; x++) if (cols[x] > cm) { cm = cols[x]; cx = x; }
       if (cm > box.h * 0.12) gx = +((box.x + cx) / R.w).toFixed(4);
+      if (box.w > R.w * 0.3) cap.jyR = Math.min(0.95, Math.max(cap.jyR || 0, (box.x + box.w) / R.w + 0.01));
     }
     const f = (v) => +v.toFixed(4);
     cap.cursor.push({ t, box: box ? [f(box.x / R.w), f(box.y / R.h), f(box.w / R.w), f(box.h / R.h)] : null, x: gx });
@@ -4031,7 +4035,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     if (scoreOpen) closeScore();
     if (running()) stopSession(true);
     stopSong();
-    Object.assign(cap, { on: true, stream, band: null, style: null, jy: null, pages: [], bars: [], cursor: [], last: null, pend: null, red: null, gx: -1, cv: document.createElement("canvas") });
+    Object.assign(cap, { on: true, stream, band: null, style: null, jy: null, jyR: 0, pages: [], bars: [], cursor: [], last: null, pend: null, red: null, gx: -1, cv: document.createElement("canvas") });
     cap.vid = document.createElement("video"); cap.vid.muted = true; cap.vid.playsInline = true; cap.vid.srcObject = stream;
     try { await cap.vid.play(); } catch (e) {}
     stream.getVideoTracks()[0].addEventListener("ended", () => cap.on && capFinish());
