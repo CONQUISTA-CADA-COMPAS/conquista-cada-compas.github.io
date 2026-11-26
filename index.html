@@ -2540,6 +2540,102 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash, r = plato ride.  beats = tiempos por compás (4 si no se dice).  us (caja con plica arriba): S = caja, g = nota fantasma.
   // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
   const SCORES = [
+    { id: "all-these-things", title: "All These Things That I've Done", sub: "The Killers · Jack Young, grado 5 · 84 compases", video: "FI4tahavfsg", div: 4, one: true, plain: true, lines: (() => {
+      // Pasada a limpio de la captura del vídeo de Jack Young (JYDT grado 5), compás a compás. 4/4 en semicorcheas, una sola voz.
+      // up: x charles, o charles abierto, c crash · us: S caja · tm: F tom base (tom 3), H tom alto (tom 1) · low: B bombo · fl: f = flam
+      // nx: compás que no cuenta para la nota con la batería (la cuenta inicial y el redoble de los compases 49-50)
+      const b = [
+      /* 1 */ { up: "x.......x", nx: true },
+      /* 2 */ { up: "x...x...x...x", nx: true },
+      /* 3 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 4 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 5 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 6 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 7 */ { up: "c", tm: "....FFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 8 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 9 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 10 */ { us: "SSSSSSSSSSSSSSSS", low: "B...B...B...B" },
+      /* 11 */ { up: "c...c...c...c", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 12 */ { up: "c...c...c...c", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 13 */ { up: "c...c...c...c", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 14 */ { up: "c...c...c", us: "....S.....S.S.S", tm: "..........F.F.F", low: "..B...B.B" },
+      /* 15 */ { up: "c.x.x.x.x.x.x.o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 16 */ { up: "x.x.x.x.x.x.x.o", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 17 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 18 */ { up: "x.x.x.x...o.o.o", us: "....S...SS..S", low: "..B...B...B...B" },
+      /* 19 */ { up: "c.x.x.x.x.x.x.o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 20 */ { up: "x.x.x.x.x.x.x.o", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 21 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 22 */ { up: "o.o.o.o.o.o.o", us: "..S.S...S.S.S", low: "B.............B" },
+      /* 23 */ { up: "cxxx.xxxxxxx.x", us: "....S.......S.SS", low: "B.B...B.B" },
+      /* 24 */ { up: "xxxx.xxxxxxx.x", us: "....S.......S.SS", low: "B.B...B.B" },
+      /* 25 */ { up: "xxxx.xxxxxxx.x", us: "....S.......S.SS", low: "B.B...B.B" },
+      /* 26 */ { up: "xxxx.xxxo", us: "....S.....SSS.SS", low: "B.B...B.B....B" },
+      /* 27 */ { up: "c.x.x.x.x.x.x.x", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 28 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 29 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 30 */ { us: "S.S.S.S", tm: "F.F.F.F.H.H.H.H" },
+      /* 31 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 32 */ { up: "o...o...o...o", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 33 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 34 */ { up: "o...o...o.c.c", us: "....S.....S.S", low: "..B...B.B.....B" },
+      /* 35 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 36 */ { up: "o...o...o...o", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 37 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 38 */ { up: "o...o...o", us: "....S.....S.S", tm: "..........F.F", low: "..B...B.B.....B" },
+      /* 39 */ { up: "c...o...o...o", us: "....S...S.....S", low: "B.B...B.....B" },
+      /* 40 */ { up: "o...o...o...o", us: "....S...S...S", low: "..B...B...B" },
+      /* 41 */ { up: "c...o...o...o", us: "....S...S", low: "B.B...B.....B" },
+      /* 42 */ { up: "c...c...o.o.o.o", us: "S...S...S.S.S.S" },
+      /* 43 */ {},
+      /* 44 */ {},
+      /* 45 */ {},
+      /* 46 */ {},
+      /* 47 */ {},
+      /* 48 */ {},
+      /* 49 */ { us: "SSSSSSSSSSSSSSSS", nx: true },
+      /* 50 */ { us: "SSSSSSSSSSSSSSSS", nx: true },
+      /* 51 */ { up: "o.........x", us: "....S.........SS", low: "B...B...B...B", fl: "....f" },
+      /* 52 */ { us: "....S.........SS", tm: "....F.....F.F", low: "B...B...B...B" },
+      /* 53 */ { up: "o.........x", us: "....S.........SS", low: "B...B...B...B", fl: "....f" },
+      /* 54 */ { up: "..............o", us: "....S.........S", tm: "....F", low: "B...B...B...B" },
+      /* 55 */ { up: "..........x", us: "....S.........SS", low: "B...B...B...B", fl: "....f" },
+      /* 56 */ { us: "....S.........SS", tm: "....F.....F.F", low: "B...B...B...B" },
+      /* 57 */ { up: "o.........x", us: "....S.........SS", low: "B...B...B...B", fl: "....f" },
+      /* 58 */ { us: "....S...S.S.S.S", tm: "....F...F.F.F.F", low: "B...B...B...B" },
+      /* 59 */ { up: "c", us: "....S", tm: "..........F.F", low: "B...B...B...B", fl: "....f" },
+      /* 60 */ { us: "..........SS..SS", low: "B...B...B...B" },
+      /* 61 */ { up: "c", us: "....S", tm: "..........F.F.F", low: "B...B...B...B", fl: "....f" },
+      /* 62 */ { us: "SSSSSSSSSSSSS", low: "B...B...B...B" },
+      /* 63 */ { up: "c.c.c.c.c.c.c.c", us: "S.....S.....S", low: "..B.B...B.B...B" },
+      /* 64 */ { up: "c.c.c.c.c.c.c.c", us: "....S...S", low: "..B...B...B...B" },
+      /* 65 */ { up: "c.c.c.c.c.c.c.c", us: "S.....S.....S", low: "..B.B...B.B...B" },
+      /* 66 */ { us: "SSSSSSSSSSSSSSSS", low: "B...B...B...B" },
+      /* 67 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 68 */ { up: "o...o...o...o", us: "....S.......S", low: "..B...B.B.....B" },
+      /* 69 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 70 */ { up: "....o...c", us: "SSSS..S...S.S", tm: ".............HFF", low: "....B...B" },
+      /* 71 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 72 */ { up: "o...o...o.c.c", us: "....S.....S.S", low: "..B...B.B.....B" },
+      /* 73 */ { up: "c...o...o...o", us: "....S.......S", low: "B.B...B.B.....B" },
+      /* 74 */ { up: "o...o...o", us: "....S.....S.S", tm: "..........F.F", low: "..B...B.B.....B" },
+      /* 75 */ { up: "c.c.c.c.c.c.c.c", us: "....S...S.....S", low: "B.B...B.....B" },
+      /* 76 */ { up: "c.c.c.c.c.c.c", us: "....S...S...S", low: "..B...B...B" },
+      /* 77 */ { up: "c.c.c.c.c.c.c.c", us: "....S...S.....S", low: "B.B...B.....B" },
+      /* 78 */ { up: "c.c.c.c.c", us: "....S.....S.S", tm: "..........F.F", low: "..B...B.B" },
+      /* 79 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 80 */ { tm: "FFFFFFFFFFF.FFF", low: "B...B...B...B" },
+      /* 81 */ { tm: "FFFFFFFFFFFFFFFF", low: "B...B...B...B" },
+      /* 82 */ { tm: "FFFFFFFFFFF.FFFF", low: "B...B...B...B" },
+      /* 83 */ { up: "c", low: "B" },
+      /* 84 */ {},
+      ];
+      // 4 compases por línea, con el número del primero
+      const L = []; for (let i = 0; i < b.length; i += 4) L.push(b.slice(i, i + 4).map((x, j) => Object.assign({}, x, j === 0 ? { m: i + 1 } : {})));
+      return L;
+    })(),
+      // segundo del vídeo en que empieza cada compás: 120 golpes por minuto exactos (2 s por compás), medido con la franja amarilla al capturar
+      bt: [1.25, 3.25, 5.25, 7.25, 9.25, 11.25, 13.25, 15.25, 17.25, 19.25, 21.25, 23.25, 25.25, 27.25, 29.25, 31.25, 33.25, 35.25, 37.25, 39.25, 41.25, 43.25, 45.25, 47.25, 49.25, 51.25, 53.25, 55.25, 57.25, 59.25, 61.25, 63.25, 65.25, 67.25, 69.25, 71.25, 73.25, 75.25, 77.25, 79.25, 81.25, 83.25, 85.25, 87.25, 89.25, 91.25, 93.25, 95.25, 97.25, 99.25, 101.25, 103.25, 105.25, 107.25, 109.25, 111.25, 113.25, 115.25, 117.25, 119.25, 121.25, 123.25, 125.25, 127.25, 129.25, 131.25, 133.25, 135.25, 137.25, 139.25, 141.25, 143.25, 145.25, 147.25, 149.25, 151.25, 153.25, 155.25, 157.25, 159.25, 161.25, 163.25, 165.25, 167.25, 169.25] },
     { id: "biblia-6", title: "Biblia 6", sub: "Ejercicios 28 a 32 · bombo en el primer tiempo; caja y bombo en el segundo · charles en cada tiempo · 2/4, semicorcheas", bpm: 60, div: 4, beats: 2, ts: [2, 4], one: true, dbl: true, lines: (() => {
       // Leído nota a nota de la hoja (mismo libro que «Biblia 5»): encima de la raya = caja, debajo = bombo.
       // 1.er tiempo: solo bombo, un ritmo por ejercicio (en semicorcheas 0-3). 2.º tiempo: la 1.ª nota es caja y las demás bombo.
@@ -2641,7 +2737,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
     ] },
   ];
-  const SC_LATEST = "biblia-6";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
+  const SC_LATEST = "all-these-things";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
   const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5, SC_REST = -0.6;   // cuenta de 5 tiempos; en reposo, la 1.ª nota junto a la barra
   let scStore = {};
   try { scStore = JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch (e) {}
@@ -2686,7 +2782,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const svERest = (cx) => { const y = Y0 + SP * 1.4; return `<circle cx="${cx - 2.5}" cy="${y}" r="2.6" fill="currentColor"/><path d="M${cx - 2.5} ${y + 2}c2.5 1 4.5 0 6-2.6l-4.2 13" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/>`; };
   // Voz de arriba (plica arriba) además de los platos: caja, nota fantasma y toms (posición del mapa de Drumeo)
   const US = { S: { y: Y0 + SP * 1.5, inst: "S", h: "S" }, g: { y: Y0 + SP * 1.5, inst: "G", h: "S", ghost: true },
-    H: { y: Y0 + SP * 0.5, inst: "T1", h: "1" }, L: { y: Y0 + SP * 2, inst: "T2", h: "2" }, F: { y: Y0 + SP * 2.5, inst: "T3", h: "3" } };
+    H: { y: Y0 + SP * 0.5, inst: "T1", h: "1" }, M: { y: Y0 + SP, inst: "T2", h: "2" }, L: { y: Y0 + SP * 2, inst: "T2", h: "2" }, F: { y: Y0 + SP * 2.5, inst: "T3", h: "3" } };
   // Flam: notita pequeña tachada justo antes, unida con una ligadura
   const svGrace = (cx, y) => { const gx = cx - 12; return `<g class="h"><ellipse cx="${gx}" cy="${y + 1}" rx="3.9" ry="2.9" transform="rotate(-20 ${gx} ${y + 1})" fill="currentColor"/><rect x="${gx + 3}" y="${y - 15}" width="1" height="16" fill="currentColor"/><path d="M${gx} ${y - 6}l7 -6" stroke="currentColor" stroke-width="1"/><path d="M${gx - 2} ${y + 6}q${(cx - gx) / 2 + 2} 6 ${cx - gx + 2} 0" fill="none" stroke="currentColor" stroke-width="1"/></g>`; };
   // Compases a partir de x0; t0 = tiempo (en pulsos) en que empiezan. Devuelve el SVG y las notas con su momento.
@@ -2695,6 +2791,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const kk = { k: 1000 };   // contador de notas para las semicorcheas
     const div = g.div, xs = (bx, q) => bx + g.PAD + q * g.SU;
     barList.forEach((bar, bi) => {
+      const n0 = notes.length;
       const bx = x0 + bi * g.BAR, up = bar.up || bar.hh || "", us = bar.us || "", low = bar.low || "";
       const at = (str, q) => str[q] || ".", tq = (q) => t0 + bi * g.beats + q / div;
       // Una nota con la plica hacia arriba (plato y/o caja/tom); flag = corchea suelta con banderita
@@ -2712,7 +2809,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       };
       if (bar.n) svg += `<text class="exn" x="${bx + 4}" y="${TOP - 13}">${bar.n}.</text>`;
       if (bar.m) svg += `<text class="bnum" x="${bx + 3}" y="${TOP - 14}">${bar.m}</text>`;
-      if (!/[^.]/.test(up + us + low)) svg += `<rect x="${bx + g.BAR / 2 - 7}" y="${Y0 + SP}" width="14" height="5" fill="currentColor"/>`;   // compás de silencio
+      if (!/[^.]/.test(up + us + low + (bar.tm || ""))) svg += `<rect x="${bx + g.BAR / 2 - 7}" y="${Y0 + SP}" width="14" height="5" fill="currentColor"/>`;   // compás de silencio
       for (let beat = 0; beat < g.beats; beat++) {
         // Tresillos de negra (3 notas en 2 tiempos): cada nota con su plica, sin barra, y el «3» con su corchete
         if (bar.qt != null && beat >= bar.qt) {
@@ -2752,6 +2849,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
         }
       }
       if (bi > 0) svg += bar.n || g.dbl ? svBar(bx - 2.5) + svBar(bx + 1.5) : svBar(bx);   // entre ejercicios, doble raya
+      if (bar.nx) for (let i = n0; i < notes.length; i++) notes[i].nx = true;   // compás que no cuenta para la nota (cuenta inicial, redoble)
     });
     return { svg, notes };
   }
@@ -2767,7 +2865,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const ons = [], rests = [];
       const lowOn = (q) => at(bar.low, q) !== "." && at(bar.low, q) !== "-";
       for (let q = p; q < end; q++) {
-        if (isUp ? at(bar.up || bar.hh, q) !== "." || at(bar.us, q) !== "." || (g.one && lowOn(q)) : lowOn(q)) ons.push(q);
+        if (isUp ? at(bar.up || bar.hh, q) !== "." || at(bar.us, q) !== "." || at(bar.tm, q) !== "." || (g.one && lowOn(q)) : lowOn(q)) ons.push(q);
         else if (!isUp && at(bar.low, q) === "-") rests.push(q);
       }
       const RDY = SP * 1.6;
@@ -2786,9 +2884,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
             const y = cym === "c" ? yCR : cym === "r" ? Y0 : yHH; heads += svX(cx, y, cym === "o", cym === "c"); lowY = Math.max(lowY, y - (cym === "o" ? 6 : 1));
             notes.push({ t: tq(q), inst: cym === "o" ? "hho" : cym === "c" ? "cr" : cym === "r" ? "rd" : "hh", id: nid });
           }
-          if (sn !== ".") { heads += svHead(cx, ySN, "S", sn === "g"); lowY = ySN; notes.push({ t: tq(q), inst: sn === "g" ? "G" : "S", id: nid }); }
+          const fl = at(bar.fl, q) === "f", tmc = at(bar.tm, q);   // flam (notita antes) y toms, en la misma plica
+          if (sn !== ".") { heads += (fl ? svGrace(cx, ySN) : "") + svHead(cx, ySN, "S", sn === "g"); lowY = Math.max(lowY, ySN); notes.push({ t: tq(q), inst: sn === "g" ? "G" : "S", id: nid, flam: fl }); }
+          if (tmc !== ".") { const u = US[tmc] || US.F; heads += svHead(cx, u.y, u.h); lowY = Math.max(lowY, u.y); notes.push({ t: tq(q), inst: u.inst, id: nid }); }
           if (g.one && lowOn(q)) { const ch = at(bar.low, q), cy = ch === "S" ? ySN : yBD; heads += svHead(cx, cy, ch); lowY = Math.max(lowY, cy); notes.push({ t: tq(q), inst: ch, id: nid }); }
-          sx = sn !== "." || (g.one && lowOn(q)) ? cx + 5.6 : cx + 4.3; dotY = ySN;
+          sx = sn !== "." || tmc !== "." || (g.one && lowOn(q)) ? cx + 5.6 : cx + 4.3; dotY = ySN;
           stem = `<rect x="${sx - 0.75}" y="${TOP}" width="1.5" height="${lowY - TOP}" fill="currentColor"/>`;
           if (ons.length === 1 && d < div) for (let f = 0; f < (d === 1 ? 2 : 1); f++) flag += `<path d="M${sx} ${TOP + f * 7}c1 6 9 7 9 15" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>`;
         } else {
@@ -2945,6 +3045,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const up = b.up || b.hh || "", us = b.us || "", low = b.low || "";
       [...up].forEach((c) => c !== "." && used.add(c === "x" ? "hh" : c === "o" ? "hho" : c === "r" ? "rd" : "cr"));
       [...us].forEach((c) => c !== "." && used.add({ g: "G", H: "T1", L: "T2", F: "T3" }[c] || "S"));
+      [...(b.tm || "")].forEach((c) => c !== "." && used.add({ H: "T1", M: "T2", L: "T2", F: "T3" }[c] || "T3"));
       if (/f/.test(b.fl || "")) used.add("FL");
       [...low].forEach((c) => c !== "." && used.add(c));
       [...(b.hf || "")].forEach((c) => c !== "." && used.add("hf"));
@@ -2958,7 +3059,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       S: ["Caja", svHead(13, 11, "S")],
       G: ["Nota fantasma (muy flojito)", svHead(13, 11, "S", true)],
       B: ["Bombo", svHead(13, 11, "B")],
-      T1: ["Tom alto", svHead(13, 11, "1")], T2: ["Tom bajo", svHead(13, 11, "2")], T3: ["Tom base", svHead(13, 11, "3")],
+      T1: ["Tom alto", svHead(13, 11, "1")], T2: ["Tom medio", svHead(13, 11, "2")], T3: ["Tom base", svHead(13, 11, "3")],
       FL: ["Flam (golpe flojito justo antes)", svGrace(19, 11) + svHead(19, 11, "S")],
     };
     $("scLegend").innerHTML = ["cr", "rd", "hh", "hho", "S", "G", "T1", "T2", "T3", "B", "hf", "FL"].filter((k) => used.has(k))
@@ -3292,7 +3393,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     r.ex = null; $("svAcc").hidden = true;
     if (!scOpt.midi || !midiAccess) return;
     const ev = [], last = {};
-    r.events.forEach((e, i) => { const c = EX_CLS[e.inst]; if (c) ev.push({ t: e.t, c, el: r.els[i], st: 0, gp: 1e9, gn: 1e9 }); });
+    r.events.forEach((e, i) => { const c = EX_CLS[e.inst]; if (c && !e.nx) ev.push({ t: e.t, c, el: r.els[i], st: 0, gp: 1e9, gn: 1e9 }); });
     ev.forEach((e) => { const p = last[e.c]; if (p) { e.gp = p.gn = e.t - p.t; } last[e.c] = e; });
     r.ex = { ev, cols: new Map(), good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h) };
     midiListeners.add(r.ex.fn);
