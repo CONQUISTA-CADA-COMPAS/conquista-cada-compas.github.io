@@ -280,6 +280,7 @@ main.wide > aside { display: none; }
 .readycancel { background: none; border: 1.5px solid rgba(255,255,255,.5); color: #fff; border-radius: 8px; padding: 6px 16px; font-weight: 700; font-size: 14px; }
 .countin .donemsg { font-size: clamp(30px, 4.5vw, 54px); text-align: center; padding: 0 16px; color: #ff0b5e; }
 .countin .doneacc { display: block; font-size: .62em; margin-top: 6px; }
+.countin .donepieces { display: block; font-size: .36em; margin-top: 8px; font-weight: 700; }
 .countin small { display: block; font-size: 22px; font-family: var(--body); font-weight: 700; text-align: center; margin-top: 8px; color: #ff0b5e; }
 
 /* Línea de tiempo */
@@ -1690,8 +1691,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   let doneTimer = null;
   function showDone(acc) {
     const c = $("countin"); c.hidden = false;
-    c.innerHTML = `<div class="donemsg">¡Ensayo completado!${acc ? `<b class="doneacc"></b>` : ""}<small>Pulsa «Empezar ensayo» para repetirlo</small></div>`;
-    if (acc) c.querySelector(".doneacc").textContent = acc;
+    c.innerHTML = `<div class="donemsg">¡Ensayo completado!${acc ? `<b class="doneacc"></b><span class="donepieces"></span>` : ""}<small>Pulsa «Empezar ensayo» para repetirlo</small></div>`;
+    if (acc) { c.querySelector(".doneacc").textContent = acc[0]; c.querySelector(".donepieces").textContent = acc[1]; }
     clearTimeout(doneTimer); doneTimer = setTimeout(hideDone, acc ? 12000 : 6000);
   }
   function hideDone() { clearTimeout(doneTimer); if ($("countin").querySelector(".donemsg")) $("countin").hidden = true; }
@@ -3607,7 +3608,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   const EX_CLS = { B: "k", S: "s", G: "s", XS: "s", hh: "h", hho: "h", cr: "c", rd: "r", T1: "t1", T2: "t2", T3: "t3" };
   const MIDI_CLS = { 35: "k", 36: "k", 37: "s", 38: "s", 40: "s", 22: "h", 26: "h", 42: "h", 46: "h", 49: "c", 55: "c", 57: "c", 52: "c",
     51: "r", 59: "r", 53: "r", 48: "t1", 50: "t1", 45: "t2", 47: "t2", 43: "t3", 58: "t3", 41: "t3", 39: "t3" };
-  const EX_WIN = 0.12, EX_NEAR = 0.25;
+  const EX_WIN = 0.15, EX_NEAR = 0.25;
   function examStart(r) {
     r.ex = null; $("svAcc").hidden = true;
     if (!scOpt.midi || !midiAccess) return;
@@ -3617,11 +3618,11 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     // off = retraso medido (s): lo que tarda en salir el sonido + lo que va el niño por detrás. Se aprende mientras toca
     // (mediana de los últimos golpes) y se guarda para la próxima vez, por partitura con vídeo o sin él
     const lk = isVid(curScore()) ? "vid" : "app";
-    r.ex = { ev, cols: new Map(), good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h), lk, off: (scStore.lat || {})[lk] || 0, errs: [] };
+    r.ex = { ev, cols: new Map(), good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h), by: {}, lk, off: (scStore.lat || {})[lk] || 0, errs: [] };
     midiListeners.add(r.ex.fn);
     $("svAcc").hidden = false; examShow(r);
   }
-  const exWin = (r, e) => Math.min(EX_WIN / r.exS, 0.45 * Math.min(e.gp, e.gn));   // en tiempos; nunca llega a la nota vecina
+  const exWin = (r, e) => Math.min(EX_WIN / r.exS, 0.5 * Math.min(e.gp, e.gn));   // en tiempos; nunca llega a la nota vecina
   // Debajo de cada golpe (una columna, aunque suenen varias piezas a la vez): ✓ verde si todo se ha tocado bien,
   // × magenta si falla alguna. La nota acertada además se queda con un halo verde.
   function exMark(x, e, ok) {
@@ -3648,7 +3649,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     for (let i = x.next; i < x.ev.length; i++) {
       const e = x.ev[i];
       if (e.t > T) break;
-      if (e.st === 0 && e.t + exWin(r, e) < T) { e.st = 2; x.miss++; exMark(x, e, false); changed = true; }
+      if (e.st === 0 && e.t + exWin(r, e) < T) { e.st = 2; x.miss++; exPiece(x, e.c, false); exMark(x, e, false); changed = true; }
       if (i === x.next && e.st) x.next++;
     }
     if (changed) examShow(r);
@@ -3672,7 +3673,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       const d = Math.abs(e.t - T);
       if (e.st === 0 && e.c === c && d <= exWin(r, e) && d < bd) { best = e; bd = d; }
     }
-    if (best) { best.st = 1; x.good++; exMark(x, best, true); }
+    if (best) { best.st = 1; x.good++; exPiece(x, best.c, true); exMark(x, best, true); }
     else {
       // un golpe algo desplazado de una nota de esa pieza ya cuenta como fallo de esa nota: no se castiga dos veces
       const near = x.ev.some((e) => e.c === c && Math.abs(e.t - T) < EX_NEAR / r.exS);
@@ -3680,6 +3681,9 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     }
     examShow(r);
   }
+  // Cuenta por pieza, para saber cuál le cuesta más
+  const EX_NAME = { k: "Bombo", s: "Caja", h: "Charles", c: "Crash", r: "Ride", t1: "Tom alto", t2: "Tom medio", t3: "Tom base" };
+  function exPiece(x, c, ok) { const b = x.by[c] || (x.by[c] = [0, 0]); b[ok ? 0 : 1]++; }
   function examShow(r) {
     const x = r.ex, n = x.good + x.miss + x.extra, el = $("svAcc");
     if (!n) { el.textContent = "Acierto –"; return; }
@@ -3697,9 +3701,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   }
   function examSummary() {
     const r = scoreRun, x = r && r.ex; if (!x) return "";
-    const n = x.good + x.miss + x.extra; if (!n) return "";
+    const n = x.good + x.miss + x.extra; if (!n) return null;
     const ms = Math.round(x.off * 100) / 100, lag = Math.abs(ms) >= 0.02 ? ` · tus golpes llegaban ${String(Math.abs(ms)).replace(".", ",")} s ${ms > 0 ? "tarde" : "pronto"} (ya está corregido)` : "";
-    return `Acierto: ${Math.round((100 * x.good) / n)} % · ${x.good} de ${x.good + x.miss} notas` + (x.extra ? ` · ${x.extra} ${x.extra === 1 ? "golpe" : "golpes"} de más` : "") + lag;
+    const pieces = Object.keys(EX_NAME).filter((c) => x.by[c]).map((c) => `${EX_NAME[c]} ${Math.round((100 * x.by[c][0]) / (x.by[c][0] + x.by[c][1]))} %`).join(" · ");
+    return [`Acierto: ${Math.round((100 * x.good) / n)} % · ${x.good} de ${x.good + x.miss} notas` + (x.extra ? ` · ${x.extra} ${x.extra === 1 ? "golpe" : "golpes"} de más` : ""), pieces + lag];
   }
   function examStop(r) {
     if (!r || !r.ex) return;
@@ -3860,9 +3865,19 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     let est, playing, B;
     if (r.mode === "vid") {
       // YouTube da el segundo a saltitos: entre medias se calcula con el reloj, para que la tira se mueva suave
-      const ct = player.getCurrentTime(); playing = player.getPlayerState() === YT.PlayerState.PLAYING;
-      if (Math.abs(ct - r.lastCt) > 0.001) { r.lastCt = ct; r.lastNow = now; }
-      est = playing ? r.lastCt + Math.min(0.5, (now - r.lastNow) / 1000) * r.rate : r.lastCt;
+      let ct = player.getCurrentTime(); playing = player.getPlayerState() === YT.PlayerState.PLAYING;
+      // justo después de volver atrás, YouTube aún puede dar el segundo de antes: se ignora hasta que llegue el nuevo
+      if (r.guard) { if (now > r.guard.until) r.guard = null; else if (Math.abs(ct - r.guard.to) > 1.5) ct = r.lastCt; }
+      // YouTube manda el segundo a saltitos y algo atrasado: cada aviso da «segundo del vídeo − reloj»; el más alto de los
+      // últimos 3 s es el más fresco. Así el reloj corre suave y sin tirones (si salta mucho: búsqueda, pausa o velocidad nueva)
+      if (Math.abs(ct - r.lastCt) > 0.001) {
+        r.lastCt = ct; r.lastNow = now;
+        const o = ct - (now / 1000) * r.rate;
+        if (!r.offs || Math.abs(o - r.cOff) > 0.4) r.offs = [];
+        r.offs.push([now, o]); r.offs = r.offs.filter((q) => now - q[0] < 3000);
+        r.cOff = Math.max(...r.offs.map((q) => q[1]));
+      }
+      est = playing && r.offs ? (now / 1000) * r.rate + r.cOff : r.lastCt;
       B = vidBeat(r.s, est) - r.startB;
     } else {
       if (r.live) {   // siguiendo la pestaña de YouTube: el compás lo da la barra roja del vídeo
@@ -3902,7 +3917,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       if (r.rep < r.reps) {   // otra vuelta: vuelve al principio con cuenta de 3
         r.rep++; r.hi = 0; r.nextEv = 0; r.shown = 0; r.lead = 3; examRewind(r);
         const back = Math.max(0, vidTime(r.s, r.startB) - 3 * r.beat);
-        if (r.mode === "vid") { player.seekTo(back, true); r.lastCt = back; r.lastNow = now; }
+        if (r.mode === "vid") { player.seekTo(back, true); r.lastCt = back; r.lastNow = now; r.offs = null; r.guard = { to: back, until: now + 1200 }; }
         else { r.c0 = back; r.a0 = audioCtx.currentTime; }
       } else { const sum = examSummary(); stopScore(); showDone(sum); }
     }
@@ -3911,7 +3926,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const s = curScore(); if (!s) return;
     scStore.rate[s.id] = +$("scRate").value; scSave();
     const r = scoreRun;
-    if (r && r.vid && r.mode === "vid") { r.rate = +$("scRate").value; try { player.setPlaybackRate(r.rate); } catch (e) {} }
+    if (r && r.vid && r.mode === "vid") { r.rate = +$("scRate").value; r.offs = null; try { player.setPlaybackRate(r.rate); } catch (e) {} }
     else if (r && r.vid && r.started) { const est = r.c0 + (audioCtx.currentTime - r.a0) * r.rate; r.c0 = est; r.a0 = audioCtx.currentTime; r.rate = +$("scRate").value; }
   };
   $("scorePause").onclick = toggleScorePause;
