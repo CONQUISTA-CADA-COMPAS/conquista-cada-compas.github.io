@@ -2540,6 +2540,93 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   // up (plica arriba): x = charles cerrado, o = charles abierto, c = crash, r = plato ride.  beats = tiempos por compás (4 si no se dice).  us (caja con plica arriba): S = caja, g = nota fantasma.
   // low (plica abajo): S = caja, B = bombo.  (hh = nombre antiguo de up.)
   const SCORES = [
+    { id: "for-reasons-unknown", title: "For Reasons Unknown", sub: "The Killers · Jack Young, grado 3 · 77 compases", video: "0_3Pla56rEY", div: 4, one: true, plain: true, lines: (() => {
+      // Pasada a limpio de la captura del vídeo de Jack Young (JYDT grado 3), compás a compás. Mismo formato que «All These Things».
+      const b = [
+        /* 1 */ { up: "x.......x", nx: true },
+        /* 2 */ { up: "x...x...x...x", nx: true },
+        /* 3 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B" },
+        /* 4 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B" },
+        /* 5 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B" },
+        /* 6 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B.B" },
+        /* 7 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B" },
+        /* 8 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B" },
+        /* 9 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B" },
+        /* 10 */ { up: "x.x.x.x.x.x.x.x", low: "B...B...B...B.B" },
+        /* 11 */ { up: "x", low: "B" },
+        /* 12 */ { us: "..........S.S.S", tm: "..........F.F.F" },
+        /* 13 */ { up: "c.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 14 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 15 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 16 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 17 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 18 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 19 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 20 */ { up: "x.x.x.x.x.x.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 21 */ { up: "c.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 22 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 23 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 24 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 25 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 26 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 27 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 28 */ { up: "x.x.x.x.o.o.o.o", us: "....S.....S.S", low: "B.......B.....B" },
+        /* 29 */ { up: "c.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 30 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 31 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 32 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 33 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 34 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 35 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 36 */ { up: "o.o.o.o.o.o.o.o", us: "..S.S...S.S.S", low: "B.....B.......B" },
+        /* 37 */ { up: "c.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 38 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 39 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 40 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 41 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 42 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 43 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 44 */ { up: "o.o.o.o.o.o.o.o", us: "....S...S...S", low: "B.........B...B" },
+        /* 45 */ { up: "c", low: "B" },
+        /* 46 */ {},
+        /* 47 */ { us: "S.S.S.S.S.S.S.S", tm: "F.F.F.F.F.F.F.F" },
+        /* 48 */ { us: "S.S.S.S.S.S.S.S", tm: "F.F.F.F.F.F.F.F" },
+        /* 49 */ { us: "S.S.S.S.S.S.S.S", tm: "F.F.F.F.F.F.F.F" },
+        /* 50 */ { us: "S.S.S.S.S.S.S.S", tm: "F.F.F.F.F.F.F.F" },
+        /* 51 */ { us: "S.S.S.S.S.S.S.S", tm: "F.F.F.F.F.F.F.F" },
+        /* 52 */ { up: "............o", us: "SS.SS.......S", tm: "......HHH.F" },
+        /* 53 */ { up: "c.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 54 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 55 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 56 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 57 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B" },
+        /* 58 */ { up: "x.x.x.x.x.x.x.x", us: "....S.......S", low: "B.......B.....B" },
+        /* 59 */ { up: "c.o.o.c.o.o.o.c", us: "S.....S.......S", low: "....B.....B.B" },
+        /* 60 */ { up: "o.o.c", us: "....S...S.S.S.S", tm: "........F.F.F.F", low: "..B" },
+        /* 61 */ { up: "c.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 62 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 63 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 64 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 65 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 66 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 67 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 68 */ {},
+        /* 69 */ { up: "c.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 70 */ { up: "o", us: "..SSSSSS", tm: "........HHHHFFFF", low: "B" },
+        /* 71 */ { up: "c.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B" },
+        /* 72 */ { up: "o.o.o.o.o.o.o.o", us: "....S.......S", low: "B.......B.....B" },
+        /* 73 */ { up: "c.c.c.c.c.c.c.c", us: "....S.......S", low: "B.......B" },
+        /* 74 */ { up: "c.c.c.c.c.c.c.c", us: "....S.......S", low: "B.......B.....B" },
+        /* 75 */ { up: "c.c.c.c.c.c.c.c", us: "....S.......S", low: "B.......B" },
+        /* 76 */ { up: "c...c...o.o.o", us: "S...S...S.S.S", low: "..B...B.......B" },
+        /* 77 */ { up: "c", low: "B" },
+      ];
+      // 4 compases por línea (si al final sobra uno, va con los 4 anteriores)
+      const L = []; for (let i = 0, n; i < b.length; i += n) { n = b.length - i === 5 ? 5 : 4; L.push(b.slice(i, i + n).map((x, j) => Object.assign({}, x, j === 0 ? { m: i + 1 } : {}))); }
+      return L;
+    })(),
+      // 141 golpes por minuto exactos (240/141 s por compás); el compás 3 empieza en el segundo 6,59 (franja amarilla al capturar)
+      bt: [3.186, 4.888, 6.59, 8.292, 9.994, 11.696, 13.399, 15.101, 16.803, 18.505, 20.207, 21.909, 23.611, 25.313, 27.016, 28.718, 30.42, 32.122, 33.824, 35.526, 37.228, 38.93, 40.633, 42.335, 44.037, 45.739, 47.441, 49.143, 50.845, 52.547, 54.25, 55.952, 57.654, 59.356, 61.058, 62.76, 64.462, 66.164, 67.867, 69.569, 71.271, 72.973, 74.675, 76.377, 78.079, 79.781, 81.484, 83.186, 84.888, 86.59, 88.292, 89.994, 91.696, 93.399, 95.101, 96.803, 98.505, 100.207, 101.909, 103.611, 105.313, 107.016, 108.718, 110.42, 112.122, 113.824, 115.526, 117.228, 118.93, 120.633, 122.335, 124.037, 125.739, 127.441, 129.143, 130.845, 132.547, 134.25] },
     { id: "all-these-things", title: "All These Things That I've Done", sub: "The Killers · Jack Young, grado 5 · 84 compases", video: "FI4tahavfsg", div: 4, one: true, plain: true, lines: (() => {
       // Pasada a limpio de la captura del vídeo de Jack Young (JYDT grado 5), compás a compás. 4/4 en semicorcheas, una sola voz.
       // up: x charles, o charles abierto, c crash · us: S caja · tm: F tom base (tom 3), H tom alto (tom 1) · low: B bombo · fl: f = flam
@@ -2630,8 +2717,8 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       /* 83 */ { up: "c", low: "B" },
       /* 84 */ {},
       ];
-      // 4 compases por línea, con el número del primero
-      const L = []; for (let i = 0; i < b.length; i += 4) L.push(b.slice(i, i + 4).map((x, j) => Object.assign({}, x, j === 0 ? { m: i + 1 } : {})));
+      // 4 compases por línea (si al final sobra uno, va con los 4 anteriores)
+      const L = []; for (let i = 0, n; i < b.length; i += n) { n = b.length - i === 5 ? 5 : 4; L.push(b.slice(i, i + n).map((x, j) => Object.assign({}, x, j === 0 ? { m: i + 1 } : {}))); }
       return L;
     })(),
       // segundo del vídeo en que empieza cada compás: 120 golpes por minuto exactos (2 s por compás), medido con la franja amarilla al capturar
@@ -2737,7 +2824,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
       [{ hh: "xxxxxoxo", low: "BBS.B.S." }, { hh: "xxxxxoxx", low: "BBSBB.S." }],
     ] },
   ];
-  const SC_LATEST = "all-these-things";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
+  const SC_LATEST = "for-reasons-unknown";   // ← la última que ha pasado Gonzalo: siempre la primera de la lista (cambiar al añadir otra)
   const SCORE_KEY = "ensayo-partituras-v1", SC_REPS = 10, SC_LEAD = 5, SC_REST = -0.6;   // cuenta de 5 tiempos; en reposo, la 1.ª nota junto a la barra
   let scStore = {};
   try { scStore = JSON.parse(localStorage.getItem(SCORE_KEY)) || {}; } catch (e) {}
