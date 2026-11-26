@@ -3614,7 +3614,10 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
     const ev = [], last = {};
     r.events.forEach((e, i) => { const c = EX_CLS[e.inst]; if (c && !e.nx) ev.push({ t: e.t, c, el: r.els[i], st: 0, gp: 1e9, gn: 1e9 }); });
     ev.forEach((e) => { const p = last[e.c]; if (p) { e.gp = p.gn = e.t - p.t; } last[e.c] = e; });
-    r.ex = { ev, cols: new Map(), good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h) };
+    // off = retraso medido (s): lo que tarda en salir el sonido + lo que va el niño por detrás. Se aprende mientras toca
+    // (mediana de los últimos golpes) y se guarda para la próxima vez, por partitura con vídeo o sin él
+    const lk = isVid(curScore()) ? "vid" : "app";
+    r.ex = { ev, cols: new Map(), good: 0, miss: 0, extra: 0, next: 0, pct: -1, fn: (h) => examHit(r, h), lk, off: (scStore.lat || {})[lk] || 0, errs: [] };
     midiListeners.add(r.ex.fn);
     $("svAcc").hidden = false; examShow(r);
   }
@@ -3640,6 +3643,7 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function examClock(r, T, spb) {
     const x = r.ex; if (!x) return;
     r.exT = T; r.exP = performance.now() / 1000; r.exS = spb;
+    T -= x.off / spb;   // con el retraso medido, la nota espera un poco más antes de darse por fallada
     let changed = false;
     for (let i = x.next; i < x.ev.length; i++) {
       const e = x.ev[i];
@@ -3652,7 +3656,15 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function examHit(r, h) {
     const x = r.ex; if (!x || r !== scoreRun || r.paused || r.frozen != null || r.exP == null || h.cc != null) return;
     const c = MIDI_CLS[h.note]; if (!c) return;
-    const T = r.exT + (h.t - r.exP) / r.exS;
+    const T0 = r.exT + (h.t - r.exP) / r.exS;
+    // retraso: distancia (s) a la nota más cercana de esa pieza; con 8 golpes o más se corrige con la mediana de los últimos 40
+    let nb = null, nd = 1e9;
+    for (const e of x.ev) if (e.c === c) { const d = Math.abs(e.t - T0); if (d < nd) { nd = d; nb = e; } }
+    if (nb && nd * r.exS < 0.3) {
+      x.errs.push((T0 - nb.t) * r.exS); if (x.errs.length > 40) x.errs.shift();
+      if (x.errs.length >= 8) { const so = [...x.errs].sort((a, b) => a - b); x.off = Math.max(-0.25, Math.min(0.25, so[so.length >> 1])); }
+    }
+    const T = T0 - x.off / r.exS;
     if (T < -0.5 || T > r.total + 0.5) return;   // durante la cuenta atrás no cuenta
     let best = null, bd = 1e9;
     for (let i = x.next; i < x.ev.length; i++) {
@@ -3686,9 +3698,14 @@ kbd { font-family: var(--mono); font-size: 12px; border: 1px solid var(--line); 
   function examSummary() {
     const r = scoreRun, x = r && r.ex; if (!x) return "";
     const n = x.good + x.miss + x.extra; if (!n) return "";
-    return `Acierto: ${Math.round((100 * x.good) / n)} % · ${x.good} de ${x.good + x.miss} notas` + (x.extra ? ` · ${x.extra} ${x.extra === 1 ? "golpe" : "golpes"} de más` : "");
+    const ms = Math.round(x.off * 100) / 100, lag = Math.abs(ms) >= 0.02 ? ` · tus golpes llegaban ${String(Math.abs(ms)).replace(".", ",")} s ${ms > 0 ? "tarde" : "pronto"} (ya está corregido)` : "";
+    return `Acierto: ${Math.round((100 * x.good) / n)} % · ${x.good} de ${x.good + x.miss} notas` + (x.extra ? ` · ${x.extra} ${x.extra === 1 ? "golpe" : "golpes"} de más` : "") + lag;
   }
-  function examStop(r) { if (r && r.ex) midiListeners.delete(r.ex.fn); }
+  function examStop(r) {
+    if (!r || !r.ex) return;
+    midiListeners.delete(r.ex.fn);
+    if (r.ex.errs.length >= 8) { scStore.lat = scStore.lat || {}; scStore.lat[r.ex.lk] = r.ex.off; scSave(); }   // para la próxima vez
+  }
   function startScore(st) {
     const ctx = audio(); if (!ctx) return toast("Este navegador no puede hacer sonar el metrónomo.");
     keepAwake();
